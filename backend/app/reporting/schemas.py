@@ -17,3 +17,39 @@ class ReportResponse(BaseModel):
 
 class ReportSummary(BaseModel):
     summary: str = Field(..., min_length=1, max_length=10000)
+
+
+class TaskCountsByStatus(BaseModel):
+    backlog: int = 0
+    in_progress: int = 0
+    review: int = 0
+    done: int = 0
+
+
+class ProjectSummary(BaseModel):
+    id: str
+    name: str
+    slug: str
+    description: str | None = None
+    status: str
+    created_at: str
+    updated_at: str
+
+
+class AuditEventSummary(BaseModel):
+    id: str
+    timestamp: str
+    event_type: str
+    entity_type: str
+    entity_id: str
+    actor_type: str
+    actor_id: str
+    payload: dict[str, object] | None = None
+    note: str | None = None
+
+
+class DashboardStatsResponse(BaseModel):
+    project_count: int
+    task_counts_by_status: TaskCountsByStatus
+    recent_projects: list[ProjectSummary]
+    recent_activity: list[AuditEventSummary]
