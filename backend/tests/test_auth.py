@@ -1,4 +1,5 @@
-from app.shared.auth import RBACPermission, RBACRole, RBACUser, get_current_user
+from app.auth.models import RBACPermission, RBACRole, RBACUser
+from app.auth.service import get_current_user
 
 
 def test_user_model_has_expected_columns() -> None:
@@ -30,10 +31,10 @@ def test_get_current_user_returns_placeholder() -> None:
 
 
 def test_user_role_association_exists() -> None:
-    from app.shared.auth import user_role
+    from app.auth.models import user_role
     assert user_role.name == "user_role"
 
 
 def test_role_permission_association_exists() -> None:
-    from app.shared.auth import role_permission
+    from app.auth.models import role_permission
     assert role_permission.name == "role_permission"

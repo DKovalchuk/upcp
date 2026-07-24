@@ -1,3 +1,9 @@
+[project]
+name = "upcp"
+version = "0.1.0"
+description = "Universal Project Control Plane"
+requires-python = ">=3.12"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
