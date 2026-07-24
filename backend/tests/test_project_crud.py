@@ -134,3 +134,36 @@ def test_list_projects_returns_paginated() -> None:
     assert len(data["items"]) == 2
     assert data["total"] == 5
     assert data["limit"] == 2
+
+
+def test_list_projects_filter_by_status() -> None:
+    app = _test_app()
+    client = TestClient(app)
+    client.post("/api/v1/projects", json={"name": "A", "status": "active"})
+    client.post("/api/v1/projects", json={"name": "B", "status": "archived"})
+    resp = client.get("/api/v1/projects?status=archived")
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["name"] == "B"
+
+
+def test_list_projects_search_by_name() -> None:
+    app = _test_app()
+    client = TestClient(app)
+    client.post("/api/v1/projects", json={"name": "Alpha"})
+    client.post("/api/v1/projects", json={"name": "Beta"})
+    resp = client.get("/api/v1/projects?search=alph")
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["name"] == "Alpha"
+
+
+def test_list_projects_sort_by_name_asc() -> None:
+    app = _test_app()
+    client = TestClient(app)
+    client.post("/api/v1/projects", json={"name": "Charlie"})
+    client.post("/api/v1/projects", json={"name": "Alpha"})
+    client.post("/api/v1/projects", json={"name": "Bravo"})
+    resp = client.get("/api/v1/projects?sort_by=name&sort_dir=asc")
+    names = [p["name"] for p in resp.json()["items"]]
+    assert names == ["Alpha", "Bravo", "Charlie"]
