@@ -1,4 +1,6 @@
 """MCP server implementation."""
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
@@ -8,6 +10,87 @@ from app.mcp.schemas import (
     JSONRPCResponse,
 )
 from app.mcp.tools import call_tool, get_tools
+
+
+def _handle_initialize(request: JSONRPCRequest) -> JSONRPCResponse:
+    """Handle initialize method."""
+    result: dict[str, Any] = {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {
+            "tools": {},
+            "resources": {},
+        },
+        "serverInfo": {
+            "name": "upcp-mcp-server",
+            "version": "1.0.0",
+        },
+    }
+    return JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
+
+
+def _handle_tools_list(request: JSONRPCRequest) -> JSONRPCResponse:
+    """Handle tools/list method."""
+    tools = get_tools()
+    result: dict[str, Any] = {"tools": [tool.model_dump() for tool in tools]}
+    return JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
+
+
+async def _handle_tools_call(request: JSONRPCRequest) -> JSONRPCResponse:
+    """Handle tools/call method."""
+    if not request.params or "name" not in request.params:
+        raise ValueError("Missing tool name")
+
+    tool_name = str(request.params["name"])
+    raw_args = request.params.get("arguments")
+    arguments: dict[str, object] = dict(raw_args) if isinstance(raw_args, dict) else {}
+
+    tool_result = await call_tool(tool_name, arguments)
+    result: dict[str, Any] = tool_result.model_dump()
+    return JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
+
+
+def _handle_resources_list(request: JSONRPCRequest) -> JSONRPCResponse:
+    """Handle resources/list method."""
+    resources = get_resources()
+    result: dict[str, Any] = {"resources": [res.model_dump() for res in resources]}
+    return JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
+
+
+def _handle_resources_read(request: JSONRPCRequest) -> JSONRPCResponse:
+    """Handle resources/read method."""
+    if not request.params or "uri" not in request.params:
+        raise ValueError("Missing resource URI")
+
+    uri = str(request.params["uri"])
+    project_id_val = request.params.get("project_id")
+    project_id = str(project_id_val) if project_id_val is not None else None
+
+    content = get_resource_content(uri, project_id)
+    result: dict[str, Any] = {"contents": [{"uri": uri, "mimeType": "text/plain", "text": content}]}
+    return JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
+
+
+def _handle_method_not_found(request: JSONRPCRequest) -> JSONRPCResponse:
+    """Handle unknown methods."""
+    error: dict[str, Any] = {"code": -32601, "message": f"Method not found: {request.method}"}
+    return JSONRPCResponse(jsonrpc="2.0", id=request.id, error=error)
+
+
+async def _dispatch_jsonrpc(request: JSONRPCRequest) -> JSONRPCResponse:
+    """Dispatch JSON-RPC request to appropriate handler."""
+    method = request.method
+
+    if method == "initialize":
+        return _handle_initialize(request)
+    if method == "tools/list":
+        return _handle_tools_list(request)
+    if method == "tools/call":
+        return await _handle_tools_call(request)
+    if method == "resources/list":
+        return _handle_resources_list(request)
+    if method == "resources/read":
+        return _handle_resources_read(request)
+    return _handle_method_not_found(request)
 
 
 def create_mcp_router() -> APIRouter:
@@ -22,52 +105,10 @@ def create_mcp_router() -> APIRouter:
     @router.post("/")
     async def handle_jsonrpc(request: JSONRPCRequest) -> JSONResponse:
         """Handle JSON-RPC 2.0 requests."""
-        from typing import Any, cast
-
         try:
-            response: JSONRPCResponse
-            if request.method == "initialize":
-                result = cast(dict[str, Any], {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {
-                        "tools": {},
-                        "resources": {},
-                    },
-                    "serverInfo": {
-                        "name": "upcp-mcp-server",
-                        "version": "1.0.0",
-                    },
-                })
-                response = JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
-            elif request.method == "tools/list":
-                tools = get_tools()
-                result = cast(dict[str, Any], {"tools": [tool.model_dump() for tool in tools]})
-                response = JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
-            elif request.method == "tools/call":
-                if not request.params or "name" not in request.params:
-                    raise ValueError("Missing tool name")
-                tool_name = str(request.params["name"])
-                arguments = dict(request.params.get("arguments", {}) or {})
-                tool_result = await call_tool(tool_name, arguments)
-                result = cast(dict[str, Any], tool_result.model_dump())
-                response = JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
-            elif request.method == "resources/list":
-                resources = get_resources()
-                result = cast(dict[str, Any], {"resources": [res.model_dump() for res in resources]})
-                response = JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
-            elif request.method == "resources/read":
-                if not request.params or "uri" not in request.params:
-                    raise ValueError("Missing resource URI")
-                uri = str(request.params["uri"])
-                project_id = str(request.params.get("project_id", "")) if request.params.get("project_id") else None
-                content = get_resource_content(uri, project_id)
-                result = cast(dict[str, Any], {"contents": [{"uri": uri, "mimeType": "text/plain", "text": content}]})
-                response = JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
-            else:
-                error = cast(dict[str, Any], {"code": -32601, "message": f"Method not found: {request.method}"})
-                response = JSONRPCResponse(jsonrpc="2.0", id=request.id, error=error)
+            response = await _dispatch_jsonrpc(request)
         except Exception as e:
-            error = cast(dict[str, Any], {"code": -32603, "message": str(e)})
+            error: dict[str, Any] = {"code": -32603, "message": str(e)}
             response = JSONRPCResponse(jsonrpc="2.0", id=request.id, error=error)
 
         return JSONResponse(content=response.model_dump())
