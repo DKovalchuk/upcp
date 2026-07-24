@@ -1,7 +1,7 @@
 # TASK-0040: Quality Statistics Aggregation Endpoint
 
 Spec: SPEC-0012 (C2)
-Status: pending
+Status: done
 Priority: 1
 Model: routine
 Milestone: M5
