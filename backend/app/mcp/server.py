@@ -47,7 +47,7 @@ def create_mcp_router() -> APIRouter:
                 if not request.params or "name" not in request.params:
                     raise ValueError("Missing tool name")
                 tool_name = str(request.params["name"])
-                arguments = dict(request.params.get("arguments", {}))
+                arguments = dict(request.params.get("arguments", {}) or {})
                 tool_result = await call_tool(tool_name, arguments)
                 result = cast(dict[str, Any], tool_result.model_dump())
                 response = JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)

@@ -83,8 +83,8 @@ async def call_tool(name: str, arguments: dict[str, object]) -> ToolResult:
     try:
         if name == "project_list":
             service = ProjectService(session)
-            offset = int(arguments.get("offset", 0))
-            limit = int(arguments.get("limit", 20))
+            offset = int(arguments.get("offset", 0) or 0)
+            limit = int(arguments.get("limit", 20) or 20)
             projects, total = service.list_projects(offset=offset, limit=limit)
             items = [
                 {
@@ -123,8 +123,8 @@ async def call_tool(name: str, arguments: dict[str, object]) -> ToolResult:
             if not feature_id:
                 raise ValueError("project_id (feature_id) is required")
             task_service = TaskService(session)
-            offset = int(arguments.get("offset", 0))
-            limit = int(arguments.get("limit", 20))
+            offset = int(arguments.get("offset", 0) or 0)
+            limit = int(arguments.get("limit", 20) or 20)
             tasks, total = task_service.list_tasks(feature_id, offset=offset, limit=limit)
             items = [
                 {
@@ -174,8 +174,8 @@ async def call_tool(name: str, arguments: dict[str, object]) -> ToolResult:
                 raise ValueError("project_id is required")
             from app.delivery.service import FeatureService
             feature_service = FeatureService(session)
-            offset = int(arguments.get("offset", 0))
-            limit = int(arguments.get("limit", 20))
+            offset = int(arguments.get("offset", 0) or 0)
+            limit = int(arguments.get("limit", 20) or 20)
             features, total = feature_service.list_features(project_id, offset=offset, limit=limit)
             items = [
                 {
