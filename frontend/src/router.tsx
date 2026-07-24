@@ -90,6 +90,12 @@ const projectAuditRoute = createRoute({
   component: () => <LazyRoute Component={ProjectDetail} />,
 });
 
+const projectGitRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/git',
+  component: () => <LazyRoute Component={ProjectDetail} />,
+});
+
 const projectSettingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/projects/$projectId/settings',
@@ -116,6 +122,7 @@ const routeTree = rootRoute.addChildren([
   projectDeliveryRoute,
   projectQualityRoute,
   projectAuditRoute,
+  projectGitRoute,
   projectSettingsRoute,
   healthRoute,
   notFoundRoute,

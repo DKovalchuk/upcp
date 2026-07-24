@@ -15,6 +15,7 @@ import type {
 import type { Report, ReportCreate } from '@/types/report';
 import type { AuditEvent, AuditEventCreate } from '@/types/audit';
 import type { HealthResponse, PaginatedResponse, DashboardStatsResponse, QualityStatsResponse } from '@/types/api';
+import type { GitProvider, GitProviderCreate, GitBranch, GitCommit, GitLink } from '@/types/git';
 
 const API_BASE = '/api/v1';
 
@@ -375,4 +376,73 @@ export async function fetchQualityStats(
 // Health
 export async function fetchHealth(): Promise<HealthResponse> {
   return apiRequest<HealthResponse>('/health');
+}
+
+// Git Providers
+export async function fetchGitProviders(
+  projectId: string
+): Promise<GitProvider[]> {
+  return apiRequest<GitProvider[]>(
+    `${API_BASE}/projects/${projectId}/git-providers`
+  );
+}
+
+export async function createGitProvider(
+  projectId: string,
+  data: GitProviderCreate
+): Promise<GitProvider> {
+  return apiRequest<GitProvider>(
+    `${API_BASE}/projects/${projectId}/git-providers`,
+    { method: 'POST', body: JSON.stringify(data) }
+  );
+}
+
+export async function deleteGitProvider(id: string): Promise<void> {
+  return apiRequest<void>(`${API_BASE}/git-providers/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// Git Branches
+export async function fetchGitBranches(
+  providerId: string
+): Promise<GitBranch[]> {
+  return apiRequest<GitBranch[]>(
+    `${API_BASE}/git-providers/${providerId}/branches`
+  );
+}
+
+// Git Commits
+export async function fetchGitCommits(
+  providerId: string,
+  limit = 20
+): Promise<GitCommit[]> {
+  return apiRequest<GitCommit[]>(
+    `${API_BASE}/git-providers/${providerId}/commits?limit=${limit}`
+  );
+}
+
+// Git Links
+export async function fetchGitLinks(
+  entityType: string,
+  entityId: string
+): Promise<GitLink[]> {
+  return apiRequest<GitLink[]>(
+    `${API_BASE}/git-links?entity_type=${entityType}&entity_id=${entityId}`
+  );
+}
+
+export async function createGitLink(
+  data: Omit<GitLink, 'id'>
+): Promise<GitLink> {
+  return apiRequest<GitLink>(`${API_BASE}/git-links`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteGitLink(id: string): Promise<void> {
+  return apiRequest<void>(`${API_BASE}/git-links/${id}`, {
+    method: 'DELETE',
+  });
 }

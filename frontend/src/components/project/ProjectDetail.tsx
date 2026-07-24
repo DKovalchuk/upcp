@@ -13,12 +13,14 @@ import { DeliveryPage } from './DeliveryPage';
 import { QualityPage } from './QualityPage';
 import { AuditPage } from './AuditPage';
 import { ReportsPage } from './ReportsPage';
+import { GitIntegrationPage } from './GitIntegrationPage';
 
 const TAB_ROUTES: Record<string, string> = {
   structure: 'structure',
   delivery: 'delivery',
   quality: 'quality',
   audit: 'audit',
+  git: 'git',
   settings: 'settings',
 };
 
@@ -77,6 +79,7 @@ export function ProjectDetail() {
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="quality">Quality</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
+          <TabsTrigger value="git">Git</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -132,6 +135,10 @@ export function ProjectDetail() {
 
         <TabsContent value="audit" className="mt-6">
           <AuditPage />
+        </TabsContent>
+
+        <TabsContent value="git" className="mt-6">
+          <GitIntegrationPage />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
