@@ -32,19 +32,21 @@ TASK-0022 and TASK-0023 completed.
 - Loading, error, and empty states handled.
 - `npm run build` passes with no TypeScript errors.
 
-M5 in progress: Frontend UI/UX + MCP fixes.
+M5 completed: Frontend UI/UX + Backend APIs + MCP fixes.
 
 - SPEC-0012 created: Frontend UI/UX Architecture.
-- SPEC-0012-audit-report.md: Reviewer audit with 5 critical gaps, 8 missing features.
-- TASK-0024: App Shell + Sidebar + TopBar (done).
-- TASK-0025: Design System Components (done).
-- TASK-0026: Types + API Client + Hooks (done).
-- TASK-0038: MCP Critical Bug Fixes — **DONE**. All 6 bugs fixed, 21 new tests, 167 total, coverage 79%.
-- TASK-0039: Audit List API Endpoint (pending — blocks TASK-0032).
-- TASK-0040: Quality Stats Endpoint (pending — blocks TASK-0031).
-- TASK-0041: Dashboard Stats Endpoint (pending — blocks TASK-0027).
-- AGENTS.md updated: Git Workflow section (feature branches, commit format).
-- Frontend Phase 1 complete: App Shell, Design System, Types, API Client, Hooks.
+- SPEC-0012-audit-report.md: Reviewer audit (critical gaps resolved).
+- TASK-0024: App Shell + Sidebar + TopBar — **DONE**.
+- TASK-0025: Design System Components — **DONE**.
+- TASK-0026: Types + API Client + Hooks — **DONE**.
+- TASK-0038: MCP Critical Bug Fixes — **DONE**. 6 bugs fixed, 21 tests, coverage 79%.
+- TASK-0038: Frontend Audit Gaps — **DONE**. 404, ErrorBoundary, lazy loading.
+- TASK-0039: Audit List API Endpoint — **DONE**. 5 tests.
+- TASK-0040: Quality Stats Endpoint — **DONE**. 7 tests.
+- TASK-0041: Dashboard Stats Endpoint — **DONE**. 4 tests.
+- Backend: 189 tests, 90% coverage.
+- Frontend: Build passes, TypeScript clean.
+- AGENTS.md updated: Git Workflow section.
 
 ## Important Notes
 
