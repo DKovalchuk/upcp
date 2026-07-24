@@ -18,6 +18,14 @@ import type { HealthResponse, PaginatedResponse, DashboardStatsResponse, Quality
 
 const API_BASE = '/api/v1';
 
+function paginationParams(params?: { offset?: number; limit?: number }): string {
+  if (!params) return '';
+  const parts: string[] = [];
+  if (params.offset !== undefined) parts.push(`offset=${params.offset}`);
+  if (params.limit !== undefined) parts.push(`limit=${params.limit}`);
+  return parts.length ? `?${parts.join('&')}` : '';
+}
+
 async function apiRequest<T>(
   url: string,
   options: RequestInit = {}
@@ -46,9 +54,12 @@ async function apiRequest<T>(
 }
 
 // Projects
-export async function fetchProjects(): Promise<Project[]> {
-  const data = await apiRequest<PaginatedResponse<Project>>(`${API_BASE}/projects`);
-  return data.items ?? [];
+export async function fetchProjects(
+  pagination?: { offset?: number; limit?: number }
+): Promise<PaginatedResponse<Project>> {
+  return apiRequest<PaginatedResponse<Project>>(
+    `${API_BASE}/projects${paginationParams(pagination)}`
+  );
 }
 
 export async function fetchProject(id: string): Promise<Project> {
@@ -136,9 +147,13 @@ export async function deleteModule(id: string): Promise<void> {
 }
 
 // Features
-export async function fetchFeatures(projectId: string): Promise<Feature[]> {
-  const data = await apiRequest<PaginatedResponse<Feature>>(`${API_BASE}/projects/${projectId}/features`);
-  return data.items ?? [];
+export async function fetchFeatures(
+  projectId: string,
+  pagination?: { offset?: number; limit?: number }
+): Promise<PaginatedResponse<Feature>> {
+  return apiRequest<PaginatedResponse<Feature>>(
+    `${API_BASE}/projects/${projectId}/features${paginationParams(pagination)}`
+  );
 }
 
 export async function fetchFeature(id: string): Promise<Feature> {
@@ -166,9 +181,13 @@ export async function deleteFeature(id: string): Promise<void> {
 }
 
 // Tasks
-export async function fetchTasks(featureId: string): Promise<Task[]> {
-  const data = await apiRequest<PaginatedResponse<Task>>(`${API_BASE}/features/${featureId}/tasks`);
-  return data.items ?? [];
+export async function fetchTasks(
+  featureId: string,
+  pagination?: { offset?: number; limit?: number }
+): Promise<PaginatedResponse<Task>> {
+  return apiRequest<PaginatedResponse<Task>>(
+    `${API_BASE}/features/${featureId}/tasks${paginationParams(pagination)}`
+  );
 }
 
 export async function fetchTask(id: string): Promise<Task> {
@@ -296,9 +315,13 @@ export async function deleteDoDItem(id: string): Promise<void> {
 }
 
 // Reports
-export async function fetchReports(projectId: string): Promise<Report[]> {
-  const data = await apiRequest<PaginatedResponse<Report>>(`${API_BASE}/projects/${projectId}/reports`);
-  return data.items ?? [];
+export async function fetchReports(
+  projectId: string,
+  pagination?: { offset?: number; limit?: number }
+): Promise<PaginatedResponse<Report>> {
+  return apiRequest<PaginatedResponse<Report>>(
+    `${API_BASE}/projects/${projectId}/reports${paginationParams(pagination)}`
+  );
 }
 
 export async function fetchReport(id: string): Promise<Report> {
@@ -313,13 +336,19 @@ export async function createReport(projectId: string, data: ReportCreate): Promi
 }
 
 // Audit Events
-export async function fetchAuditEvents(projectId: string, filters?: Record<string, string>): Promise<AuditEvent[]> {
+export async function fetchAuditEvents(
+  projectId: string,
+  filters?: Record<string, string>,
+  pagination?: { offset?: number; limit?: number }
+): Promise<PaginatedResponse<AuditEvent>> {
   const params = new URLSearchParams(filters);
-  const url = params.toString()
-    ? `${API_BASE}/projects/${projectId}/audit-events?${params}`
+  if (pagination?.offset !== undefined) params.set('offset', String(pagination.offset));
+  if (pagination?.limit !== undefined) params.set('limit', String(pagination.limit));
+  const qs = params.toString();
+  const url = qs
+    ? `${API_BASE}/projects/${projectId}/audit-events?${qs}`
     : `${API_BASE}/projects/${projectId}/audit-events`;
-  const data = await apiRequest<{ items: AuditEvent[] }>(url);
-  return data.items ?? [];
+  return apiRequest<PaginatedResponse<AuditEvent>>(url);
 }
 
 export async function createAuditEvent(data: AuditEventCreate): Promise<AuditEvent> {

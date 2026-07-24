@@ -1,6 +1,6 @@
 # TASK-0044: Skeleton Loading + Toast System
 
-**Status**: pending
+**Status**: done
 **Spec**: SPEC-0013 §3
 **Phase**: 0 (Foundation)
 **Blocks**: All page tasks

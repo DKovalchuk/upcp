@@ -1,6 +1,6 @@
 # TASK-0045: Dashboard Page
 
-**Status**: pending
+**Status**: done
 **Spec**: SPEC-0012 §4.1, SPEC-0013 §3
 **Phase**: 1 (Core Pages)
 **Depends on**: TASK-0043, TASK-0044

@@ -35,7 +35,7 @@ describe('AuditPage', () => {
   });
 
   it('renders heading and filters', () => {
-    mock.mockReturnValue({ data: [], isLoading: false, error: null } as any);
+    mock.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false, error: null } as any);
     renderPage();
     expect(screen.getByText('Audit Log')).toBeInTheDocument();
     expect(screen.getByText('All event types')).toBeInTheDocument();
@@ -43,16 +43,19 @@ describe('AuditPage', () => {
   });
 
   it('renders empty state', () => {
-    mock.mockReturnValue({ data: [], isLoading: false, error: null } as any);
+    mock.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false, error: null } as any);
     renderPage();
     expect(screen.getByText('No audit events found.')).toBeInTheDocument();
   });
 
   it('renders audit events', () => {
     mock.mockReturnValue({
-      data: [
-        { id: 'e1', timestamp: '2026-07-24T10:00:00Z', event_type: 'created', entity_type: 'task', entity_id: '12345678-1234', actor_type: 'user', actor_id: 'user-12345678', payload: null, note: 'Test note' },
-      ],
+      data: {
+        items: [
+          { id: 'e1', timestamp: '2026-07-24T10:00:00Z', event_type: 'created', entity_type: 'task', entity_id: '12345678-1234', actor_type: 'user', actor_id: 'user-12345678', payload: null, note: 'Test note' },
+        ],
+        total: 1, offset: 0, limit: 20,
+      },
       isLoading: false, error: null,
     } as any);
     renderPage();

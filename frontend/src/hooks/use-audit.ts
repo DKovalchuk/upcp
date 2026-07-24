@@ -10,7 +10,10 @@ interface AuditFilters {
   date_to?: string;
 }
 
-export function useAuditEvents(filters?: AuditFilters) {
+export function useAuditEvents(
+  filters?: AuditFilters,
+  pagination?: { offset?: number; limit?: number }
+) {
   const params: Record<string, string> = {};
   if (filters?.event_type) params.event_type = filters.event_type;
   if (filters?.entity_type) params.entity_type = filters.entity_type;
@@ -20,8 +23,8 @@ export function useAuditEvents(filters?: AuditFilters) {
   const projectId = filters?.project_id ?? '';
 
   return useQuery({
-    queryKey: ['audit-events', projectId, params],
-    queryFn: () => fetchAuditEvents(projectId, params),
+    queryKey: ['audit-events', projectId, params, pagination],
+    queryFn: () => fetchAuditEvents(projectId, params, pagination),
     enabled: !!projectId,
   });
 }

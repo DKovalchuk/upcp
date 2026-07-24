@@ -1,6 +1,6 @@
 # TASK-0049: Delivery Page (Features + Tasks)
 
-**Status**: pending
+**Status**: done
 **Spec**: SPEC-0012 §4.5, SPEC-0013 §3
 **Phase**: 1 (Core Pages)
 **Depends on**: TASK-0046, TASK-0047, TASK-0050

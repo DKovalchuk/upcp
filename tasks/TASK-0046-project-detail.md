@@ -1,6 +1,6 @@
 # TASK-0046: Project Detail Page (Tabbed Layout)
 
-**Status**: pending
+**Status**: done
 **Spec**: SPEC-0012 §4.3, SPEC-0013 §3
 **Phase**: 1 (Core Pages)
 **Depends on**: TASK-0043, TASK-0044

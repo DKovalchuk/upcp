@@ -1,6 +1,6 @@
 # TASK-0047: Create/Edit Form Dialogs (All Entities)
 
-**Status**: pending
+**Status**: done
 **Spec**: SPEC-0013 §3
 **Phase**: 1 (Core Pages)
 **Depends on**: TASK-0044

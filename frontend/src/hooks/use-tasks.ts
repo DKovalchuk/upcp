@@ -9,10 +9,13 @@ import {
 } from '@/lib/api';
 import type { TaskCreate, TaskUpdate } from '@/types/task';
 
-export function useTasks(featureId: string) {
+export function useTasks(
+  featureId: string,
+  pagination?: { offset?: number; limit?: number }
+) {
   return useQuery({
-    queryKey: ['tasks', featureId],
-    queryFn: () => fetchTasks(featureId),
+    queryKey: ['tasks', featureId, pagination],
+    queryFn: () => fetchTasks(featureId, pagination),
     enabled: !!featureId,
   });
 }

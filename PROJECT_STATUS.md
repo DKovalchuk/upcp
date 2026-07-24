@@ -1,62 +1,73 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-24
-Milestone: M6 (UI Implementation)
-Current Task: TASK-0043 (pending)
-Next Task: Phase 0 — Foundation Fixes
+Milestone: M6 (UI Implementation) — **COMPLETE**
+Current Task: None
+Next Task: TBD (pagination integration, Phase 4 features)
 Blockers: none
 
 ## Last Result
 
-M6 planning complete.
+M6 completed: Full UI implementation — 14 tasks across 4 phases, all merged to develop.
 
-- SPEC-0013 created: UI Implementation Plan (14 tasks, 4 phases).
-- 10 ADRs added (DEC-0006 to DEC-0014).
-- Critical gaps identified: type mismatches, broken sidebar nav, no CRUD forms, no pages beyond project list.
-- Phase 0 (Foundation): TASK-0043, TASK-0044, TASK-0056.
-- Phase 1 (Core): TASK-0045 to TASK-0050.
-- Phase 2 (Extended): TASK-0051 to TASK-0054.
-- Phase 3 (Polish): TASK-0055.
+### Phase 0 (Foundation) — DONE
+- TASK-0043: Fix type mismatches + sidebar navigation
+- TASK-0044: Skeleton loading + toast system
+- TASK-0056: Pagination component (created, not yet integrated into pages)
 
-M5 completed: Frontend UI/UX + Backend APIs + MCP fixes.
+### Phase 1 (Core Pages) — DONE
+- TASK-0045: Dashboard page with stats cards, recent projects, activity feed
+- TASK-0046: Project detail page with tabbed layout (Overview, Structure, Delivery, Quality, Audit, Settings)
+- TASK-0047: Create/edit form dialogs (EntityFormDialog for all entities)
+- TASK-0048: Structure page (components + modules with expand)
+- TASK-0049: Delivery page (features + task tables with search)
+- TASK-0050: Task detail sheet (slide-over with tabs: Details, AC, DoD, Subtasks)
 
-- `backend/app/mcp/`: MCP server scaffold with JSON-RPC endpoint.
-- MCP tools: project_list, project_get, task_list, task_get, feature_list, feature_get.
-- Context pack generator: markdown context packs for AI agents.
-- `backend/cli.py`: Typer CLI with project, task, status commands.
-- Tests: 22 new tests for MCP and CLI.
-- Coverage: 82%.
-- Lint: all checks passed.
-- Typecheck: MCP/CLI files pass (some pre-existing errors in other files).
+### Phase 2 (Extended) — DONE
+- TASK-0051: Quality page (stats cards, progress bars, quality gate)
+- TASK-0052: Audit timeline page (filterable timeline)
+- TASK-0053: Reports page (list, generate daily, export markdown)
+- TASK-0054: Health page (backend status with auto-refresh)
 
-TASK-0022 and TASK-0023 completed.
+### Phase 3 (Polish) — DONE
+- TASK-0055: Dark mode toggle (Sun/Moon/Monitor via next-themes)
 
-- `frontend/` directory created with React + Vite + TypeScript scaffold.
-- Tailwind CSS configured with 6-color palette.
-- shadcn/ui components (Table, Card, Button) installed.
-- TanStack Query and TanStack Router configured.
-- API proxy to backend (port 38080) configured.
-- Frontend added as optional service in docker-compose.
-- Portfolio view (project list) implemented at route `/`.
-- Projects fetched from `/api/v1/projects` and displayed in responsive table.
-- Loading, error, and empty states handled.
-- `npm run build` passes with no TypeScript errors.
+### Key Decisions (ADRs)
+- DEC-0006: Use URL pathname parsing instead of useParams for sub-routes
+- DEC-0007: Sheet component for task detail (not a route)
+- DEC-0008: Tabbed layout for project detail (URL-synced tabs)
+- DEC-0009: EntityFormDialog pattern for all CRUD forms
+- DEC-0010: 6-color palette with CSS variables for dark mode
+- DEC-0011: sonner for toast notifications
+- DEC-0012: PageSkeleton for loading states
+- DEC-0013: URL-synced pagination with search params
+- DEC-0014: Design system components (StatusBadge, PriorityDot, EmptyState, ErrorState, ConfirmDialog)
 
-M5 completed: Frontend UI/UX + Backend APIs + MCP fixes.
+### Test Coverage
+- Frontend: 119 tests across 19 test files, all passing
+- Backend: 189 tests, 90% coverage
 
-- SPEC-0012 created: Frontend UI/UX Architecture.
-- SPEC-0012-audit-report.md: Reviewer audit (critical gaps resolved).
-- TASK-0024: App Shell + Sidebar + TopBar — **DONE**.
-- TASK-0025: Design System Components — **DONE**.
-- TASK-0026: Types + API Client + Hooks — **DONE**.
-- TASK-0038: MCP Critical Bug Fixes — **DONE**. 6 bugs fixed, 21 tests, coverage 79%.
-- TASK-0038: Frontend Audit Gaps — **DONE**. 404, ErrorBoundary, lazy loading.
-- TASK-0039: Audit List API Endpoint — **DONE**. 5 tests.
-- TASK-0040: Quality Stats Endpoint — **DONE**. 7 tests.
-- TASK-0041: Dashboard Stats Endpoint — **DONE**. 4 tests.
-- Backend: 189 tests, 90% coverage.
-- Frontend: Build passes, TypeScript clean.
-- AGENTS.md updated: Git Workflow section.
+## M5 Completed (Previous)
+- MCP server scaffold with JSON-RPC endpoint
+- MCP tools: project_list, project_get, task_list, task_get, feature_list, feature_get
+- MCP write tools: feature_update, task_update (TASK-0042)
+- Context pack generator
+- CLI with project, task, status commands
+- Dashboard Stats, Quality Stats, Audit List API endpoints
+
+## Remaining Work
+
+### Pending Integration
+- TASK-0056: Wire DataTablePagination into list pages (ProjectList, Delivery, Audit, Reports)
+
+### Future Backlog (from SPEC-0013 §6)
+- Board/Kanban view for Delivery
+- Command Palette (Cmd+K)
+- Global search (needs backend search endpoint)
+- Notifications system
+- Auth/RBAC UI
+- Git integration UI
+- Drag-and-drop
 
 ## Important Notes
 

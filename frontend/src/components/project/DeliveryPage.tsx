@@ -4,6 +4,7 @@ import { useFeatures } from '@/hooks/use-features';
 import { useTasks } from '@/hooks/use-tasks';
 import { useCreateFeature, useDeleteFeature } from '@/hooks/use-features';
 import { useCreateTask } from '@/hooks/use-tasks';
+import { useUrlPagination } from '@/hooks/use-url-pagination';
 import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
 import { featureFields, taskFields } from '@/components/forms/entity-fields';
 import { TaskDetailSheet } from './TaskDetailSheet';
@@ -14,6 +15,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
+import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import {
   Plus,
   GitBranch,
@@ -38,7 +40,10 @@ export function DeliveryPage() {
     const match = location.pathname.match(/^\/projects\/([^/]+)/);
     return match?.[1] ?? '';
   }, [location.pathname]);
-  const { data: features, isLoading } = useFeatures(projectId);
+  const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
+  const { data, isLoading } = useFeatures(projectId, { offset, limit });
+  const features = data?.items ?? [];
+  const total = data?.total ?? 0;
   const createFeature = useCreateFeature();
   const deleteFeature = useDeleteFeature();
 
@@ -127,6 +132,15 @@ export function DeliveryPage() {
               }
             />
           ))}
+          {total > limit && (
+            <DataTablePagination
+              offset={offset}
+              limit={limit}
+              total={total}
+              onPageChange={setOffset}
+              onPageSizeChange={setPageSize}
+            />
+          )}
         </div>
       )}
 
@@ -180,13 +194,14 @@ function FeatureSection({
   onSelectTask: (taskId: string) => void;
   onDelete: () => void;
 }) {
-  const { data: tasks, isLoading: tasksLoading } = useTasks(
+  const { data: tasksData, isLoading: tasksLoading } = useTasks(
     isExpanded ? feature.id : ''
   );
+  const tasks = tasksData?.items ?? [];
   const createTask = useCreateTask();
   const [showCreateTask, setShowCreateTask] = useState(false);
 
-  const filteredTasks = tasks?.filter(
+  const filteredTasks = tasks.filter(
     (t) => !search || t.title.toLowerCase().includes(search.toLowerCase())
   );
 

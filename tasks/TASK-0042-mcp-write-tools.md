@@ -1,7 +1,7 @@
 # TASK-0042: MCP Write Tools (CRUD)
 
 Spec: SPEC-0011 (MCP)
-Status: pending
+Status: done
 Priority: 1
 Model: routine
 Milestone: M5

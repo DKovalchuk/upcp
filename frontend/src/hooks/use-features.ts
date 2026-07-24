@@ -8,10 +8,13 @@ import {
 } from '@/lib/api';
 import type { FeatureCreate, FeatureUpdate } from '@/types/feature';
 
-export function useFeatures(projectId: string) {
+export function useFeatures(
+  projectId: string,
+  pagination?: { offset?: number; limit?: number }
+) {
   return useQuery({
-    queryKey: ['features', projectId],
-    queryFn: () => fetchFeatures(projectId),
+    queryKey: ['features', projectId, pagination],
+    queryFn: () => fetchFeatures(projectId, pagination),
     enabled: !!projectId,
   });
 }

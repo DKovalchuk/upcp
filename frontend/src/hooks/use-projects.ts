@@ -8,10 +8,10 @@ import {
 } from '@/lib/api';
 import type { ProjectCreate, ProjectUpdate } from '@/types/project';
 
-export function useProjects() {
+export function useProjects(pagination?: { offset?: number; limit?: number }) {
   return useQuery({
-    queryKey: ['projects'],
-    queryFn: fetchProjects,
+    queryKey: ['projects', pagination],
+    queryFn: () => fetchProjects(pagination),
   });
 }
 

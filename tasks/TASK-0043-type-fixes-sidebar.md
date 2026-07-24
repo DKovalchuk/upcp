@@ -1,6 +1,6 @@
 # TASK-0043: Fix Type Mismatches + Sidebar Navigation
 
-**Status**: pending
+**Status**: done
 **Spec**: SPEC-0013 §3
 **Phase**: 0 (Foundation)
 **Blocks**: All other UI tasks

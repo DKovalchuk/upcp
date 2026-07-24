@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchReports, fetchReport, createReport } from '@/lib/api';
 import type { ReportCreate } from '@/types/report';
 
-export function useReports(projectId: string) {
+export function useReports(
+  projectId: string,
+  pagination?: { offset?: number; limit?: number }
+) {
   return useQuery({
-    queryKey: ['reports', projectId],
-    queryFn: () => fetchReports(projectId),
+    queryKey: ['reports', projectId, pagination],
+    queryFn: () => fetchReports(projectId, pagination),
     enabled: !!projectId,
   });
 }

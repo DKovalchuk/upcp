@@ -1,12 +1,14 @@
 import { useLocation } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { useReports, useCreateReport } from '@/hooks/use-reports';
+import { useUrlPagination } from '@/hooks/use-url-pagination';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import { BarChart3, Plus, FileText, Download } from 'lucide-react';
 import { showToast } from '@/lib/toast';
 import {
@@ -26,7 +28,10 @@ export function ReportsPage() {
     return match?.[1] ?? '';
   }, [location.pathname]);
 
-  const { data: reports, isLoading, error } = useReports(projectId);
+  const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
+  const { data, isLoading, error } = useReports(projectId, { offset, limit });
+  const reports = data?.items ?? [];
+  const total = data?.total ?? 0;
   const createReport = useCreateReport();
   const [generating, setGenerating] = useState(false);
 
@@ -65,8 +70,6 @@ export function ReportsPage() {
     }
   };
 
-  const items = reports ?? [];
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -80,7 +83,7 @@ export function ReportsPage() {
         </Button>
       </div>
 
-      {!items.length ? (
+      {!reports.length ? (
         <EmptyState
           icon={FileText}
           title="No reports yet"
@@ -100,7 +103,7 @@ export function ReportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((report: Report) => (
+                {reports.map((report: Report) => (
                   <TableRow key={report.id}>
                     <TableCell>
                       <StatusBadge status={report.report_type} />
@@ -127,6 +130,15 @@ export function ReportsPage() {
             </Table>
           </CardContent>
         </Card>
+      )}
+      {total > limit && (
+        <DataTablePagination
+          offset={offset}
+          limit={limit}
+          total={total}
+          onPageChange={setOffset}
+          onPageSizeChange={setPageSize}
+        />
       )}
     </div>
   );

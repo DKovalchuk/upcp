@@ -1,6 +1,6 @@
 # TASK-0055: Dark Mode Toggle + Theme Persistence
 
-**Status**: pending
+**Status**: done
 **Spec**: SPEC-0012 §9, SPEC-0013 §3
 **Phase**: 3 (Polish)
 **Depends on**: TASK-0044
