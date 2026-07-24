@@ -1,18 +1,19 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-24
-Milestone: M0
-Current Task: TASK-0003 (done)
-Next Task: TASK-0004
+Milestone: M0 (complete)
+Current Task: TASK-0004 (done)
+Next Task: M1 — TASK-0005
 Blockers: none
 
 ## Last Result
 
-TASK-0003 completed.
+TASK-0004 completed.
 
-- `shared/database.py`: engine, SessionLocal, Base, `get_session()`.
-- Alembic configured: `alembic.ini`, `alembic/env.py`, initial migration.
-- `make test` — 15 passed.
+- `audit/models.py`: `AuditEvent` (append-only, JSON payload).
+- `audit/service.py`: `AuditService.log_event()` — no update/delete.
+- Migration `0002_add_audit_event` generated.
+- `make test` — 19 passed.
 - `make lint` — all checks passed.
 - `make typecheck` — no issues found.
 

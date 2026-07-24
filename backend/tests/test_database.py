@@ -51,8 +51,6 @@ def test_initial_migration_exists() -> None:
         raise AssertionError("alembic/versions directory not found")
 
 
-def test_base_metadata_tables_empty() -> None:
-    tables = Base.metadata.tables.keys()
-    assert len(list(tables)) == 0 or all(
-        t.startswith("alembic_") for t in tables
-    )
+def test_base_metadata_has_expected_tables() -> None:
+    tables = set(Base.metadata.tables.keys())
+    assert "audit_event" in tables
