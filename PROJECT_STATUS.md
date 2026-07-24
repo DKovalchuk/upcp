@@ -1,19 +1,19 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-24
-Milestone: M0 (complete)
-Current Task: TASK-0004 (done)
-Next Task: M1 — TASK-0005
+Milestone: M1
+Current Task: TASK-0005 (done)
+Next Task: TASK-0006
 Blockers: none
 
 ## Last Result
 
-TASK-0004 completed.
+TASK-0005 completed.
 
-- `audit/models.py`: `AuditEvent` (append-only, JSON payload).
-- `audit/service.py`: `AuditService.log_event()` — no update/delete.
-- Migration `0002_add_audit_event` generated.
-- `make test` — 19 passed.
+- `shared/pagination.py`: `PaginationParams`, `pagination_dependency()`, `PaginatedResponse`.
+- `shared/ids.py`: `EntityId` newtype.
+- `shared/schemas.py`: `ErrorResponse`, `HealthResponse`.
+- `make test` — 27 passed.
 - `make lint` — all checks passed.
 - `make typecheck` — no issues found.
 
