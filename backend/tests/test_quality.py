@@ -1,6 +1,7 @@
 from app.api.v1.delivery import router as delivery_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.quality import router as quality_router
+from app.api.v1.structure import router as structure_router
 from app.shared.database import Base, get_session
 from app.shared.errors import register_error_handlers
 from fastapi import FastAPI
@@ -31,6 +32,7 @@ def _app() -> FastAPI:
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(projects_router, prefix="/api/v1")
+    app.include_router(structure_router, prefix="/api/v1")
     app.include_router(delivery_router, prefix="/api/v1")
     app.include_router(quality_router, prefix="/api/v1")
     app.dependency_overrides[get_session] = _override

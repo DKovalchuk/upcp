@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.delivery.service import TaskService
 from app.quality.schemas import (
     AcceptanceCriterionCreate,
     AcceptanceCriterionUpdate,
     DoDItemCreate,
     DoDItemUpdate,
 )
-from app.quality.service import AcceptanceCriterionService, DoDItemService, QualityGateService
+from app.quality.service import AcceptanceCriterionService, DoDItemService
 from app.shared.database import get_session
 
 router = APIRouter(tags=["quality"])
@@ -75,5 +76,5 @@ def list_dods(task_id: str, session: Session = Depends(get_session)) -> list[dic
 
 @router.post("/tasks/{task_id}/complete")
 def complete_task(task_id: str, session: Session = Depends(get_session)) -> dict[str, str]:  # noqa: B008
-    task = QualityGateService(session).complete_task(task_id)
+    task = TaskService(session).complete(task_id)
     return {"id": task.id, "status": task.status}

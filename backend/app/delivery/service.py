@@ -1,15 +1,8 @@
-import re
-
 from sqlalchemy.orm import Session
 
 from app.delivery.models import Feature, Subtask, Task
 from app.shared.errors import Conflict, NotFound
-
-
-def _slugify(name: str) -> str:
-    slug = name.lower().strip()
-    slug = re.sub(r"[^a-z0-9]+", "-", slug)
-    return slug.strip("-")
+from app.shared.text import slugify
 
 
 class FeatureService:
@@ -17,7 +10,7 @@ class FeatureService:
         self._session = session
 
     def create(self, *, project_id: str, name: str, slug: str | None = None, description: str | None = None, status: str = "backlog", component_id: str | None = None) -> Feature:
-        final_slug = slug or _slugify(name)
+        final_slug = slug or slugify(name)
         existing = self._session.query(Feature).filter_by(project_id=project_id, slug=final_slug).first()
         if existing:
             raise Conflict(f"slug '{final_slug}' already exists in project")
@@ -55,8 +48,30 @@ class TaskService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def create(self, *, feature_id: str, title: str, **kwargs: str | None | int) -> Task:
-        t = Task(feature_id=feature_id, title=title, **kwargs)
+    def create(
+        self,
+        *,
+        feature_id: str,
+        title: str,
+        description: str | None = None,
+        status: str = "backlog",
+        priority: int = 0,
+        assignee_type: str | None = None,
+        assignee_id: str | None = None,
+        component_id: str | None = None,
+        module_id: str | None = None,
+    ) -> Task:
+        t = Task(
+            feature_id=feature_id,
+            title=title,
+            description=description,
+            status=status,
+            priority=priority,
+            assignee_type=assignee_type,
+            assignee_id=assignee_id,
+            component_id=component_id,
+            module_id=module_id,
+        )
         self._session.add(t)
         self._session.flush()
         return t
@@ -84,6 +99,19 @@ class TaskService:
         q = self._session.query(Task).filter_by(feature_id=feature_id)
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
+
+    def complete(self, task_id: str) -> Task:
+        from app.quality.models import DoDItem
+        from app.quality.service import QualityError
+
+        task = self.get(task_id)
+        dod_items = self._session.query(DoDItem).filter_by(task_id=task_id).all()
+        if dod_items and not all(d.status == "passed" for d in dod_items):
+            failed = [d.name for d in dod_items if d.status != "passed"]
+            raise QualityError(f"DoD not passed: {', '.join(failed)}")
+        task.status = "done"
+        self._session.flush()
+        return task
 
 
 class SubtaskService:

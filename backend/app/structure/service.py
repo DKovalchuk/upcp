@@ -1,15 +1,8 @@
-import re
-
 from sqlalchemy.orm import Session
 
 from app.shared.errors import Conflict, NotFound
+from app.shared.text import slugify
 from app.structure.models import Component, Module
-
-
-def _slugify(name: str) -> str:
-    slug = name.lower().strip()
-    slug = re.sub(r"[^a-z0-9]+", "-", slug)
-    return slug.strip("-")
 
 
 class ComponentService:
@@ -17,7 +10,7 @@ class ComponentService:
         self._session = session
 
     def create(self, *, project_id: str, name: str, slug: str | None = None, description: str | None = None, status: str = "active") -> Component:
-        final_slug = slug or _slugify(name)
+        final_slug = slug or slugify(name)
         existing = self._session.query(Component).filter_by(project_id=project_id, slug=final_slug).first()
         if existing:
             raise Conflict(f"slug '{final_slug}' already exists in project")
@@ -65,7 +58,7 @@ class ModuleService:
         self._session = session
 
     def create(self, *, component_id: str, name: str, slug: str | None = None, description: str | None = None, status: str = "active") -> Module:
-        final_slug = slug or _slugify(name)
+        final_slug = slug or slugify(name)
         existing = self._session.query(Module).filter_by(component_id=component_id, slug=final_slug).first()
         if existing:
             raise Conflict(f"slug '{final_slug}' already exists in component")

@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 
-from app.delivery.models import Task
 from app.quality.models import AcceptanceCriterion, DoDItem
 from app.shared.errors import AppError, NotFound
 
@@ -74,20 +73,3 @@ class DoDItemService:
 
     def list_by_task(self, task_id: str) -> list[DoDItem]:
         return self._session.query(DoDItem).filter_by(task_id=task_id).all()
-
-
-class QualityGateService:
-    def __init__(self, session: Session) -> None:
-        self._session = session
-
-    def complete_task(self, task_id: str) -> Task:
-        task = self._session.get(Task, task_id)
-        if not task:
-            raise NotFound(f"task '{task_id}' not found")
-        dod_items = self._session.query(DoDItem).filter_by(task_id=task_id).all()
-        if dod_items and not all(d.status == "passed" for d in dod_items):
-            failed = [d.name for d in dod_items if d.status != "passed"]
-            raise QualityError(f"DoD not passed: {', '.join(failed)}")
-        task.status = "done"
-        self._session.flush()
-        return task
