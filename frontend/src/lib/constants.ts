@@ -4,6 +4,10 @@ import {
   BarChart3,
   Activity,
   Settings,
+  ListTodo,
+  Layers,
+  GitBranch,
+  FileText,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -55,6 +59,33 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+/** Project-specific nav items shown when on /projects/:id/* */
+export const PROJECT_NAV_GROUP: NavGroup = {
+  title: 'Project',
+  items: [
+    {
+      title: 'Overview',
+      icon: Layers,
+      path: '', // Will be resolved relative to project
+    },
+    {
+      title: 'Tasks',
+      icon: ListTodo,
+      path: '',
+    },
+    {
+      title: 'Features',
+      icon: GitBranch,
+      path: '',
+    },
+    {
+      title: 'Docs',
+      icon: FileText,
+      path: '',
+    },
+  ],
+};
 
 export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   active: { bg: 'bg-emerald-500/10', text: 'text-emerald-600' },

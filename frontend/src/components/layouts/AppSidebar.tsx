@@ -11,10 +11,21 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { NAV_GROUPS } from '@/lib/constants';
+import { NAV_GROUPS, PROJECT_NAV_GROUP } from '@/lib/constants';
+
+function isProjectRoute(pathname: string): boolean {
+  return /^\/projects\/[^/]+/.test(pathname);
+}
+
+function getProjectId(pathname: string): string | null {
+  const match = pathname.match(/^\/projects\/([^/]+)/);
+  return match ? match[1] : null;
+}
 
 export function AppSidebar() {
   const location = useLocation();
+  const onProjectRoute = isProjectRoute(location.pathname);
+  const projectId = getProjectId(location.pathname);
 
   return (
     <Sidebar collapsible="icon">
@@ -59,6 +70,41 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
+
+        {onProjectRoute && projectId && (
+          <SidebarGroup>
+            <SidebarGroupLabel>{PROJECT_NAV_GROUP.title}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {PROJECT_NAV_GROUP.items.map((item) => {
+                  const Icon = item.icon;
+                  const basePath = `/projects/${projectId}`;
+                  const itemPath = item.path
+                    ? `${basePath}/${item.path}`
+                    : basePath;
+                  const isActive = location.pathname === itemPath;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        tooltip={item.title}
+                        render={
+                          <Link
+                            to={itemPath}
+                            className="flex items-center gap-2"
+                          />
+                        }
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
