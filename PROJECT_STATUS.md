@@ -8,6 +8,14 @@ Blockers: none
 
 ## Last Result
 
+TASK-0058 completed: Command Palette (Cmd+K).
+
+- Installed cmdk, created shadcn Command components
+- CommandPalette with navigation + project-specific commands
+- Global Cmd+K / Ctrl+K shortcut, TopBar search trigger
+- Fuzzy search, keyboard navigation
+- 7 new tests, 133 total passing
+
 TASK-0056 completed: Pagination wired into all list pages.
 
 - DataTablePagination integrated into ProjectList, DeliveryPage, AuditPage, ReportsPage
@@ -73,7 +81,6 @@ TASK-0057 completed: Board/Kanban view for Delivery page.
 ## Remaining Work
 
 ### Future Backlog (from SPEC-0013 §6)
-- Command Palette (Cmd+K)
 - Global search (needs backend search endpoint)
 - Notifications system
 - Auth/RBAC UI

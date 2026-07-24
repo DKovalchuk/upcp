@@ -1,6 +1,6 @@
 # TASK-0058: Command Palette (Cmd+K)
 
-**Status**: in_progress
+**Status**: done
 **Spec**: SPEC-0013 §6
 **Phase**: 3 (Polish)
 **Depends on**: TASK-0043, TASK-0046
@@ -26,16 +26,16 @@ No quick way to navigate the app or trigger common actions. Users must click thr
 
 ## Acceptance Criteria
 
-- [ ] `cmdk` installed
-- [ ] shadcn Command components exist in `components/ui/command.tsx`
-- [ ] `CommandPalette.tsx` renders with navigation + action commands
-- [ ] Cmd+K opens, Escape closes
-- [ ] Typing filters commands fuzzy
-- [ ] Enter navigates / triggers action
-- [ ] Clicking overlay or pressing Escape closes
-- [ ] Works in both light and dark mode
-- [ ] `npm run build` passes
-- [ ] Tests pass
+- [x] `cmdk` installed
+- [x] shadcn Command components exist in `components/ui/command.tsx`
+- [x] `CommandPalette.tsx` renders with navigation + action commands
+- [x] Cmd+K opens, Escape closes
+- [x] Typing filters commands fuzzy
+- [x] Enter navigates / triggers action
+- [x] Clicking overlay or pressing Escape closes
+- [x] Works in both light and dark mode
+- [x] `npm run build` passes
+- [x] Tests pass
 
 ## Technical Notes
 
