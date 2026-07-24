@@ -16,7 +16,7 @@ class GitProvider(Base):
     provider_type: Mapped[str] = mapped_column(String(50), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
-    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class GitBranch(Base):
@@ -27,7 +27,7 @@ class GitBranch(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     last_commit_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class GitCommit(Base):
@@ -52,7 +52,7 @@ class GitPullRequest(Base):
     state: Mapped[str] = mapped_column(String(50), nullable=False)
     head_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
     base_branch: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class GitLink(Base):
@@ -63,4 +63,4 @@ class GitLink(Base):
     entity_id: Mapped[str] = mapped_column(String(36), nullable=False)
     git_type: Mapped[str] = mapped_column(String(50), nullable=False)
     git_id: Mapped[str] = mapped_column(String(36), nullable=False)
-    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
