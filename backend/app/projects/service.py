@@ -52,7 +52,23 @@ class ProjectService:
         self._session.delete(project)
         self._session.flush()
 
-    def list_projects(self, offset: int = 0, limit: int = 20) -> tuple[list[Project], int]:
-        total = self._session.query(Project).count()
-        projects = self._session.query(Project).offset(offset).limit(limit).all()
+    def list_projects(
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 20,
+        status: str | None = None,
+        search: str | None = None,
+        sort_by: str = "created_at",
+        sort_dir: str = "desc",
+    ) -> tuple[list[Project], int]:
+        q = self._session.query(Project)
+        if status:
+            q = q.filter(Project.status == status)
+        if search:
+            q = q.filter(Project.name.ilike(f"%{search}%"))
+        total = q.count()
+        col = getattr(Project, sort_by, Project.created_at)
+        q = q.order_by(col.asc() if sort_dir == "asc" else col.desc())
+        projects = q.offset(offset).limit(limit).all()
         return projects, total

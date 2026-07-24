@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.projects.schemas import ProjectCreate, ProjectResponse, ProjectUpdate
@@ -65,9 +65,20 @@ def delete_project(project_id: str, session: Session = Depends(get_session)) -> 
 def list_projects(
     pagination: PaginationParams = Depends(pagination_dependency),  # noqa: B008
     session: Session = Depends(get_session),  # noqa: B008
+    status: str | None = Query(None),
+    search: str | None = Query(None),
+    sort_by: str = Query("created_at"),
+    sort_dir: str = Query("desc"),
 ) -> dict[str, object]:
     service = ProjectService(session)
-    projects, total = service.list_projects(offset=pagination.offset, limit=pagination.limit)
+    projects, total = service.list_projects(
+        offset=pagination.offset,
+        limit=pagination.limit,
+        status=status,
+        search=search,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
     items = [
         {
             "id": p.id,
