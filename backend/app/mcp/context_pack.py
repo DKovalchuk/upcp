@@ -1,4 +1,6 @@
 """Context pack generator for AI agents."""
+from typing import Any
+
 from app.delivery.service import TaskService
 from app.gitread.service import GitLinkService
 from app.projects.service import ProjectService
@@ -8,19 +10,26 @@ from app.shared.database import SessionLocal
 class ContextPackGenerator:
     """Generate markdown context packs for AI agents."""
 
-    def generate_project_context(self, project_id: str) -> str:
-        """Generate context pack for a project."""
-        session = SessionLocal()
+    def generate_project_context(
+        self, project_id: str, session: Any | None = None,
+    ) -> str:
+        """Generate context pack for a project.
+
+        If *session* is provided it is used directly (FastAPI DI).
+        Otherwise a new SessionLocal is created for backward compatibility.
+        """
+        own_session = session is None
+        sess = session if session is not None else SessionLocal()
         try:
-            project_service = ProjectService(session)
+            project_service = ProjectService(sess)
             project = project_service.get(project_id)
 
-            # Get tasks (using feature_id as project_id for simplicity)
-            task_service = TaskService(session)
-            tasks, _ = task_service.list_tasks(project_id, limit=100)
+            # Get tasks via project features
+            task_service = TaskService(sess)
+            tasks, _ = task_service.list_tasks_by_project(project_id, limit=100)
 
             # Get git links
-            git_service = GitLinkService(session)
+            git_service = GitLinkService(sess)
             git_links = git_service.list_by_entity("project", project_id)
 
             # Build markdown
@@ -59,7 +68,8 @@ class ContextPackGenerator:
 
             return "\n".join(lines)
         finally:
-            session.close()
+            if own_session:
+                sess.close()
 
 
 def get_context_pack(project_id: str | None = None) -> str:

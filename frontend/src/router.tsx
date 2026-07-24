@@ -1,9 +1,9 @@
 import { createRouter, createRoute, createRootRoute } from '@tanstack/react-router';
-import { Layout } from '@/components/Layout';
+import { AppShell } from '@/components/layouts/AppShell';
 import { ProjectList } from '@/components/ProjectList';
 
 const rootRoute = createRootRoute({
-  component: Layout,
+  component: AppShell,
 });
 
 const indexRoute = createRoute({

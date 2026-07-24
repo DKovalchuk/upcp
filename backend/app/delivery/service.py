@@ -100,6 +100,16 @@ class TaskService:
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
 
+    def list_tasks_by_project(self, project_id: str, *, offset: int = 0, limit: int = 20) -> tuple[list[Task], int]:
+        """List all tasks belonging to features of a project (JOIN via Feature)."""
+        q = (
+            self._session.query(Task)
+            .join(Feature, Task.feature_id == Feature.id)
+            .filter(Feature.project_id == project_id)
+        )
+        total = q.count()
+        return q.offset(offset).limit(limit).all(), total
+
     def complete(self, task_id: str) -> Task:
         from app.quality.models import DoDItem
         from app.quality.service import QualityError

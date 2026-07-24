@@ -2,8 +2,8 @@
 
 Updated: 2026-07-24
 Milestone: M5
-Current Task: TASK-0023 (done)
-Next Task: M5 — TASK-0024
+Current Task: TASK-0024 (done)
+Next Task: M5 — TASK-0025
 Blockers: none
 
 ## Last Result
@@ -31,6 +31,17 @@ TASK-0022 and TASK-0023 completed.
 - Projects fetched from `/api/v1/projects` and displayed in responsive table.
 - Loading, error, and empty states handled.
 - `npm run build` passes with no TypeScript errors.
+
+M5 in progress: Frontend UI/UX.
+
+- SPEC-0012 created: Frontend UI/UX Architecture.
+- TASK-0024: App Shell + Sidebar + TopBar (done).
+- TASK-0025: Design System Components (pending).
+- TASK-0026: Types + API Client + Hooks (pending).
+- AGENTS.md updated: Git Workflow section (feature branches, commit format).
+- App Shell implemented with Sidebar, TopBar, BreadcrumbBar.
+- Responsive behavior: mobile (< 768px) sidebar hidden, tablet (768-1023px) collapsed, desktop (>= 1024px) expanded.
+- shadcn/ui components installed: sidebar, separator, tooltip, avatar, dropdown-menu, skeleton, badge, input, dialog, select, sonner.
 
 ## Important Notes
 
