@@ -1,7 +1,7 @@
 # TASK-0041: Dashboard Statistics Endpoint
 
 Spec: SPEC-0012 (C3)
-Status: pending
+Status: done
 Priority: 1
 Model: routine
 Milestone: M5
