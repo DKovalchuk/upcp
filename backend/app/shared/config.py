@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -11,7 +12,10 @@ class Settings(BaseSettings):
     debug: bool = False
     log_level: str = "INFO"
     secret_key: str = "change_me_local_only"
-    database_url: str = "postgresql+psycopg://upcp:upcp_local_change_me@localhost:5432/upcp"
+    database_url: str = Field(
+        default="postgresql+psycopg://upcp:upcp_local_change_me@localhost:5432/upcp",
+        alias="DATABASE_URL",
+    )
 
     # LLM (optional)
     llm_enabled: bool = False
@@ -20,7 +24,7 @@ class Settings(BaseSettings):
     llm_model: str = ""
     llm_api_url: str = ""
 
-    model_config = {"env_prefix": "UPCP_"}
+    model_config = {"env_prefix": "UPCP_", "extra": "ignore"}
 
 
 @lru_cache(maxsize=1)

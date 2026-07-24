@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column("id", sa.String(36), primary_key=True),
         sa.Column("username", sa.String(100), nullable=False, unique=True),
         sa.Column("email", sa.String(255), nullable=False, unique=True),
-        sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.text("1")),
+        sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.text("true")),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
     op.create_table(

@@ -33,7 +33,7 @@ def upgrade() -> None:
         sa.Column("provider_id", sa.String(36), sa.ForeignKey("git_provider.id"), nullable=False),
         sa.Column("name", sa.String(255), nullable=False),
         sa.Column("last_commit_sha", sa.String(40), nullable=True),
-        sa.Column("is_default", sa.Boolean, nullable=False, server_default=sa.text("0")),
+        sa.Column("is_default", sa.Boolean, nullable=False, server_default=sa.text("false")),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
     op.create_table(
