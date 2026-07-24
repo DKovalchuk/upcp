@@ -76,6 +76,62 @@ def get_tools() -> list[Tool]:
                 required=["feature_id"],
             ),
         ),
+        # --- Write tools ---
+        Tool(
+            name="project_create",
+            description="Create a new project",
+            input_schema=ToolInput(
+                properties={
+                    "name": {"type": "string"},
+                    "slug": {"type": "string"},
+                    "description": {"type": "string"},
+                    "status": {"type": "string", "default": "active"},
+                },
+                required=["name"],
+            ),
+        ),
+        Tool(
+            name="project_update",
+            description="Update an existing project",
+            input_schema=ToolInput(
+                properties={
+                    "project_id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "slug": {"type": "string"},
+                    "description": {"type": "string"},
+                    "status": {"type": "string"},
+                },
+                required=["project_id"],
+            ),
+        ),
+        Tool(
+            name="feature_create",
+            description="Create a new feature in a project",
+            input_schema=ToolInput(
+                properties={
+                    "project_id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "slug": {"type": "string"},
+                    "description": {"type": "string"},
+                    "status": {"type": "string", "default": "backlog"},
+                },
+                required=["project_id", "name"],
+            ),
+        ),
+        Tool(
+            name="task_create",
+            description="Create a new task in a feature",
+            input_schema=ToolInput(
+                properties={
+                    "feature_id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "status": {"type": "string", "default": "backlog"},
+                    "priority": {"type": "integer", "default": 0},
+                },
+                required=["feature_id", "title"],
+            ),
+        ),
     ]
 
 
@@ -241,6 +297,79 @@ def _handle_feature_get(session: Any, arguments: dict[str, object]) -> ToolResul
     return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
 
 
+# --- Write tool handlers ---
+
+
+def _handle_project_create(session: Any, arguments: dict[str, object]) -> ToolResult:
+    """Handle project_create tool."""
+    name = _get_str_arg(arguments, "name")
+    if not name:
+        raise ValueError("name is required")
+    slug = _get_str_arg(arguments, "slug") or None
+    description = _get_str_arg(arguments, "description") or None
+    status = _get_str_arg(arguments, "status", "active") or "active"
+    service = ProjectService(session)
+    project = service.create(name=name, slug=slug, description=description, status=status)
+    result = _serialize_project(project)
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_project_update(session: Any, arguments: dict[str, object]) -> ToolResult:
+    """Handle project_update tool."""
+    project_id = _get_str_arg(arguments, "project_id")
+    if not project_id:
+        raise ValueError("project_id is required")
+    fields: dict[str, str | None] = {}
+    for key in ("name", "slug", "description", "status"):
+        val = arguments.get(key)
+        if val is not None:
+            fields[key] = str(val)
+    service = ProjectService(session)
+    project = service.update(project_id, **fields)
+    result = _serialize_project(project)
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_feature_create(session: Any, arguments: dict[str, object]) -> ToolResult:
+    """Handle feature_create tool."""
+    project_id = _get_str_arg(arguments, "project_id")
+    if not project_id:
+        raise ValueError("project_id is required")
+    name = _get_str_arg(arguments, "name")
+    if not name:
+        raise ValueError("name is required")
+    slug = _get_str_arg(arguments, "slug") or None
+    description = _get_str_arg(arguments, "description") or None
+    status = _get_str_arg(arguments, "status", "backlog") or "backlog"
+    service = FeatureService(session)
+    feature = service.create(project_id=project_id, name=name, slug=slug, description=description, status=status)
+    result = _serialize_feature(feature)
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_task_create(session: Any, arguments: dict[str, object]) -> ToolResult:
+    """Handle task_create tool."""
+    feature_id = _get_str_arg(arguments, "feature_id")
+    if not feature_id:
+        raise ValueError("feature_id is required")
+    title = _get_str_arg(arguments, "title")
+    if not title:
+        raise ValueError("title is required")
+    description = _get_str_arg(arguments, "description") or None
+    status = _get_str_arg(arguments, "status", "backlog") or "backlog"
+    priority = _get_int_arg(arguments, "priority", 0)
+    # Validate feature exists before creating task
+    feature_svc = FeatureService(session)
+    feature_svc.get(feature_id)
+    service = TaskService(session)
+    task = service.create(
+        feature_id=feature_id, title=title, description=description,
+        status=status, priority=priority,
+    )
+    result = _serialize_task(task)
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
 # Dispatch table mapping tool names to handler functions
 HandlerFn = Callable[[Any, dict[str, object]], ToolResult]
 TOOL_HANDLERS: dict[str, HandlerFn] = {
@@ -250,6 +379,11 @@ TOOL_HANDLERS: dict[str, HandlerFn] = {
     "task_get": _handle_task_get,
     "feature_list": _handle_feature_list,
     "feature_get": _handle_feature_get,
+    # Write tools
+    "project_create": _handle_project_create,
+    "project_update": _handle_project_update,
+    "feature_create": _handle_feature_create,
+    "task_create": _handle_task_create,
 }
 
 

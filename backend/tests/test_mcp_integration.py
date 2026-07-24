@@ -141,12 +141,18 @@ class TestMCPProtocol:
         assert r.status_code == 200
         tools = r.json()["tools"]
         names = [t["name"] for t in tools]
+        # Read tools
         assert "project_list" in names
         assert "project_get" in names
         assert "task_list" in names
         assert "task_get" in names
         assert "feature_list" in names
         assert "feature_get" in names
+        # Write tools
+        assert "project_create" in names
+        assert "project_update" in names
+        assert "feature_create" in names
+        assert "task_create" in names
 
     def test_resources_list(self, client: TestClient) -> None:
         r = client.get("/mcp/resources")
@@ -341,3 +347,313 @@ class TestMCPPagination:
         })
         result = json.loads(r.json()["result"]["content"][0]["text"])
         assert result["offset"] == 0
+
+
+# ============================================================
+# MCP Tools/calling Tests — Write: project_create
+# ============================================================
+
+class TestMCPProjectCreate:
+    def test_project_create(self, client: TestClient) -> None:
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 50, "method": "tools/call",
+            "params": {"name": "project_create", "arguments": {
+                "name": "New Project", "description": "Created via MCP"
+            }}
+        })
+        assert r.status_code == 200
+        data = r.json()
+        assert data["result"]["is_error"] is not True
+        result = json.loads(data["result"]["content"][0]["text"])
+        assert result["name"] == "New Project"
+        assert result["slug"] == "new-project"
+        assert result["description"] == "Created via MCP"
+        assert result["status"] == "active"
+        assert "id" in result
+
+    def test_project_create_with_custom_slug(self, client: TestClient) -> None:
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 51, "method": "tools/call",
+            "params": {"name": "project_create", "arguments": {
+                "name": "My Project", "slug": "custom-slug"
+            }}
+        })
+        result = json.loads(r.json()["result"]["content"][0]["text"])
+        assert result["slug"] == "custom-slug"
+
+    def test_project_create_duplicate_slug(self, client: TestClient) -> None:
+        client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 52, "method": "tools/call",
+            "params": {"name": "project_create", "arguments": {"name": "First"}}
+        })
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 53, "method": "tools/call",
+            "params": {"name": "project_create", "arguments": {"name": "First"}}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "already exists" in data["result"]["content"][0]["text"]
+
+    def test_project_create_missing_name(self, client: TestClient) -> None:
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 54, "method": "tools/call",
+            "params": {"name": "project_create", "arguments": {"description": "no name"}}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "required" in data["result"]["content"][0]["text"]
+
+    def test_project_create_persists(self, client: TestClient) -> None:
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 55, "method": "tools/call",
+            "params": {"name": "project_create", "arguments": {"name": "Persist Me"}}
+        })
+        created = json.loads(r.json()["result"]["content"][0]["text"])
+        # Verify it shows up in list
+        r2 = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 56, "method": "tools/call",
+            "params": {"name": "project_get", "arguments": {"project_id": created["id"]}}
+        })
+        fetched = json.loads(r2.json()["result"]["content"][0]["text"])
+        assert fetched["name"] == "Persist Me"
+
+
+# ============================================================
+# MCP Tools/calling Tests — Write: project_update
+# ============================================================
+
+class TestMCPProjectUpdate:
+    def test_project_update_name(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 60, "method": "tools/call",
+            "params": {"name": "project_update", "arguments": {
+                "project_id": data["project"]["id"], "name": "Updated Name"
+            }}
+        })
+        result = json.loads(r.json()["result"]["content"][0]["text"])
+        assert result["name"] == "Updated Name"
+        assert result["id"] == data["project"]["id"]
+
+    def test_project_update_status(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 61, "method": "tools/call",
+            "params": {"name": "project_update", "arguments": {
+                "project_id": data["project"]["id"], "status": "archived"
+            }}
+        })
+        result = json.loads(r.json()["result"]["content"][0]["text"])
+        assert result["status"] == "archived"
+
+    def test_project_update_description(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 62, "method": "tools/call",
+            "params": {"name": "project_update", "arguments": {
+                "project_id": data["project"]["id"], "description": "New desc"
+            }}
+        })
+        result = json.loads(r.json()["result"]["content"][0]["text"])
+        assert result["description"] == "New desc"
+
+    def test_project_update_missing_project_id(self, client: TestClient) -> None:
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 63, "method": "tools/call",
+            "params": {"name": "project_update", "arguments": {"name": "No ID"}}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "required" in data["result"]["content"][0]["text"]
+
+    def test_project_update_not_found(self, client: TestClient) -> None:
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 64, "method": "tools/call",
+            "params": {"name": "project_update", "arguments": {
+                "project_id": "nonexistent", "name": "X"
+            }}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "not found" in data["result"]["content"][0]["text"]
+
+    def test_project_update_no_fields(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 65, "method": "tools/call",
+            "params": {"name": "project_update", "arguments": {
+                "project_id": data["project"]["id"]
+            }}
+        })
+        result = json.loads(r.json()["result"]["content"][0]["text"])
+        # Name unchanged
+        assert result["name"] == "MCP Test"
+
+
+# ============================================================
+# MCP Tools/calling Tests — Write: feature_create
+# ============================================================
+
+class TestMCPFeatureCreate:
+    def test_feature_create(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 70, "method": "tools/call",
+            "params": {"name": "feature_create", "arguments": {
+                "project_id": data["project"]["id"], "name": "New Feature",
+                "description": "Feature via MCP"
+            }}
+        })
+        assert r.status_code == 200
+        result = json.loads(r.json()["result"]["content"][0]["text"])
+        assert result["name"] == "New Feature"
+        assert result["slug"] == "new-feature"
+        assert result["description"] == "Feature via MCP"
+        assert result["project_id"] == data["project"]["id"]
+        assert result["status"] == "backlog"
+
+    def test_feature_create_with_custom_slug(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 71, "method": "tools/call",
+            "params": {"name": "feature_create", "arguments": {
+                "project_id": data["project"]["id"], "name": "Feat",
+                "slug": "feat-custom"
+            }}
+        })
+        result = json.loads(r.json()["result"]["content"][0]["text"])
+        assert result["slug"] == "feat-custom"
+
+    def test_feature_create_duplicate_slug(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        # "auth" slug already exists from _create_test_data
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 72, "method": "tools/call",
+            "params": {"name": "feature_create", "arguments": {
+                "project_id": data["project"]["id"], "name": "Auth"
+            }}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "already exists" in data["result"]["content"][0]["text"]
+
+    def test_feature_create_missing_project_id(self, client: TestClient) -> None:
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 73, "method": "tools/call",
+            "params": {"name": "feature_create", "arguments": {"name": "Orphan"}}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "required" in data["result"]["content"][0]["text"]
+
+    def test_feature_create_missing_name(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 74, "method": "tools/call",
+            "params": {"name": "feature_create", "arguments": {
+                "project_id": data["project"]["id"]
+            }}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "required" in data["result"]["content"][0]["text"]
+
+    def test_feature_create_persists(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 75, "method": "tools/call",
+            "params": {"name": "feature_create", "arguments": {
+                "project_id": data["project"]["id"], "name": "Persist Feature"
+            }}
+        })
+        created = json.loads(r.json()["result"]["content"][0]["text"])
+        r2 = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 76, "method": "tools/call",
+            "params": {"name": "feature_get", "arguments": {"feature_id": created["id"]}}
+        })
+        fetched = json.loads(r2.json()["result"]["content"][0]["text"])
+        assert fetched["name"] == "Persist Feature"
+
+
+# ============================================================
+# MCP Tools/calling Tests — Write: task_create
+# ============================================================
+
+class TestMCPTaskCreate:
+    def test_task_create(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 80, "method": "tools/call",
+            "params": {"name": "task_create", "arguments": {
+                "feature_id": data["feature"]["id"], "title": "New Task",
+                "description": "Task via MCP"
+            }}
+        })
+        assert r.status_code == 200
+        result = json.loads(r.json()["result"]["content"][0]["text"])
+        assert result["title"] == "New Task"
+        assert result["description"] == "Task via MCP"
+        assert result["feature_id"] == data["feature"]["id"]
+        assert result["status"] == "backlog"
+        assert result["priority"] == 0
+
+    def test_task_create_with_priority(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 81, "method": "tools/call",
+            "params": {"name": "task_create", "arguments": {
+                "feature_id": data["feature"]["id"], "title": "High Priority",
+                "priority": 3, "status": "in_progress"
+            }}
+        })
+        result = json.loads(r.json()["result"]["content"][0]["text"])
+        assert result["priority"] == 3
+        assert result["status"] == "in_progress"
+
+    def test_task_create_missing_feature_id(self, client: TestClient) -> None:
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 82, "method": "tools/call",
+            "params": {"name": "task_create", "arguments": {"title": "Orphan"}}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "required" in data["result"]["content"][0]["text"]
+
+    def test_task_create_missing_title(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 83, "method": "tools/call",
+            "params": {"name": "task_create", "arguments": {
+                "feature_id": data["feature"]["id"]
+            }}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "required" in data["result"]["content"][0]["text"]
+
+    def test_task_create_persists(self, client: TestClient) -> None:
+        data = _create_test_data(client)
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 84, "method": "tools/call",
+            "params": {"name": "task_create", "arguments": {
+                "feature_id": data["feature"]["id"], "title": "Persist Task"
+            }}
+        })
+        created = json.loads(r.json()["result"]["content"][0]["text"])
+        r2 = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 85, "method": "tools/call",
+            "params": {"name": "task_get", "arguments": {"task_id": created["id"]}}
+        })
+        fetched = json.loads(r2.json()["result"]["content"][0]["text"])
+        assert fetched["title"] == "Persist Task"
+
+    def test_task_create_feature_not_found(self, client: TestClient) -> None:
+        r = client.post("/mcp", json={
+            "jsonrpc": "2.0", "id": 86, "method": "tools/call",
+            "params": {"name": "task_create", "arguments": {
+                "feature_id": "nonexistent", "title": "Ghost Task"
+            }}
+        })
+        data = r.json()
+        assert data["result"]["is_error"] is True
+        assert "not found" in data["result"]["content"][0]["text"]
