@@ -2,8 +2,8 @@
 
 Updated: 2026-07-24
 Milestone: M5
-Current Task: TASK-0025 (done)
-Next Task: M5 — TASK-0026
+Current Task: TASK-0026 (done)
+Next Task: M5 — M5 Complete
 Blockers: none
 
 ## Last Result
@@ -38,12 +38,13 @@ M5 in progress: Frontend UI/UX + MCP fixes.
 - SPEC-0012-audit-report.md: Reviewer audit with 5 critical gaps, 8 missing features.
 - TASK-0024: App Shell + Sidebar + TopBar (done).
 - TASK-0025: Design System Components (done).
-- TASK-0026: Types + API Client + Hooks (pending).
+- TASK-0026: Types + API Client + Hooks (done).
 - TASK-0038: MCP Critical Bug Fixes — **DONE**. All 6 bugs fixed, 21 new tests, 167 total, coverage 79%.
 - TASK-0039: Audit List API Endpoint (pending — blocks TASK-0032).
 - TASK-0040: Quality Stats Endpoint (pending — blocks TASK-0031).
 - TASK-0041: Dashboard Stats Endpoint (pending — blocks TASK-0027).
 - AGENTS.md updated: Git Workflow section (feature branches, commit format).
+- Frontend Phase 1 complete: App Shell, Design System, Types, API Client, Hooks.
 
 ## Important Notes
 
