@@ -1,6 +1,6 @@
 # TASK-0059: Drag-and-Drop for Board View
 
-**Status**: in_progress
+**Status**: done
 **Spec**: SPEC-0013 §6
 **Phase**: 3 (Polish)
 **Depends on**: TASK-0057

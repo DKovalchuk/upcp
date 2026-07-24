@@ -8,6 +8,14 @@ Blockers: none
 
 ## Last Result
 
+TASK-0059 completed: Drag-and-drop for Board View.
+
+- @dnd-kit/core for draggable cards + droppable columns
+- DragOverlay shows card being dragged
+- Column highlights on drag-over
+- Dropping card on different column updates task status
+- 2 new tests, 135 total passing
+
 TASK-0058 completed: Command Palette (Cmd+K).
 
 - Installed cmdk, created shadcn Command components
@@ -85,7 +93,6 @@ TASK-0057 completed: Board/Kanban view for Delivery page.
 - Notifications system
 - Auth/RBAC UI
 - Git integration UI
-- Drag-and-drop
 
 ## Important Notes
 
