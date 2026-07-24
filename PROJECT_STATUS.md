@@ -1,21 +1,22 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-24
-Milestone: M2 (complete)
-Current Task: TASK-0011+0012 (done)
-Next Task: M3 — TASK-0013
+Milestone: M3
+Current Task: TASK-0013 (done)
+Next Task: M3 — TASK-0014
 Blockers: none
 
 ## Last Result
 
-M2 complete.
+TASK-0013 completed.
 
-- TASK-0009: Component + Module CRUD (structure context).
-- TASK-0010: Feature + Task + Subtask CRUD (delivery context).
-- TASK-0011+0012: AcceptanceCriterion, DoDItem, QualityGate (quality context).
-- Migration 0007_add_quality generated.
-- `make test` — 86 passed.
-- Coverage: 97%.
+- `gitread/models.py`: GitProvider, GitBranch, GitCommit, GitPullRequest, GitLink.
+- `gitread/adapters.py`: LocalGitAdapter (subprocess-based).
+- `gitread/service.py`: full CRUD + sync + linking.
+- `api/v1/gitread.py`: all endpoints.
+- Migration 0009_add_gitread generated.
+- `make test` — 95 passed.
+- Coverage: 95%.
 - `make lint` — all checks passed.
 - `make typecheck` — no issues found.
 
