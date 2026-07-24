@@ -132,6 +132,34 @@ def get_tools() -> list[Tool]:
                 required=["feature_id", "title"],
             ),
         ),
+        Tool(
+            name="feature_update",
+            description="Update an existing feature",
+            input_schema=ToolInput(
+                properties={
+                    "feature_id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "slug": {"type": "string"},
+                    "description": {"type": "string"},
+                    "status": {"type": "string"},
+                },
+                required=["feature_id"],
+            ),
+        ),
+        Tool(
+            name="task_update",
+            description="Update an existing task",
+            input_schema=ToolInput(
+                properties={
+                    "task_id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "status": {"type": "string"},
+                    "priority": {"type": "integer"},
+                },
+                required=["task_id"],
+            ),
+        ),
     ]
 
 
@@ -370,6 +398,40 @@ def _handle_task_create(session: Any, arguments: dict[str, object]) -> ToolResul
     return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
 
 
+def _handle_feature_update(session: Any, arguments: dict[str, object]) -> ToolResult:
+    """Handle feature_update tool."""
+    feature_id = _get_str_arg(arguments, "feature_id")
+    if not feature_id:
+        raise ValueError("feature_id is required")
+    fields: dict[str, str | None] = {}
+    for key in ("name", "slug", "description", "status"):
+        val = arguments.get(key)
+        if val is not None:
+            fields[key] = str(val)
+    service = FeatureService(session)
+    feature = service.update(feature_id, **fields)
+    result = _serialize_feature(feature)
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_task_update(session: Any, arguments: dict[str, object]) -> ToolResult:
+    """Handle task_update tool."""
+    task_id = _get_str_arg(arguments, "task_id")
+    if not task_id:
+        raise ValueError("task_id is required")
+    fields: dict[str, str | int | None] = {}
+    for key in ("title", "description", "status"):
+        val = arguments.get(key)
+        if val is not None:
+            fields[key] = str(val)
+    if "priority" in arguments and arguments["priority"] is not None:
+        fields["priority"] = _get_int_arg(arguments, "priority", 0)
+    service = TaskService(session)
+    task = service.update(task_id, **fields)
+    result = _serialize_task(task)
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
 # Dispatch table mapping tool names to handler functions
 HandlerFn = Callable[[Any, dict[str, object]], ToolResult]
 TOOL_HANDLERS: dict[str, HandlerFn] = {
@@ -384,6 +446,8 @@ TOOL_HANDLERS: dict[str, HandlerFn] = {
     "project_update": _handle_project_update,
     "feature_create": _handle_feature_create,
     "task_create": _handle_task_create,
+    "feature_update": _handle_feature_update,
+    "task_update": _handle_task_update,
 }
 
 
