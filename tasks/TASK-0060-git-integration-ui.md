@@ -1,6 +1,6 @@
 # TASK-0060: Git Integration UI
 
-**Status**: in_progress
+**Status**: done
 **Spec**: SPEC-0011
 **Phase**: Future
 **Depends on**: TASK-0046

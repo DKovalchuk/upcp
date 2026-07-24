@@ -8,6 +8,13 @@ Blockers: none
 
 ## Last Result
 
+TASK-0060 completed: Git Integration UI.
+
+- Git types, API functions, React hooks for git endpoints
+- GitIntegrationPage with providers, branches, commits tables
+- Git tab added to ProjectDetail, route /projects/:id/git
+- 5 new tests, 140 total passing
+
 TASK-0059 completed: Drag-and-drop for Board View.
 
 - @dnd-kit/core for draggable cards + droppable columns
@@ -92,7 +99,6 @@ TASK-0057 completed: Board/Kanban view for Delivery page.
 - Global search (needs backend search endpoint)
 - Notifications system
 - Auth/RBAC UI
-- Git integration UI
 
 ## Important Notes
 
