@@ -2,18 +2,17 @@
 
 Updated: 2026-07-24
 Milestone: M0
-Current Task: TASK-0002 (done)
-Next Task: TASK-0003
+Current Task: TASK-0003 (done)
+Next Task: TASK-0004
 Blockers: none
 
 ## Last Result
 
-TASK-0002 completed.
+TASK-0003 completed.
 
-- Config (`Settings`, `get_settings()`) — reads env vars, cached singleton.
-- Error taxonomy: `NotFound`, `ValidationError`, `Conflict`, `InternalError`.
-- Error handler returns JSON problem-like responses.
-- `make test` — 7 passed.
+- `shared/database.py`: engine, SessionLocal, Base, `get_session()`.
+- Alembic configured: `alembic.ini`, `alembic/env.py`, initial migration.
+- `make test` — 15 passed.
 - `make lint` — all checks passed.
 - `make typecheck` — no issues found.
 
