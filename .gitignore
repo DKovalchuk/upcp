@@ -50,3 +50,5 @@ data/
 backups/
 *.sqlite
 *.sqlite3
+
+.playwright-mcp
