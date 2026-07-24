@@ -1,20 +1,21 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-24
-Milestone: M1
-Current Task: TASK-0006 (done)
-Next Task: TASK-0007
+Milestone: M1 (complete)
+Current Task: TASK-0008 (done)
+Next Task: M2 — TASK-0009
 Blockers: none
 
 ## Last Result
 
-TASK-0006 completed.
+M1 complete.
 
-- `projects/models.py`: Project (id, name, slug, description, status, timestamps).
-- `projects/service.py`: full CRUD with slug uniqueness.
-- `api/v1/projects.py`: POST/GET/PATCH/DELETE/GET list.
-- Migration `0003_add_project` generated.
-- `make test` — 38 passed.
+- TASK-0005: shared pagination, IDs, schemas.
+- TASK-0006: Project CRUD (model, service, API).
+- TASK-0007: filters (status, search) and sorting.
+- TASK-0008: RBAC placeholder (User, Role, Permission, current_user).
+- Migration 0004_add_rbac generated.
+- `make test` — 47 passed.
 - Coverage: 97%.
 - `make lint` — all checks passed.
 - `make typecheck` — no issues found.
