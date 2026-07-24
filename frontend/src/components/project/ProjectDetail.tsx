@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Trash2 } from 'lucide-react';
 import { StructurePage } from './StructurePage';
 import { DeliveryPage } from './DeliveryPage';
+import { QualityPage } from './QualityPage';
+import { AuditPage } from './AuditPage';
+import { ReportsPage } from './ReportsPage';
 
 const TAB_ROUTES: Record<string, string> = {
   structure: 'structure',
@@ -124,27 +127,15 @@ export function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="quality" className="mt-6">
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              Quality page coming in TASK-0051.
-            </CardContent>
-          </Card>
+          <QualityPage />
         </TabsContent>
 
         <TabsContent value="audit" className="mt-6">
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              Audit page coming in TASK-0052.
-            </CardContent>
-          </Card>
+          <AuditPage />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              Settings page coming soon.
-            </CardContent>
-          </Card>
+          <ReportsPage />
         </TabsContent>
       </Tabs>
     </div>

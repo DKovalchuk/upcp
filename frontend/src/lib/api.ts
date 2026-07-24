@@ -313,10 +313,13 @@ export async function createReport(projectId: string, data: ReportCreate): Promi
 }
 
 // Audit Events
-export async function fetchAuditEvents(filters?: Record<string, string>): Promise<AuditEvent[]> {
+export async function fetchAuditEvents(projectId: string, filters?: Record<string, string>): Promise<AuditEvent[]> {
   const params = new URLSearchParams(filters);
-  const url = params.toString() ? `${API_BASE}/audit-events?${params}` : `${API_BASE}/audit-events`;
-  return apiRequest<AuditEvent[]>(url);
+  const url = params.toString()
+    ? `${API_BASE}/projects/${projectId}/audit-events?${params}`
+    : `${API_BASE}/projects/${projectId}/audit-events`;
+  const data = await apiRequest<{ items: AuditEvent[] }>(url);
+  return data.items ?? [];
 }
 
 export async function createAuditEvent(data: AuditEventCreate): Promise<AuditEvent> {
@@ -342,5 +345,5 @@ export async function fetchQualityStats(
 
 // Health
 export async function fetchHealth(): Promise<HealthResponse> {
-  return apiRequest<HealthResponse>(`${API_BASE}/health`);
+  return apiRequest<HealthResponse>('/health');
 }

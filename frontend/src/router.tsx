@@ -17,6 +17,10 @@ const ProjectDetail = React.lazy(() =>
   import('@/components/project/ProjectDetail').then((module) => ({ default: module.ProjectDetail }))
 );
 
+const HealthPage = React.lazy(() =>
+  import('@/components/HealthPage').then((module) => ({ default: module.HealthPage }))
+);
+
 const NotFoundPage = React.lazy(() =>
   import('@/components/NotFoundPage').then((module) => ({ default: module.NotFoundPage }))
 );
@@ -92,6 +96,12 @@ const projectSettingsRoute = createRoute({
   component: () => <LazyRoute Component={ProjectDetail} />,
 });
 
+const healthRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/health',
+  component: () => <LazyRoute Component={HealthPage} />,
+});
+
 const notFoundRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '*',
@@ -107,6 +117,7 @@ const routeTree = rootRoute.addChildren([
   projectQualityRoute,
   projectAuditRoute,
   projectSettingsRoute,
+  healthRoute,
   notFoundRoute,
 ]);
 
