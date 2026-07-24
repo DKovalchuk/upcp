@@ -17,3 +17,13 @@ class DoDItemCreate(BaseModel):
 class DoDItemUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     status: str | None = Field(default=None, pattern=r"^[a-z_]+$")
+
+
+class QualityStatsResponse(BaseModel):
+    total_tasks: int = Field(..., ge=0)
+    tasks_with_ac: int = Field(..., ge=0)
+    total_ac: int = Field(..., ge=0)
+    passed_ac: int = Field(..., ge=0)
+    total_dod: int = Field(..., ge=0)
+    passed_dod: int = Field(..., ge=0)
+    pass_rate: float = Field(..., ge=0, le=100)
