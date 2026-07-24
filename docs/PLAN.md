@@ -98,8 +98,8 @@ React frontend: portfolio, dashboard, task board, quality view.
 | # | Task | Status | Model | Depends on |
 |---|------|--------|-------|------------|
 | 26 | SPEC-0006 Frontend spec | backlog | routine | 12 |
-| 27 | TASK-0022 React + Vite + Tailwind scaffold | backlog | routine | 26 |
-| 28 | TASK-0023 portfolio view (project list) | backlog | routine | 27 |
+| 27 | TASK-0022 React + Vite + Tailwind scaffold | done | routine | 26 |
+| 28 | TASK-0023 portfolio view (project list) | done | routine | 27 |
 | 29 | TASK-0024 project dashboard | backlog | routine | 28 |
 | 30 | TASK-0025 task board (kanban) | backlog | routine | 29 |
 | 31 | TASK-0026 task deep dive (detail view) | backlog | routine | 30 |

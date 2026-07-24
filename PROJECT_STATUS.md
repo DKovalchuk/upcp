@@ -1,24 +1,25 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-24
-Milestone: M3
-Current Task: TASK-0013 (done)
-Next Task: M3 — TASK-0014
+Milestone: M5
+Current Task: TASK-0023 (done)
+Next Task: M5 — TASK-0024
 Blockers: none
 
 ## Last Result
 
-TASK-0013 completed.
+TASK-0022 and TASK-0023 completed.
 
-- `gitread/models.py`: GitProvider, GitBranch, GitCommit, GitPullRequest, GitLink.
-- `gitread/adapters.py`: LocalGitAdapter (subprocess-based).
-- `gitread/service.py`: full CRUD + sync + linking.
-- `api/v1/gitread.py`: all endpoints.
-- Migration 0009_add_gitread generated.
-- `make test` — 95 passed.
-- Coverage: 95%.
-- `make lint` — all checks passed.
-- `make typecheck` — no issues found.
+- `frontend/` directory created with React + Vite + TypeScript scaffold.
+- Tailwind CSS configured with 6-color palette.
+- shadcn/ui components (Table, Card, Button) installed.
+- TanStack Query and TanStack Router configured.
+- API proxy to backend (port 38080) configured.
+- Frontend added as optional service in docker-compose.
+- Portfolio view (project list) implemented at route `/`.
+- Projects fetched from `/api/v1/projects` and displayed in responsive table.
+- Loading, error, and empty states handled.
+- `npm run build` passes with no TypeScript errors.
 
 ## Important Notes
 

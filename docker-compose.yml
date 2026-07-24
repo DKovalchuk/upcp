@@ -72,6 +72,20 @@ services:
     volumes:
       - upcp_grafana:/var/lib/grafana
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    profiles:
+      - frontend
+    ports:
+      - "127.0.0.1:35173:35173"
+    volumes:
+      - ./frontend/src:/app/src
+    depends_on:
+      - app
+
 volumes:
   upcp_pgdata:
   upcp_grafana:
