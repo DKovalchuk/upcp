@@ -52,3 +52,8 @@ backups/
 *.sqlite3
 
 .playwright-mcp
+
+# Test screenshots (root only)
+/*.png
+/*.jpg
+/*.jpeg
