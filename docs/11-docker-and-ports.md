@@ -1,0 +1,24 @@
+# Docker and Ports
+
+External ports are intentionally non-standard.
+
+| Service | Internal Port | External Default | Env Variable |
+|---|---:|---:|---|
+| App/API/UI | 8080 | 38080 | `UPCP_HTTP_PORT` |
+| PostgreSQL | 5432 | 35432 | `UPCP_POSTGRES_PORT` |
+| Prometheus | 9090 | 39090 | `UPCP_PROMETHEUS_PORT` |
+| Grafana | 3000 | 33000 | `UPCP_GRAFANA_PORT` |
+| Frontend dev | 5173 | 35173 | `UPCP_FRONTEND_DEV_PORT` |
+
+Rules:
+
+- external services bind to `127.0.0.1` by default;
+- do not expose services to LAN unless explicitly needed;
+- internal container ports may remain standard;
+- if a port conflicts, change only the external port in `.env`.
+
+Observability services are optional and use Docker profile:
+
+```bash
+docker compose --profile observability up
+```
