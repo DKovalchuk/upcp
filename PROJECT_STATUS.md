@@ -1,21 +1,21 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-24
-Milestone: M2
-Current Task: TASK-0010 (done)
-Next Task: TASK-0011
+Milestone: M2 (complete)
+Current Task: TASK-0011+0012 (done)
+Next Task: M3 — TASK-0013
 Blockers: none
 
 ## Last Result
 
-TASK-0010 completed.
+M2 complete.
 
-- `delivery/models.py`: Feature, Task, Subtask (full hierarchy).
-- `delivery/service.py`: FeatureService, TaskService, SubtaskService.
-- `api/v1/delivery.py`: all endpoints.
-- Migration 0006_add_delivery generated.
-- `make test` — 75 passed.
-- Coverage: 98%.
+- TASK-0009: Component + Module CRUD (structure context).
+- TASK-0010: Feature + Task + Subtask CRUD (delivery context).
+- TASK-0011+0012: AcceptanceCriterion, DoDItem, QualityGate (quality context).
+- Migration 0007_add_quality generated.
+- `make test` — 86 passed.
+- Coverage: 97%.
 - `make lint` — all checks passed.
 - `make typecheck` — no issues found.
 
