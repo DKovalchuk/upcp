@@ -2,20 +2,20 @@
 
 Updated: 2026-07-24
 Milestone: M2
-Current Task: TASK-0009 (done)
-Next Task: TASK-0010
+Current Task: TASK-0010 (done)
+Next Task: TASK-0011
 Blockers: none
 
 ## Last Result
 
-TASK-0009 completed.
+TASK-0010 completed.
 
-- `structure/models.py`: Component (FK→project), Module (FK→component).
-- `structure/service.py`: ComponentService, ModuleService (full CRUD).
-- `api/v1/structure.py`: all endpoints.
-- Migration 0005_add_structure generated.
-- `make test` — 59 passed.
-- Coverage: 97%.
+- `delivery/models.py`: Feature, Task, Subtask (full hierarchy).
+- `delivery/service.py`: FeatureService, TaskService, SubtaskService.
+- `api/v1/delivery.py`: all endpoints.
+- Migration 0006_add_delivery generated.
+- `make test` — 75 passed.
+- Coverage: 98%.
 - `make lint` — all checks passed.
 - `make typecheck` — no issues found.
 

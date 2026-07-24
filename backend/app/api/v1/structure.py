@@ -3,13 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.shared.database import get_session
 from app.shared.pagination import PaginationParams, pagination_dependency
+from app.structure.models import Component, Module
 from app.structure.schemas import (
     ComponentCreate,
     ComponentUpdate,
     ModuleCreate,
     ModuleUpdate,
 )
-from app.structure.models import Component, Module
 from app.structure.service import ComponentService, ModuleService
 
 router = APIRouter(tags=["structure"])
