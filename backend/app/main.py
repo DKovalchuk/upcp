@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
+from app.api.v1.audit import router as audit_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.delivery import router as delivery_router
 from app.api.v1.gitread import router as gitread_router
@@ -47,6 +48,7 @@ app.include_router(quality_router, prefix="/api/v1")
 app.include_router(gitread_router, prefix="/api/v1")
 app.include_router(reporting_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(audit_router, prefix="/api/v1")
 
 # MCP server
 app.include_router(create_mcp_router(), prefix="/mcp")
