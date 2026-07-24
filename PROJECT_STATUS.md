@@ -8,6 +8,13 @@ Blockers: none
 
 ## Last Result
 
+TASK-0061 completed: Global Search.
+
+- Backend /api/v1/search endpoint (projects, features, tasks)
+- Frontend searchGlobal API function
+- CommandPalette debounced search with results group
+- 6 backend tests, 140 frontend tests, build passes
+
 TASK-0060 completed: Git Integration UI.
 
 - Git types, API functions, React hooks for git endpoints
@@ -96,7 +103,6 @@ TASK-0057 completed: Board/Kanban view for Delivery page.
 ## Remaining Work
 
 ### Future Backlog (from SPEC-0013 §6)
-- Global search (needs backend search endpoint)
 - Notifications system
 - Auth/RBAC UI
 
