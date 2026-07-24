@@ -1,8 +1,9 @@
 """MCP server implementation."""
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
 from app.mcp.resources import get_resource_content, get_resources
 from app.mcp.schemas import (
@@ -10,6 +11,7 @@ from app.mcp.schemas import (
     JSONRPCResponse,
 )
 from app.mcp.tools import call_tool, get_tools
+from app.shared.database import get_session
 
 
 def _handle_initialize(request: JSONRPCRequest) -> JSONRPCResponse:
@@ -35,7 +37,7 @@ def _handle_tools_list(request: JSONRPCRequest) -> JSONRPCResponse:
     return JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
 
 
-async def _handle_tools_call(request: JSONRPCRequest) -> JSONRPCResponse:
+async def _handle_tools_call(request: JSONRPCRequest, session: Session) -> JSONRPCResponse:
     """Handle tools/call method."""
     if not request.params or "name" not in request.params:
         raise ValueError("Missing tool name")
@@ -44,7 +46,7 @@ async def _handle_tools_call(request: JSONRPCRequest) -> JSONRPCResponse:
     raw_args = request.params.get("arguments")
     arguments: dict[str, object] = dict(raw_args) if isinstance(raw_args, dict) else {}
 
-    tool_result = await call_tool(tool_name, arguments)
+    tool_result = await call_tool(tool_name, arguments, session=session)
     result: dict[str, Any] = tool_result.model_dump()
     return JSONRPCResponse(jsonrpc="2.0", id=request.id, result=result)
 
@@ -76,7 +78,7 @@ def _handle_method_not_found(request: JSONRPCRequest) -> JSONRPCResponse:
     return JSONRPCResponse(jsonrpc="2.0", id=request.id, error=error)
 
 
-async def _dispatch_jsonrpc(request: JSONRPCRequest) -> JSONRPCResponse:
+async def _dispatch_jsonrpc(request: JSONRPCRequest, session: Session) -> JSONRPCResponse:
     """Dispatch JSON-RPC request to appropriate handler."""
     method = request.method
 
@@ -85,7 +87,7 @@ async def _dispatch_jsonrpc(request: JSONRPCRequest) -> JSONRPCResponse:
     if method == "tools/list":
         return _handle_tools_list(request)
     if method == "tools/call":
-        return await _handle_tools_call(request)
+        return await _handle_tools_call(request, session)
     if method == "resources/list":
         return _handle_resources_list(request)
     if method == "resources/read":
@@ -103,10 +105,13 @@ def create_mcp_router() -> APIRouter:
         return {"status": "ok", "service": "mcp-server"}
 
     @router.post("/")
-    async def handle_jsonrpc(request: JSONRPCRequest) -> JSONResponse:
+    async def handle_jsonrpc(
+        request: JSONRPCRequest,
+        session: Session = Depends(get_session),  # noqa: B008
+    ) -> JSONResponse:
         """Handle JSON-RPC 2.0 requests."""
         try:
-            response = await _dispatch_jsonrpc(request)
+            response = await _dispatch_jsonrpc(request, session)
         except Exception as e:
             error: dict[str, Any] = {"code": -32603, "message": str(e)}
             response = JSONRPCResponse(jsonrpc="2.0", id=request.id, error=error)
