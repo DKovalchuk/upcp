@@ -2,20 +2,20 @@
 
 Updated: 2026-07-24
 Milestone: M0
-Current Task: TASK-0001 (done)
-Next Task: TASK-0002
+Current Task: TASK-0002 (done)
+Next Task: TASK-0003
 Blockers: none
 
 ## Last Result
 
-TASK-0001 completed.
+TASK-0002 completed.
 
-- `GET /health` returns `{"status": "ok", "service": "upcp-backend"}`.
-- `make test` — 1 passed.
+- Config (`Settings`, `get_settings()`) — reads env vars, cached singleton.
+- Error taxonomy: `NotFound`, `ValidationError`, `Conflict`, `InternalError`.
+- Error handler returns JSON problem-like responses.
+- `make test` — 7 passed.
 - `make lint` — all checks passed.
 - `make typecheck` — no issues found.
-- `docker compose config` — validates.
-- Docker daemon: available.
 
 ## Important Notes
 
