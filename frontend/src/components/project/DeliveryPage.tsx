@@ -8,6 +8,7 @@ import { useUrlPagination } from '@/hooks/use-url-pagination';
 import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
 import { featureFields, taskFields } from '@/components/forms/entity-fields';
 import { TaskDetailSheet } from './TaskDetailSheet';
+import { BoardView } from './BoardView';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityDot } from '@/components/ui/PriorityDot';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,8 @@ import {
   ChevronDown,
   ChevronRight,
   Trash2,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { showToast } from '@/lib/toast';
 import {
@@ -51,6 +54,7 @@ export function DeliveryPage() {
   const [expandedFeature, setExpandedFeature] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   const [confirmDelete, setConfirmDelete] = useState<{
     id: string;
     name: string;
@@ -88,10 +92,32 @@ export function DeliveryPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Delivery</h2>
-        <Button size="sm" onClick={() => setShowCreateFeature(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Feature
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-md border">
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8 rounded-r-none"
+              onClick={() => setViewMode('list')}
+              title="List view"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'board' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8 rounded-l-none"
+              onClick={() => setViewMode('board')}
+              title="Board view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button size="sm" onClick={() => setShowCreateFeature(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Feature
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
@@ -112,6 +138,12 @@ export function DeliveryPage() {
             label: 'Create Feature',
             onClick: () => setShowCreateFeature(true),
           }}
+        />
+      ) : viewMode === 'board' ? (
+        <BoardView
+          features={features}
+          search={search}
+          onSelectTask={setSelectedTaskId}
         />
       ) : (
         <div className="space-y-3">

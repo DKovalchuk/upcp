@@ -1,14 +1,22 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-24
-Milestone: M6 (UI Implementation) — **COMPLETE**
+Milestone: M6+ (UI Polish)
 Current Task: None
-Next Task: TBD (pagination integration, Phase 4 features)
+Next Task: TBD
 Blockers: none
 
 ## Last Result
 
-M6 completed: Full UI implementation — 14 tasks across 4 phases, all merged to develop.
+TASK-0057 completed: Board/Kanban view for Delivery page.
+
+- BoardView component with 4 status columns (Backlog, In Progress, Review, Done)
+- View toggle (List / Board) in DeliveryPage header
+- Tasks fetched via useQueries for all features in parallel
+- Click status badge to cycle task status
+- Click task card to open TaskDetailSheet
+- Search filter works in board view
+- 7 new tests, 126 total passing
 
 ### Phase 0 (Foundation) — DONE
 - TASK-0043: Fix type mismatches + sidebar navigation
