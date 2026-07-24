@@ -13,6 +13,13 @@ class Settings(BaseSettings):
     secret_key: str = "change_me_local_only"
     database_url: str = "postgresql+psycopg://upcp:upcp_local_change_me@localhost:5432/upcp"
 
+    # LLM (optional)
+    llm_enabled: bool = False
+    llm_provider: str = "local"
+    llm_api_key: str = ""
+    llm_model: str = ""
+    llm_api_url: str = ""
+
     model_config = {"env_prefix": "UPCP_"}
 
 

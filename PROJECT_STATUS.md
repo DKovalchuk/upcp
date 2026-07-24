@@ -8,6 +8,17 @@ Blockers: none
 
 ## Last Result
 
+M4 completed: MCP and CLI.
+
+- `backend/app/mcp/`: MCP server scaffold with JSON-RPC endpoint.
+- MCP tools: project_list, project_get, task_list, task_get, feature_list, feature_get.
+- Context pack generator: markdown context packs for AI agents.
+- `backend/cli.py`: Typer CLI with project, task, status commands.
+- Tests: 22 new tests for MCP and CLI.
+- Coverage: 82%.
+- Lint: all checks passed.
+- Typecheck: MCP/CLI files pass (some pre-existing errors in other files).
+
 TASK-0022 and TASK-0023 completed.
 
 - `frontend/` directory created with React + Vite + TypeScript scaffold.

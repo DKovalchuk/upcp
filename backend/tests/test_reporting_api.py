@@ -1,5 +1,6 @@
 from app.api.v1.projects import router as projects_router
 from app.api.v1.reporting import router
+from app.api.v1.structure import router as structure_router
 
 # Import all models to ensure all tables are created
 from app.reporting.models import Report  # noqa: F401
@@ -37,6 +38,7 @@ def _test_app() -> FastAPI:
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(projects_router, prefix="/api/v1")
+    app.include_router(structure_router, prefix="/api/v1")
     app.include_router(router, prefix="/api/v1")
     app.dependency_overrides[get_session] = _override_session
     return app
