@@ -4,15 +4,15 @@ from pydantic import BaseModel, Field
 
 class JSONRPCRequest(BaseModel):
     """JSON-RPC 2.0 request."""
-    jsonrpc: str = "2.0"
+    jsonrpc: str = Field(default="2.0", min_length=1, max_length=10)
     id: int | str
-    method: str
+    method: str = Field(..., min_length=1, max_length=255)
     params: dict[str, object] | None = None
 
 
 class JSONRPCResponse(BaseModel):
     """JSON-RPC 2.0 response."""
-    jsonrpc: str = "2.0"
+    jsonrpc: str = Field(default="2.0", min_length=1, max_length=10)
     id: int | str
     result: dict[str, object] | None = None
     error: dict[str, object] | None = None
@@ -27,14 +27,14 @@ class ToolInput(BaseModel):
 
 class Tool(BaseModel):
     """MCP tool definition."""
-    name: str
-    description: str
+    name: str = Field(..., min_length=1, max_length=255)
+    description: str = Field(..., min_length=1, max_length=10000)
     input_schema: ToolInput = Field(default_factory=ToolInput)
 
 
 class ToolCall(BaseModel):
     """Tool call request."""
-    name: str
+    name: str = Field(..., min_length=1, max_length=255)
     arguments: dict[str, object] = Field(default_factory=dict)
 
 
@@ -46,7 +46,7 @@ class ToolResult(BaseModel):
 
 class Resource(BaseModel):
     """MCP resource definition."""
-    uri: str
-    name: str
-    description: str
-    mime_type: str = "text/plain"
+    uri: str = Field(..., min_length=1, max_length=2048)
+    name: str = Field(..., min_length=1, max_length=255)
+    description: str = Field(..., min_length=1, max_length=10000)
+    mime_type: str = Field(default="text/plain", min_length=1, max_length=255)

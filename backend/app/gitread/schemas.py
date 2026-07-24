@@ -1,14 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class GitProviderCreate(BaseModel):
-    name: str
-    provider_type: str
-    url: str
+    name: str = Field(..., min_length=1, max_length=255)
+    provider_type: str = Field(..., min_length=1, max_length=255)
+    url: str = Field(..., min_length=1, max_length=2048)
 
 
 class GitLinkCreate(BaseModel):
-    entity_type: str
-    entity_id: str
-    git_type: str
-    git_id: str
+    entity_type: str = Field(..., min_length=1, max_length=255)
+    entity_id: str = Field(..., min_length=1, max_length=255)
+    git_type: str = Field(..., min_length=1, max_length=255)
+    git_id: str = Field(..., min_length=1, max_length=255)

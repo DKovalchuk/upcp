@@ -1,19 +1,19 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AcceptanceCriterionCreate(BaseModel):
-    description: str
+    description: str = Field(..., min_length=1, max_length=10000)
 
 
 class AcceptanceCriterionUpdate(BaseModel):
-    description: str | None = None
-    status: str | None = None
+    description: str | None = Field(default=None, min_length=1, max_length=10000)
+    status: str | None = Field(default=None, pattern=r"^[a-z_]+$")
 
 
 class DoDItemCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=255)
 
 
 class DoDItemUpdate(BaseModel):
-    name: str | None = None
-    status: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    status: str | None = Field(default=None, pattern=r"^[a-z_]+$")
