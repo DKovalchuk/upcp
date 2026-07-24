@@ -12,20 +12,21 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar';
 import { NAV_GROUPS, PROJECT_NAV_GROUP } from '@/lib/constants';
+import { useMemo } from 'react';
 
 function isProjectRoute(pathname: string): boolean {
   return /^\/projects\/[^/]+/.test(pathname);
 }
 
-function getProjectId(pathname: string): string | null {
-  const match = pathname.match(/^\/projects\/([^/]+)/);
-  return match ? match[1] : null;
-}
-
 export function AppSidebar() {
   const location = useLocation();
   const onProjectRoute = isProjectRoute(location.pathname);
-  const projectId = getProjectId(location.pathname);
+
+  const projectId = useMemo(() => {
+    if (!onProjectRoute) return null;
+    const match = location.pathname.match(/^\/projects\/([^/]+)/);
+    return match?.[1] ?? null;
+  }, [location.pathname, onProjectRoute]);
 
   return (
     <Sidebar collapsible="icon">

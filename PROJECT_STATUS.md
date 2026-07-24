@@ -1,14 +1,24 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-24
-Milestone: M5
-Current Task: TASK-0026 (done)
-Next Task: M5 — M5 Complete
+Milestone: M6 (UI Implementation)
+Current Task: TASK-0043 (pending)
+Next Task: Phase 0 — Foundation Fixes
 Blockers: none
 
 ## Last Result
 
-M4 completed: MCP and CLI.
+M6 planning complete.
+
+- SPEC-0013 created: UI Implementation Plan (14 tasks, 4 phases).
+- 10 ADRs added (DEC-0006 to DEC-0014).
+- Critical gaps identified: type mismatches, broken sidebar nav, no CRUD forms, no pages beyond project list.
+- Phase 0 (Foundation): TASK-0043, TASK-0044, TASK-0056.
+- Phase 1 (Core): TASK-0045 to TASK-0050.
+- Phase 2 (Extended): TASK-0051 to TASK-0054.
+- Phase 3 (Polish): TASK-0055.
+
+M5 completed: Frontend UI/UX + Backend APIs + MCP fixes.
 
 - `backend/app/mcp/`: MCP server scaffold with JSON-RPC endpoint.
 - MCP tools: project_list, project_get, task_list, task_get, feature_list, feature_get.

@@ -1,24 +1,26 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchProjects } from '@/lib/api';
+import { useProjects } from '@/hooks/use-projects';
 import { ProjectTable } from '@/components/ProjectTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { Skeleton } from '@/components/ui/skeleton';
+import { FolderKanban } from 'lucide-react';
 
 export function ProjectList() {
-  const { data: projects, isLoading, error } = useQuery({
-    queryKey: ['projects'],
-    queryFn: fetchProjects,
-  });
+  const { data: projects, isLoading, error, refetch } = useProjects();
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Projects</CardTitle>
+          <Skeleton className="h-8 w-[200px]" />
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -28,16 +30,26 @@ export function ProjectList() {
   if (error) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Projects</CardTitle>
-        </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <p className="text-destructive mb-4">Failed to load projects</p>
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Retry
-            </Button>
-          </div>
+          <ErrorState
+            message={error.message || 'Failed to load projects'}
+            onRetry={refetch}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!projects || projects.length === 0) {
+    return (
+      <Card>
+        <CardContent>
+          <EmptyState
+            icon={FolderKanban}
+            title="No projects yet"
+            description="Create your first project to get started."
+            action={{ label: 'New Project', onClick: () => {} }}
+          />
         </CardContent>
       </Card>
     );
@@ -50,7 +62,7 @@ export function ProjectList() {
         <Button size="sm">New Project</Button>
       </CardHeader>
       <CardContent>
-        <ProjectTable projects={projects || []} />
+        <ProjectTable projects={projects} />
       </CardContent>
     </Card>
   );

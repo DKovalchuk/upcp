@@ -1,5 +1,6 @@
 export interface Feature {
   id: string;
+  project_id: string;
   name: string;
   slug: string;
   description: string | null;

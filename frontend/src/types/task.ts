@@ -1,5 +1,6 @@
 export interface Task {
   id: string;
+  feature_id: string;
   title: string;
   description: string | null;
   status: string;

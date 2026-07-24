@@ -5,8 +5,20 @@ import React, { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Lazy-loaded route components
+const Dashboard = React.lazy(() =>
+  import('@/components/Dashboard').then((module) => ({ default: module.Dashboard }))
+);
+
 const ProjectList = React.lazy(() =>
   import('@/components/ProjectList').then((module) => ({ default: module.ProjectList }))
+);
+
+const ProjectDetail = React.lazy(() =>
+  import('@/components/project/ProjectDetail').then((module) => ({ default: module.ProjectDetail }))
+);
+
+const HealthPage = React.lazy(() =>
+  import('@/components/HealthPage').then((module) => ({ default: module.HealthPage }))
 );
 
 const NotFoundPage = React.lazy(() =>
@@ -39,7 +51,7 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <LazyRoute Component={ProjectList} />,
+  component: () => <LazyRoute Component={Dashboard} />,
 });
 
 const projectsRoute = createRoute({
@@ -48,13 +60,66 @@ const projectsRoute = createRoute({
   component: () => <LazyRoute Component={ProjectList} />,
 });
 
+const projectDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId',
+  component: () => <LazyRoute Component={ProjectDetail} />,
+});
+
+const projectStructureRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/structure',
+  component: () => <LazyRoute Component={ProjectDetail} />,
+});
+
+const projectDeliveryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/delivery',
+  component: () => <LazyRoute Component={ProjectDetail} />,
+});
+
+const projectQualityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/quality',
+  component: () => <LazyRoute Component={ProjectDetail} />,
+});
+
+const projectAuditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/audit',
+  component: () => <LazyRoute Component={ProjectDetail} />,
+});
+
+const projectSettingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/settings',
+  component: () => <LazyRoute Component={ProjectDetail} />,
+});
+
+const healthRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/health',
+  component: () => <LazyRoute Component={HealthPage} />,
+});
+
 const notFoundRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '*',
   component: () => <LazyRoute Component={NotFoundPage} />,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, projectsRoute, notFoundRoute]);
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  projectsRoute,
+  projectDetailRoute,
+  projectStructureRoute,
+  projectDeliveryRoute,
+  projectQualityRoute,
+  projectAuditRoute,
+  projectSettingsRoute,
+  healthRoute,
+  notFoundRoute,
+]);
 
 export const router = createRouter({ routeTree });
 

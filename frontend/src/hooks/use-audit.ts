@@ -2,10 +2,27 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchAuditEvents, createAuditEvent } from '@/lib/api';
 import type { AuditEventCreate } from '@/types/audit';
 
-export function useAuditEvents(filters?: Record<string, string>) {
+interface AuditFilters {
+  project_id: string;
+  event_type?: string;
+  entity_type?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+export function useAuditEvents(filters?: AuditFilters) {
+  const params: Record<string, string> = {};
+  if (filters?.event_type) params.event_type = filters.event_type;
+  if (filters?.entity_type) params.entity_type = filters.entity_type;
+  if (filters?.date_from) params.date_from = filters.date_from;
+  if (filters?.date_to) params.date_to = filters.date_to;
+
+  const projectId = filters?.project_id ?? '';
+
   return useQuery({
-    queryKey: ['audit-events', filters],
-    queryFn: () => fetchAuditEvents(filters),
+    queryKey: ['audit-events', projectId, params],
+    queryFn: () => fetchAuditEvents(projectId, params),
+    enabled: !!projectId,
   });
 }
 

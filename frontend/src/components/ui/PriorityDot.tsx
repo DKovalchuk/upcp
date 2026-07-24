@@ -6,12 +6,20 @@ import {
 } from '@/components/ui/tooltip';
 
 interface PriorityDotProps {
-  priority: string;
+  priority: number;
+}
+
+function getClosestPriority(priority: number): number {
+  if (priority <= 0) return 0;
+  if (priority <= 1) return 1;
+  if (priority <= 2) return 2;
+  return 3;
 }
 
 export function PriorityDot({ priority }: PriorityDotProps) {
-  const color = PRIORITY_COLORS[priority] || PRIORITY_COLORS.P3;
-  const label = PRIORITY_LABELS[priority] || priority;
+  const mapped = getClosestPriority(priority);
+  const color = PRIORITY_COLORS[mapped] ?? PRIORITY_COLORS[3];
+  const label = PRIORITY_LABELS[mapped] ?? `P${priority}`;
 
   return (
     <Tooltip>

@@ -14,7 +14,7 @@ import type {
 } from '@/types/quality';
 import type { Report, ReportCreate } from '@/types/report';
 import type { AuditEvent, AuditEventCreate } from '@/types/audit';
-import type { HealthResponse, PaginatedResponse } from '@/types/api';
+import type { HealthResponse, PaginatedResponse, DashboardStatsResponse, QualityStatsResponse } from '@/types/api';
 
 const API_BASE = '/api/v1';
 
@@ -313,10 +313,13 @@ export async function createReport(projectId: string, data: ReportCreate): Promi
 }
 
 // Audit Events
-export async function fetchAuditEvents(filters?: Record<string, string>): Promise<AuditEvent[]> {
+export async function fetchAuditEvents(projectId: string, filters?: Record<string, string>): Promise<AuditEvent[]> {
   const params = new URLSearchParams(filters);
-  const url = params.toString() ? `${API_BASE}/audit-events?${params}` : `${API_BASE}/audit-events`;
-  return apiRequest<AuditEvent[]>(url);
+  const url = params.toString()
+    ? `${API_BASE}/projects/${projectId}/audit-events?${params}`
+    : `${API_BASE}/projects/${projectId}/audit-events`;
+  const data = await apiRequest<{ items: AuditEvent[] }>(url);
+  return data.items ?? [];
 }
 
 export async function createAuditEvent(data: AuditEventCreate): Promise<AuditEvent> {
@@ -326,7 +329,21 @@ export async function createAuditEvent(data: AuditEventCreate): Promise<AuditEve
   });
 }
 
+// Dashboard
+export async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
+  return apiRequest<DashboardStatsResponse>(`${API_BASE}/dashboard/stats`);
+}
+
+// Quality Stats
+export async function fetchQualityStats(
+  projectId: string
+): Promise<QualityStatsResponse> {
+  return apiRequest<QualityStatsResponse>(
+    `${API_BASE}/projects/${projectId}/quality/stats`
+  );
+}
+
 // Health
 export async function fetchHealth(): Promise<HealthResponse> {
-  return apiRequest<HealthResponse>(`${API_BASE}/health`);
+  return apiRequest<HealthResponse>('/health');
 }

@@ -4,10 +4,11 @@ import {
   BarChart3,
   Activity,
   Settings,
-  ListTodo,
-  Layers,
+  Info,
+  Boxes,
   GitBranch,
-  FileText,
+  ShieldCheck,
+  ScrollText,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -66,23 +67,33 @@ export const PROJECT_NAV_GROUP: NavGroup = {
   items: [
     {
       title: 'Overview',
-      icon: Layers,
-      path: '', // Will be resolved relative to project
-    },
-    {
-      title: 'Tasks',
-      icon: ListTodo,
+      icon: Info,
       path: '',
     },
     {
-      title: 'Features',
+      title: 'Structure',
+      icon: Boxes,
+      path: 'structure',
+    },
+    {
+      title: 'Delivery',
       icon: GitBranch,
-      path: '',
+      path: 'delivery',
     },
     {
-      title: 'Docs',
-      icon: FileText,
-      path: '',
+      title: 'Quality',
+      icon: ShieldCheck,
+      path: 'quality',
+    },
+    {
+      title: 'Audit',
+      icon: ScrollText,
+      path: 'audit',
+    },
+    {
+      title: 'Settings',
+      icon: Settings,
+      path: 'settings',
     },
   ],
 };
@@ -96,16 +107,16 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   done: { bg: 'bg-violet-500/10', text: 'text-violet-600' },
 };
 
-export const PRIORITY_COLORS: Record<string, string> = {
-  P0: 'bg-red-500',
-  P1: 'bg-orange-500',
-  P2: 'bg-yellow-500',
-  P3: 'bg-green-500',
+export const PRIORITY_COLORS: Record<number, string> = {
+  0: 'bg-red-500',
+  1: 'bg-orange-500',
+  2: 'bg-yellow-500',
+  3: 'bg-green-500',
 };
 
-export const PRIORITY_LABELS: Record<string, string> = {
-  P0: 'Critical',
-  P1: 'High',
-  P2: 'Medium',
-  P3: 'Low',
+export const PRIORITY_LABELS: Record<number, string> = {
+  0: 'Critical',
+  1: 'High',
+  2: 'Medium',
+  3: 'Low',
 };
