@@ -7,8 +7,9 @@ from app.quality.schemas import (
     AcceptanceCriterionUpdate,
     DoDItemCreate,
     DoDItemUpdate,
+    QualityStatsResponse,
 )
-from app.quality.service import AcceptanceCriterionService, DoDItemService
+from app.quality.service import AcceptanceCriterionService, DoDItemService, QualityStatsService
 from app.shared.database import get_session
 
 router = APIRouter(tags=["quality"])
@@ -78,3 +79,10 @@ def list_dods(task_id: str, session: Session = Depends(get_session)) -> list[dic
 def complete_task(task_id: str, session: Session = Depends(get_session)) -> dict[str, str]:  # noqa: B008
     task = TaskService(session).complete(task_id)
     return {"id": task.id, "status": task.status}
+
+
+@router.get("/projects/{project_id}/quality/stats", response_model=QualityStatsResponse)
+def get_quality_stats(project_id: str, session: Session = Depends(get_session)) -> QualityStatsResponse:  # noqa: B008
+    svc = QualityStatsService(session)
+    stats = svc.get_quality_stats(project_id)
+    return QualityStatsResponse(**stats)
