@@ -1,7 +1,7 @@
 # TASK-0001 Scaffold Repository and Health Endpoint
 
 Spec: SPEC-0001
-Status: ready
+Status: done
 Priority: 10
 Model: routine
 Milestone: M0
