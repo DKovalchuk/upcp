@@ -1,7 +1,6 @@
 import { Bell, Search, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -35,7 +34,11 @@ function ThemeToggle() {
   );
 }
 
-export function TopBar() {
+interface TopBarProps {
+  onCommandOpen?: () => void;
+}
+
+export function TopBar({ onCommandOpen }: TopBarProps) {
   return (
     <header className="flex h-14 items-center justify-between border-b bg-background px-4 lg:px-6">
       <div className="flex items-center gap-4">
@@ -45,14 +48,18 @@ export function TopBar() {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="w-64 pl-9"
-          />
-        </div>
+        <Button
+          variant="outline"
+          className="hidden sm:flex h-9 w-64 justify-start gap-2 text-muted-foreground"
+          onClick={onCommandOpen}
+        >
+          <Search className="h-4 w-4" />
+          <span className="flex-1 text-left text-sm">Search...</span>
+          <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+            <span className="text-xs">Ctrl</span>
+            <span className="text-xs">K</span>
+          </kbd>
+        </Button>
         <ThemeToggle />
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-4 w-4" />

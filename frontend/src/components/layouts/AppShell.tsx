@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
@@ -7,8 +8,11 @@ import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Toaster } from '@/components/ui/sonner';
+import { CommandPalette } from '@/components/CommandPalette';
 
 export function AppShell() {
+  const [commandOpen, setCommandOpen] = useState(false);
+
   return (
     <TooltipProvider>
       <SidebarProvider>
@@ -20,7 +24,7 @@ export function AppShell() {
         </a>
         <AppSidebar />
         <SidebarInset>
-          <TopBar />
+          <TopBar onCommandOpen={() => setCommandOpen(true)} />
           <Separator />
           <BreadcrumbBar />
           <ErrorBoundary>
@@ -30,6 +34,7 @@ export function AppShell() {
           </ErrorBoundary>
         </SidebarInset>
         <Toaster position="bottom-right" richColors />
+        <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       </SidebarProvider>
     </TooltipProvider>
   );

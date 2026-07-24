@@ -1,6 +1,6 @@
 # TASK-0056: Pagination Component + URL Sync
 
-**Status**: pending
+**Status**: done
 **Spec**: SPEC-0013 §3
 **Phase**: 0 (Foundation)
 **Depends on**: TASK-0043
@@ -15,14 +15,14 @@ Backend returns paginated responses (`{ items, total, offset, limit }`) but fron
 
 ## Acceptance Criteria
 
-- [ ] `frontend/src/components/ui/DataTablePagination.tsx` exists
-- [ ] Shows: "Showing X-Y of Z results"
-- [ ] Page numbers with prev/next buttons
-- [ ] Page size selector: 10, 20, 50 (default 20)
-- [ ] URL sync: `?page=2&pageSize=20` in search params
-- [ ] Uses TanStack Router search params
-- [ ] Integrated with: ProjectList, Features list, Tasks list, Audit list, Reports list
-- [ ] `npm run build` passes
+- [x] `frontend/src/components/ui/DataTablePagination.tsx` exists
+- [x] Shows: "Showing X-Y of Z results"
+- [x] Page numbers with prev/next buttons
+- [x] Page size selector: 10, 20, 50 (default 20)
+- [x] URL sync: `?page=2&pageSize=20` in search params
+- [x] Uses TanStack Router search params
+- [x] Integrated with: ProjectList, Features list, Tasks list, Audit list, Reports list
+- [x] `npm run build` passes
 
 ## Technical Notes
 
@@ -31,3 +31,10 @@ Backend returns paginated responses (`{ items, total, offset, limit }`) but fron
 - URL params: `page` (1-indexed), `pageSize`
 - Use shadcn Pagination component
 - Each list page needs to pass pagination params to API calls
+
+## Implementation
+
+- `use-url-pagination.ts` hook reads/writes `page` + `pageSize` from URL search params
+- `DataTablePagination` component accepts `offset`, `limit`, `total`, `onPageChange`, `onPageSizeChange`
+- All list pages use `useUrlPagination(20)` and pass `{ offset, limit }` to their respective hooks
+- Pages: ProjectList, DeliveryPage, AuditPage, ReportsPage — all render DataTablePagination when `total > limit`

@@ -8,6 +8,13 @@ Blockers: none
 
 ## Last Result
 
+TASK-0056 completed: Pagination wired into all list pages.
+
+- DataTablePagination integrated into ProjectList, DeliveryPage, AuditPage, ReportsPage
+- useUrlPagination hook manages page/pageSize URL search params
+- All API hooks pass offset/limit to backend
+- Build passes, 126 tests passing
+
 TASK-0057 completed: Board/Kanban view for Delivery page.
 
 - BoardView component with 4 status columns (Backlog, In Progress, Review, Done)
@@ -21,7 +28,7 @@ TASK-0057 completed: Board/Kanban view for Delivery page.
 ### Phase 0 (Foundation) — DONE
 - TASK-0043: Fix type mismatches + sidebar navigation
 - TASK-0044: Skeleton loading + toast system
-- TASK-0056: Pagination component (created, not yet integrated into pages)
+- TASK-0056: Pagination component + URL sync (integrated into all list pages)
 
 ### Phase 1 (Core Pages) — DONE
 - TASK-0045: Dashboard page with stats cards, recent projects, activity feed
@@ -65,11 +72,7 @@ TASK-0057 completed: Board/Kanban view for Delivery page.
 
 ## Remaining Work
 
-### Pending Integration
-- TASK-0056: Wire DataTablePagination into list pages (ProjectList, Delivery, Audit, Reports)
-
 ### Future Backlog (from SPEC-0013 §6)
-- Board/Kanban view for Delivery
 - Command Palette (Cmd+K)
 - Global search (needs backend search endpoint)
 - Notifications system
