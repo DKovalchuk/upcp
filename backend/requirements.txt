@@ -15,5 +15,6 @@ prometheus-client>=0.20,<1.0
 # dev/test
 pytest>=8.3,<9.0
 pytest-asyncio>=0.24,<1.0
+pytest-cov>=5.0,<6.0
 ruff>=0.6,<1.0
 mypy>=1.11,<2.0

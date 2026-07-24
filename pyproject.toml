@@ -34,3 +34,4 @@ exclude = [
 pythonpath = ["backend"]
 testpaths = ["backend/tests"]
 asyncio_mode = "auto"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=0.8"
