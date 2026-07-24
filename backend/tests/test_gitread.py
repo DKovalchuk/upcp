@@ -119,3 +119,18 @@ def test_local_adapter_get_commits() -> None:
         commits = adapter.get_commits(limit=2)
         assert len(commits) == 2
         assert commits[0].message == "second"
+
+
+# ── GitHubAdapter (unit tests with mocked httpx) ──
+
+def test_github_adapter_init() -> None:
+    from app.gitread.adapters import GitHubAdapter
+    adapter = GitHubAdapter("owner", "repo", token="ghp_test")
+    assert adapter._base == "https://api.github.com/repos/owner/repo"
+    assert "Authorization" in adapter._headers
+
+
+def test_github_adapter_init_no_token() -> None:
+    from app.gitread.adapters import GitHubAdapter
+    adapter = GitHubAdapter("owner", "repo")
+    assert "Authorization" not in adapter._headers

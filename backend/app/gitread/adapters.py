@@ -2,6 +2,8 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 
+import httpx
+
 
 @dataclass
 class RemoteBranch:
@@ -65,3 +67,42 @@ class LocalGitAdapter:
                 committed_at=datetime.fromisoformat(parts[3]),
             ))
         return commits
+
+
+class GitHubAdapter:
+    def __init__(self, owner: str, repo: str, token: str | None = None) -> None:
+        self._owner = owner
+        self._repo = repo
+        self._base = f"https://api.github.com/repos/{owner}/{repo}"
+        self._headers = {"Accept": "application/vnd.github.v3+json"}
+        if token:
+            self._headers["Authorization"] = f"token {token}"
+
+    def list_branches(self) -> list[RemoteBranch]:
+        with httpx.Client(headers=self._headers, timeout=30) as client:
+            resp = client.get(f"{self._base}/branches")
+            resp.raise_for_status()
+            default_resp = client.get(f"{self._base}")
+            default_branch = default_resp.json().get("default_branch", "main")
+            return [
+                RemoteBranch(
+                    name=b["name"],
+                    last_commit_sha=b["commit"]["sha"],
+                    is_default=(b["name"] == default_branch),
+                )
+                for b in resp.json()
+            ]
+
+    def get_commits(self, branch: str = "main", limit: int = 20) -> list[RemoteCommit]:
+        with httpx.Client(headers=self._headers, timeout=30) as client:
+            resp = client.get(f"{self._base}/commits", params={"sha": branch, "per_page": limit})
+            resp.raise_for_status()
+            return [
+                RemoteCommit(
+                    sha=c["sha"],
+                    message=c["commit"]["message"].split("\n")[0],
+                    author=c["commit"]["author"]["name"] or "unknown",
+                    committed_at=datetime.fromisoformat(c["commit"]["author"]["date"].replace("Z", "+00:00")),
+                )
+                for c in resp.json()
+            ]
