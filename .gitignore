@@ -38,6 +38,9 @@ logs/
 .coverage
 htmlcov/
 
+# Docker data
+data/
+
 # Qwen
 .qwen/
 .qwen-orchestrator/

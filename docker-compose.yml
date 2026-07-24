@@ -11,7 +11,7 @@ services:
     ports:
       - "127.0.0.1:${UPCP_POSTGRES_PORT:-35432}:5432"
     volumes:
-      - upcp_pgdata:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
       test:
         - CMD-SHELL
@@ -70,7 +70,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_change_me}
     volumes:
-      - upcp_grafana:/var/lib/grafana
+      - ./data/grafana:/var/lib/grafana
 
   frontend:
     build:
@@ -85,7 +85,3 @@ services:
       - ./frontend/src:/app/src
     depends_on:
       - app
-
-volumes:
-  upcp_pgdata:
-  upcp_grafana:
