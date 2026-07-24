@@ -1,16 +1,8 @@
-import re
-
 from sqlalchemy.orm import Session
 
 from app.projects.models import Project
 from app.shared.errors import Conflict, NotFound
-
-
-def _slugify(name: str) -> str:
-    slug = name.lower().strip()
-    slug = re.sub(r"[^a-z0-9]+", "-", slug)
-    slug = slug.strip("-")
-    return slug
+from app.shared.text import slugify
 
 
 class ProjectService:
@@ -18,7 +10,7 @@ class ProjectService:
         self._session = session
 
     def create(self, *, name: str, slug: str | None = None, description: str | None = None, status: str = "active") -> Project:
-        final_slug = slug or _slugify(name)
+        final_slug = slug or slugify(name)
         existing = self._session.query(Project).filter_by(slug=final_slug).first()
         if existing:
             raise Conflict(f"slug '{final_slug}' already exists")
