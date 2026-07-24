@@ -79,15 +79,35 @@ def get_tools() -> list[Tool]:
     ]
 
 
+MAX_LIMIT = 100
+MIN_OFFSET = 0
+
+
 def _get_int_arg(arguments: dict[str, object], key: str, default: int) -> int:
-    """Extract integer from arguments, handling object type."""
+    """Extract integer from arguments with type-aware conversion.
+
+    Handles bool, int, float, and string types.
+    Raises ValueError for empty strings or non-numeric strings.
+    """
     val = arguments.get(key)
     if val is None:
         return default
+    if isinstance(val, bool):
+        return 1 if val else 0
+    if isinstance(val, (int, float)):
+        return int(val)
+    s = str(val).strip()
+    if not s:
+        raise ValueError(f"{key}: empty string is not a valid integer")
     try:
-        return int(str(val) or str(default))
-    except (ValueError, TypeError):
-        return default
+        return int(s)
+    except (ValueError, TypeError) as err:
+        raise ValueError(f"{key}: '{s}' is not a valid integer") from err
+
+
+def _clamped_int(val: int, min_val: int, max_val: int) -> int:
+    """Clamp an integer to [min_val, max_val]."""
+    return max(min_val, min(max_val, val))
 
 
 def _get_str_arg(arguments: dict[str, object], key: str, default: str = "") -> str:
@@ -124,7 +144,7 @@ def _serialize_task(t: Any) -> dict[str, Any]:
         "title": t.title,
         "description": t.description,
         "status": t.status,
-        "priority": int(str(t.priority)),
+        "priority": int(t.priority) if t.priority is not None else None,
         "assignee_type": t.assignee_type,
         "assignee_id": t.assignee_id,
         "component_id": t.component_id,
@@ -152,8 +172,8 @@ def _serialize_feature(f: Any) -> dict[str, Any]:
 def _handle_project_list(session: Any, arguments: dict[str, object]) -> ToolResult:
     """Handle project_list tool."""
     service = ProjectService(session)
-    offset = _get_int_arg(arguments, "offset", 0)
-    limit = _get_int_arg(arguments, "limit", 20)
+    offset = _clamped_int(_get_int_arg(arguments, "offset", 0), MIN_OFFSET, MAX_LIMIT)
+    limit = _clamped_int(_get_int_arg(arguments, "limit", 20), MIN_OFFSET, MAX_LIMIT)
     projects, total = service.list_projects(offset=offset, limit=limit)
     items = [_serialize_project(p) for p in projects]
     result = _serialize_paginated(items, total, offset, limit)
@@ -172,14 +192,14 @@ def _handle_project_get(session: Any, arguments: dict[str, object]) -> ToolResul
 
 
 def _handle_task_list(session: Any, arguments: dict[str, object]) -> ToolResult:
-    """Handle task_list tool (using project_id as feature_id for simplicity)."""
-    feature_id = _get_str_arg(arguments, "project_id")
-    if not feature_id:
-        raise ValueError("project_id (feature_id) is required")
+    """Handle task_list tool — lists tasks for a project (via features)."""
+    project_id = _get_str_arg(arguments, "project_id")
+    if not project_id:
+        raise ValueError("project_id is required")
     service = TaskService(session)
-    offset = _get_int_arg(arguments, "offset", 0)
-    limit = _get_int_arg(arguments, "limit", 20)
-    tasks, total = service.list_tasks(feature_id, offset=offset, limit=limit)
+    offset = _clamped_int(_get_int_arg(arguments, "offset", 0), MIN_OFFSET, MAX_LIMIT)
+    limit = _clamped_int(_get_int_arg(arguments, "limit", 20), MIN_OFFSET, MAX_LIMIT)
+    tasks, total = service.list_tasks_by_project(project_id, offset=offset, limit=limit)
     items = [_serialize_task(t) for t in tasks]
     result = _serialize_paginated(items, total, offset, limit)
     return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
@@ -202,8 +222,8 @@ def _handle_feature_list(session: Any, arguments: dict[str, object]) -> ToolResu
     if not project_id:
         raise ValueError("project_id is required")
     service = FeatureService(session)
-    offset = _get_int_arg(arguments, "offset", 0)
-    limit = _get_int_arg(arguments, "limit", 20)
+    offset = _clamped_int(_get_int_arg(arguments, "offset", 0), MIN_OFFSET, MAX_LIMIT)
+    limit = _clamped_int(_get_int_arg(arguments, "limit", 20), MIN_OFFSET, MAX_LIMIT)
     features, total = service.list_features(project_id, offset=offset, limit=limit)
     items = [_serialize_feature(f) for f in features]
     result = _serialize_paginated(items, total, offset, limit)
@@ -233,17 +253,27 @@ TOOL_HANDLERS: dict[str, HandlerFn] = {
 }
 
 
-async def call_tool(name: str, arguments: dict[str, object]) -> ToolResult:
-    """Call a tool by name using dispatch table."""
+async def call_tool(
+    name: str,
+    arguments: dict[str, object],
+    session: Any | None = None,
+) -> ToolResult:
+    """Call a tool by name using dispatch table.
+
+    If *session* is provided it is used directly (FastAPI DI).
+    Otherwise a new SessionLocal is created for backward compatibility.
+    """
     handler = TOOL_HANDLERS.get(name)
     if not handler:
         raise ValueError(f"Unknown tool: {name}")
 
-    session = SessionLocal()
+    own_session = session is None
+    sess = session if session is not None else SessionLocal()
     try:
-        return handler(session, arguments)
+        return handler(sess, arguments)
     except Exception as e:
         content: list[dict[str, object]] = [{"type": "text", "text": f"Error: {str(e)}"}]
         return ToolResult(content=content, is_error=True)
     finally:
-        session.close()
+        if own_session:
+            sess.close()
