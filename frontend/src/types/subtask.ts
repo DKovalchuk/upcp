@@ -1,5 +1,6 @@
 export interface Subtask {
   id: string;
+  task_id: string;
   title: string;
   description: string | null;
   status: string;

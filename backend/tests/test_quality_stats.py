@@ -1,12 +1,11 @@
-from fastapi.testclient import TestClient
-
+from app.api.v1.delivery import router as delivery_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.quality import router as quality_router
 from app.api.v1.structure import router as structure_router
-from app.api.v1.delivery import router as delivery_router
 from app.shared.database import Base, get_session
 from app.shared.errors import register_error_handlers
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool

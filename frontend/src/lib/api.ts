@@ -14,7 +14,7 @@ import type {
 } from '@/types/quality';
 import type { Report, ReportCreate } from '@/types/report';
 import type { AuditEvent, AuditEventCreate } from '@/types/audit';
-import type { HealthResponse, PaginatedResponse } from '@/types/api';
+import type { HealthResponse, PaginatedResponse, DashboardStatsResponse, QualityStatsResponse } from '@/types/api';
 
 const API_BASE = '/api/v1';
 
@@ -324,6 +324,20 @@ export async function createAuditEvent(data: AuditEventCreate): Promise<AuditEve
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+// Dashboard
+export async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
+  return apiRequest<DashboardStatsResponse>(`${API_BASE}/dashboard/stats`);
+}
+
+// Quality Stats
+export async function fetchQualityStats(
+  projectId: string
+): Promise<QualityStatsResponse> {
+  return apiRequest<QualityStatsResponse>(
+    `${API_BASE}/projects/${projectId}/quality/stats`
+  );
 }
 
 // Health

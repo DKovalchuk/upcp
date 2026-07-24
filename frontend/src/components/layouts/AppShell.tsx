@@ -6,6 +6,7 @@ import { BreadcrumbBar } from './BreadcrumbBar';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Toaster } from '@/components/ui/sonner';
 
 export function AppShell() {
   return (
@@ -28,6 +29,7 @@ export function AppShell() {
             </main>
           </ErrorBoundary>
         </SidebarInset>
+        <Toaster position="bottom-right" richColors />
       </SidebarProvider>
     </TooltipProvider>
   );
