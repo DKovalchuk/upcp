@@ -378,6 +378,24 @@ export async function fetchHealth(): Promise<HealthResponse> {
   return apiRequest<HealthResponse>('/health');
 }
 
+// Search
+export interface SearchResult {
+  entity_type: string;
+  id: string;
+  title: string;
+  subtitle: string;
+  url: string;
+}
+
+export async function searchGlobal(
+  query: string,
+  limit = 20
+): Promise<SearchResult[]> {
+  return apiRequest<SearchResult[]>(
+    `${API_BASE}/search?q=${encodeURIComponent(query)}&limit=${limit}`
+  );
+}
+
 // Git Providers
 export async function fetchGitProviders(
   projectId: string

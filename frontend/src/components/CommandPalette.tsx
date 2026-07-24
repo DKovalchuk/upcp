@@ -1,5 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import {
   CommandDialog,
   CommandInput,
@@ -19,7 +20,10 @@ import {
   ShieldCheck,
   ScrollText,
   Settings,
+  FileText,
+  Search,
 } from 'lucide-react';
+import { searchGlobal } from '@/lib/api';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -34,9 +38,26 @@ interface Command {
   action: () => void;
 }
 
+const ENTITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  project: FolderKanban,
+  feature: GitBranch,
+  task: FileText,
+};
+
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['search', searchQuery],
+    queryFn: () => searchGlobal(searchQuery),
+    enabled: searchQuery.length >= 2,
+  });
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+  }, []);
 
   const projectId = useMemo(() => {
     const match = location.pathname.match(/^\/projects\/([^/]+)/);
@@ -125,8 +146,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   }, [open, onOpenChange]);
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Type a command or search..." />
+    <CommandDialog open={open} onOpenChange={(v) => { if (!v) setSearchQuery(''); onOpenChange(v); }}>
+      <CommandInput placeholder="Type a command or search..." onValueChange={handleSearchChange} />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
 
@@ -158,6 +179,33 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   {cmd.label}
                 </CommandItem>
               ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {searchResults.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Search Results">
+              {searchResults.map((result) => {
+                const Icon = ENTITY_ICONS[result.entity_type] || Search;
+                return (
+                  <CommandItem
+                    key={`${result.entity_type}-${result.id}`}
+                    value={`search:${result.entity_type}:${result.title}`}
+                    onSelect={() => go(result.url)}
+                  >
+                    <Icon className="mr-2 h-4 w-4" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm">{result.title}</p>
+                      {result.subtitle && (
+                        <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
+                      )}
+                    </div>
+                    <span className="ml-2 text-xs text-muted-foreground capitalize">{result.entity_type}</span>
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </>
         )}
