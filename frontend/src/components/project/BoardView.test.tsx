@@ -126,4 +126,18 @@ describe('BoardView', () => {
     const counts = screen.getAllByText(/\(\d+\)/);
     expect(counts.length).toBe(4);
   });
+
+  it('task cards have draggable attribute', () => {
+    mockQueries({ f1: [TASKS_F1[0]], f2: [] });
+    renderBoard();
+    const card = screen.getByText('Login').closest('[data-draggable]');
+    expect(card).toBeTruthy();
+  });
+
+  it('columns have droppable attribute', () => {
+    mockQueries({ f1: [], f2: [] });
+    renderBoard();
+    const droppables = document.querySelectorAll('[data-droppable]');
+    expect(droppables.length).toBe(4);
+  });
 });

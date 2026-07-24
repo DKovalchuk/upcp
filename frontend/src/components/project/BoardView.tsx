@@ -1,5 +1,17 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueries } from '@tanstack/react-query';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { useDroppable } from '@dnd-kit/core';
+import { useDraggable } from '@dnd-kit/core';
 import { fetchTasks } from '@/lib/api';
 import { useUpdateTask } from '@/hooks/use-tasks';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -16,22 +28,82 @@ const BOARD_COLUMNS = [
   { key: 'done', label: 'Done' },
 ] as const;
 
-const STATUS_ORDER = BOARD_COLUMNS.map((c) => c.key);
-
-function nextStatus(current: string): string {
-  const idx = STATUS_ORDER.indexOf(current as (typeof STATUS_ORDER)[number]);
-  if (idx === -1) return STATUS_ORDER[0];
-  return STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
-}
-
 interface BoardViewProps {
   features: Feature[];
   search: string;
   onSelectTask: (taskId: string) => void;
 }
 
+function DraggableTaskCard({
+  task,
+  featureName,
+  onSelectTask,
+}: {
+  task: Task;
+  featureName?: string;
+  onSelectTask: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: task.id,
+    data: { task },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-draggable
+      {...listeners}
+      {...attributes}
+      className={`cursor-grab rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50 ${
+        isDragging ? 'opacity-50' : ''
+      }`}
+      onClick={() => onSelectTask(task.id)}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium leading-tight">{task.title}</p>
+          {featureName && (
+            <p className="mt-1 text-xs text-muted-foreground">{featureName}</p>
+          )}
+        </div>
+        <PriorityDot priority={task.priority} />
+      </div>
+      <div className="mt-2">
+        <StatusBadge status={task.status} />
+      </div>
+    </div>
+  );
+}
+
+function DroppableColumn({
+  columnKey,
+  children,
+}: {
+  columnKey: string;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: columnKey });
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-droppable
+      className={`min-h-[200px] space-y-2 rounded-lg border border-dashed p-2 transition-colors ${
+        isOver ? 'border-primary bg-primary/5' : ''
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
   const updateTask = useUpdateTask();
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
   const taskQueries = useQueries({
     queries: features.map((f) => ({
@@ -87,8 +159,20 @@ export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
     return map;
   }, [features]);
 
-  const handleStatusChange = async (task: Task) => {
-    const newStatus = nextStatus(task.status);
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = event.active.data.current?.task as Task | undefined;
+    if (task) setActiveTask(task);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveTask(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const task = active.data.current?.task as Task | undefined;
+    const newStatus = over.id as string;
+    if (!task || task.status === newStatus) return;
+
     try {
       await updateTask.mutateAsync({
         id: task.id,
@@ -116,59 +200,65 @@ export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {BOARD_COLUMNS.map((col) => (
-        <div key={col.key} className="space-y-2">
-          <div className="flex items-center gap-2 px-1">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              {col.label}
-            </h3>
-            <span className="text-xs text-muted-foreground">
-              ({tasksByStatus[col.key]?.length ?? 0})
-            </span>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {BOARD_COLUMNS.map((col) => (
+          <div key={col.key} className="space-y-2">
+            <div className="flex items-center gap-2 px-1">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                {col.label}
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                ({tasksByStatus[col.key]?.length ?? 0})
+              </span>
+            </div>
+            <DroppableColumn columnKey={col.key}>
+              {tasksByStatus[col.key]?.length === 0 ? (
+                <p className="py-8 text-center text-xs text-muted-foreground">
+                  No tasks
+                </p>
+              ) : (
+                tasksByStatus[col.key]?.map((task) => (
+                  <DraggableTaskCard
+                    key={task.id}
+                    task={task}
+                    featureName={featureNameMap[task.feature_id]}
+                    onSelectTask={onSelectTask}
+                  />
+                ))
+              )}
+            </DroppableColumn>
           </div>
-          <div className="min-h-[200px] space-y-2 rounded-lg border border-dashed p-2">
-            {tasksByStatus[col.key]?.length === 0 ? (
-              <p className="py-8 text-center text-xs text-muted-foreground">
-                No tasks
-              </p>
-            ) : (
-              tasksByStatus[col.key]?.map((task) => (
-                <div
-                  key={task.id}
-                  className="cursor-pointer rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50"
-                  onClick={() => onSelectTask(task.id)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-tight">
-                        {task.title}
-                      </p>
-                      {featureNameMap[task.feature_id] && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {featureNameMap[task.feature_id]}
-                        </p>
-                      )}
-                    </div>
-                    <PriorityDot priority={task.priority} />
-                  </div>
-                  <div className="mt-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStatusChange(task);
-                      }}
-                      className="inline-block"
-                    >
-                      <StatusBadge status={task.status} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+        ))}
+      </div>
+
+      <DragOverlay>
+        {activeTask && (
+          <div className="rounded-lg border bg-card p-3 shadow-lg opacity-90">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium leading-tight">
+                  {activeTask.title}
+                </p>
+                {featureNameMap[activeTask.feature_id] && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {featureNameMap[activeTask.feature_id]}
+                  </p>
+                )}
+              </div>
+              <PriorityDot priority={activeTask.priority} />
+            </div>
+            <div className="mt-2">
+              <StatusBadge status={activeTask.status} />
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }
