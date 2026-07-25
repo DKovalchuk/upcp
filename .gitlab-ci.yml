@@ -67,7 +67,7 @@ workflow:
       - backend-pip
     policy: pull
   before_script:
-    - pip install --prefer-offline --quiet ruff mypy
+    - pip install --quiet ruff mypy
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -138,7 +138,7 @@ frontend:lint:
     policy: pull
   before_script:
     - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
-    - pip install --prefer-offline --quiet -r backend/requirements.txt pytest-xdist
+    - pip install --quiet -r backend/requirements.txt pytest-xdist
 
 backend:test:
   extends: .backend-test-template
@@ -197,7 +197,7 @@ backend:security:
   image: python:3.12-slim
   needs: []
   before_script:
-    - pip install --prefer-offline --quiet bandit pip-audit
+    - pip install --quiet bandit pip-audit
   script:
     - bandit -r backend/app -f json -o bandit-report.json -q
     - pip-audit -r backend/requirements.txt
