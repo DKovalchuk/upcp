@@ -300,7 +300,7 @@ deploy:stage:
     - docker pull "$REGISTRY/$CI_PROJECT_PATH/frontend:dev"
     - docker tag "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" "$REGISTRY/$CI_PROJECT_PATH/frontend:stage"
     - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:stage"
-    - echo "Stage images ready. Deploy with: docker compose -f docker-compose.stage.yml up -d"
+    - echo "Stage images ready. Deploy with docker compose -f docker-compose.stage.yml up -d"
   needs:
     - build:backend-image
     - build:frontend-image
