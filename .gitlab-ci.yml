@@ -18,6 +18,7 @@ stages:
 default:
   tags:
     - laptop
+  interruptible: true
   retry:
     max: 1
     when:
@@ -47,9 +48,14 @@ workflow:
   stage: lint
   image: python:3.12-slim
   cache:
-    key: backend-pip
+    key:
+      files:
+        - backend/requirements.txt
+      prefix: backend-pip
     paths:
       - .cache/pip
+    fallback_keys:
+      - backend-pip
   before_script:
     - pip install --quiet ruff mypy
   rules:
@@ -72,10 +78,15 @@ frontend:lint:
   stage: lint
   image: node:20-alpine
   cache:
-    key: frontend-npm
+    key:
+      files:
+        - frontend/package-lock.json
+      prefix: frontend-npm
     paths:
       - .cache/npm
       - frontend/node_modules
+    fallback_keys:
+      - frontend-npm
   before_script:
     - cd frontend
     - npm ci --prefer-offline
@@ -103,9 +114,14 @@ frontend:lint:
     UPCP_ENV: ci
     UPCP_SECRET_KEY: ci-test-only
   cache:
-    key: backend-pip
+    key:
+      files:
+        - backend/requirements.txt
+      prefix: backend-pip
     paths:
       - .cache/pip
+    fallback_keys:
+      - backend-pip
   before_script:
     - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
     - pip install --quiet -r backend/requirements.txt
@@ -130,10 +146,15 @@ frontend:test:
   stage: test
   image: node:20-alpine
   cache:
-    key: frontend-npm
+    key:
+      files:
+        - frontend/package-lock.json
+      prefix: frontend-npm
     paths:
       - .cache/npm
       - frontend/node_modules
+    fallback_keys:
+      - frontend-npm
   before_script:
     - cd frontend
     - npm ci --prefer-offline
@@ -234,10 +255,15 @@ frontend:build:
   stage: build
   image: node:20-alpine
   cache:
-    key: frontend-npm
+    key:
+      files:
+        - frontend/package-lock.json
+      prefix: frontend-npm
     paths:
       - .cache/npm
       - frontend/node_modules
+    fallback_keys:
+      - frontend-npm
   before_script:
     - cd frontend
     - npm ci --prefer-offline
