@@ -35,6 +35,23 @@ export function ReportsPage() {
   const createReport = useCreateReport();
   const [generating, setGenerating] = useState(false);
 
+  if (!projectId) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5" />
+          <h2 className="text-lg font-semibold">Reports</h2>
+        </div>
+        <EmptyState
+          icon={FileText}
+          title="Select a project"
+          description="Navigate to a project to view and generate reports."
+          action={{ label: 'Go to Projects', onClick: () => window.location.assign('/projects') }}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) return <PageSkeleton rows={5} />;
   if (error) return <ErrorState message="Failed to load reports" />;
 

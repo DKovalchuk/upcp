@@ -28,14 +28,17 @@ vi.mock('@/hooks/use-tasks', () => ({
 vi.mock('@/hooks/use-quality', () => ({
   useAcceptanceCriteria: vi.fn(() => ({ data: [] })),
   useDoDItems: vi.fn(() => ({ data: [] })),
+  useCreateAcceptanceCriterion: vi.fn(() => ({ mutateAsync: vi.fn() })),
+  useCreateDoDItem: vi.fn(() => ({ mutateAsync: vi.fn() })),
 }));
 
 vi.mock('@/hooks/use-subtasks', () => ({
   useSubtasks: vi.fn(() => ({ data: [] })),
+  useCreateSubtask: vi.fn(() => ({ mutateAsync: vi.fn() })),
 }));
 
 vi.mock('@/lib/toast', () => ({
-  showToast: { created: vi.fn(), deleted: vi.fn(), error: vi.fn() },
+  showToast: { created: vi.fn(), updated: vi.fn(), deleted: vi.fn(), error: vi.fn(), mutationError: vi.fn(), success: vi.fn(), info: vi.fn() },
 }));
 
 import { useFeatures, useCreateFeature, useDeleteFeature } from '@/hooks/use-features';

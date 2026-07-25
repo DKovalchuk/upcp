@@ -44,6 +44,8 @@ class ProjectService:
         self._session.delete(project)
         self._session.flush()
 
+    _ALLOWED_SORT_FIELDS = {"created_at", "updated_at", "name", "status"}
+
     def list_projects(
         self,
         *,
@@ -60,7 +62,9 @@ class ProjectService:
         if search:
             q = q.filter(Project.name.ilike(f"%{search}%"))
         total = q.count()
-        col = getattr(Project, sort_by, Project.created_at)
+        if sort_by not in self._ALLOWED_SORT_FIELDS:
+            sort_by = "created_at"
+        col = getattr(Project, sort_by)
         q = q.order_by(col.asc() if sort_dir == "asc" else col.desc())
         projects = q.offset(offset).limit(limit).all()
         return projects, total

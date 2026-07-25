@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -82,7 +84,7 @@ class QualityStatsService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_quality_stats(self, project_id: str) -> dict[str, int | float]:
+    def get_quality_stats(self, project_id: str) -> dict[str, Any]:
         """
         Aggregate quality statistics for a project.
 

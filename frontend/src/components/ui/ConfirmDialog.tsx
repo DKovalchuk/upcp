@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,7 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   variant?: 'default' | 'destructive';
 }
 
@@ -29,6 +30,20 @@ export function ConfirmDialog({
   onConfirm,
   variant = 'default',
 }: ConfirmDialogProps) {
+  const [loading, setLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      await onConfirm();
+      onOpenChange(false);
+    } catch {
+      // Stay open on error so user can see the toast
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -37,17 +52,15 @@ export function ConfirmDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             {cancelLabel}
           </Button>
           <Button
             variant={variant}
-            onClick={() => {
-              onConfirm();
-              onOpenChange(false);
-            }}
+            onClick={handleConfirm}
+            disabled={loading}
           >
-            {confirmLabel}
+            {loading ? 'Processing...' : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

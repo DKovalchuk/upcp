@@ -375,7 +375,7 @@ export async function fetchQualityStats(
 
 // Health
 export async function fetchHealth(): Promise<HealthResponse> {
-  return apiRequest<HealthResponse>('/health');
+  return apiRequest<HealthResponse>(`${API_BASE}/health`);
 }
 
 // Search

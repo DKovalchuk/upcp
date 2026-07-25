@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import {
   Table,
   TableBody,
@@ -6,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import type { Project } from '@/types/project';
 
 interface ProjectTableProps {
@@ -13,6 +15,8 @@ interface ProjectTableProps {
 }
 
 export function ProjectTable({ projects }: ProjectTableProps) {
+  const navigate = useNavigate();
+
   if (projects.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -33,12 +37,14 @@ export function ProjectTable({ projects }: ProjectTableProps) {
         </TableHeader>
         <TableBody>
           {projects.map((project) => (
-            <TableRow key={project.id}>
+            <TableRow
+              key={project.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => navigate({ to: '/projects/$projectId', params: { projectId: project.id } })}
+            >
               <TableCell className="font-medium">{project.name}</TableCell>
               <TableCell>
-                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-                  {project.status}
-                </span>
+                <StatusBadge status={project.status} />
               </TableCell>
               <TableCell>
                 {new Date(project.created_at).toLocaleDateString()}

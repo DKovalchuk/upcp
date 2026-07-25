@@ -1,4 +1,6 @@
 """Dashboard service for aggregated statistics."""
+from typing import Any
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -13,7 +15,7 @@ class DashboardService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_stats(self) -> dict[str, object]:
+    def get_stats(self) -> dict[str, Any]:
         """Get aggregated dashboard statistics."""
         # Project count
         project_count = self._session.query(Project).count()

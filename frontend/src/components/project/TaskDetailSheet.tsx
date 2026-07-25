@@ -1,6 +1,6 @@
 import { useTask, useUpdateTask, useDeleteTask } from '@/hooks/use-tasks';
-import { useAcceptanceCriteria, useDoDItems } from '@/hooks/use-quality';
-import { useSubtasks } from '@/hooks/use-subtasks';
+import { useAcceptanceCriteria, useDoDItems, useCreateAcceptanceCriterion, useCreateDoDItem } from '@/hooks/use-quality';
+import { useSubtasks, useCreateSubtask } from '@/hooks/use-subtasks';
 import {
   Sheet,
   SheetContent,
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityDot } from '@/components/ui/PriorityDot';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trash2, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -29,6 +30,45 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
   const { data: subtasks } = useSubtasks(taskId ?? '');
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const createAC = useCreateAcceptanceCriterion();
+  const createDoD = useCreateDoDItem();
+  const createSubtask = useCreateSubtask();
+  const [newAC, setNewAC] = useState('');
+  const [newDoD, setNewDoD] = useState('');
+  const [newSubtask, setNewSubtask] = useState('');
+
+  const handleAddAC = async () => {
+    if (!taskId || !newAC.trim()) return;
+    try {
+      await createAC.mutateAsync({ taskId, data: { description: newAC.trim() } });
+      setNewAC('');
+      showToast.created('Acceptance criterion');
+    } catch {
+      showToast.mutationError('create', 'acceptance criterion');
+    }
+  };
+
+  const handleAddDoD = async () => {
+    if (!taskId || !newDoD.trim()) return;
+    try {
+      await createDoD.mutateAsync({ taskId, data: { name: newDoD.trim() } });
+      setNewDoD('');
+      showToast.created('DoD item');
+    } catch {
+      showToast.mutationError('create', 'DoD item');
+    }
+  };
+
+  const handleAddSubtask = async () => {
+    if (!taskId || !newSubtask.trim()) return;
+    try {
+      await createSubtask.mutateAsync({ taskId, data: { title: newSubtask.trim() } });
+      setNewSubtask('');
+      showToast.created('Subtask');
+    } catch {
+      showToast.mutationError('create', 'subtask');
+    }
+  };
   const [activeTab, setActiveTab] = useState('details');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -58,7 +98,7 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-[500px] sm:w-[540px] overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-[540px] overflow-y-auto">
           {isLoading ? (
             <div className="space-y-4 py-4">
               <Skeleton className="h-6 w-[200px]" />
@@ -149,7 +189,7 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                   </div>
                 </TabsContent>
 
-                <TabsContent value="ac" className="mt-4">
+                <TabsContent value="ac" className="mt-4 space-y-3">
                   <ListSection
                     items={acs ?? []}
                     renderItem={(ac) => (
@@ -157,9 +197,20 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                     )}
                     emptyText="No acceptance criteria yet."
                   />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add acceptance criterion..."
+                      value={newAC}
+                      onChange={(e) => setNewAC(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddAC()}
+                    />
+                    <Button size="sm" onClick={handleAddAC} disabled={!newAC.trim()}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="dod" className="mt-4">
+                <TabsContent value="dod" className="mt-4 space-y-3">
                   <ListSection
                     items={dods ?? []}
                     renderItem={(dod) => (
@@ -167,9 +218,20 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                     )}
                     emptyText="No DoD items yet."
                   />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add DoD item..."
+                      value={newDoD}
+                      onChange={(e) => setNewDoD(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddDoD()}
+                    />
+                    <Button size="sm" onClick={handleAddDoD} disabled={!newDoD.trim()}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="subtasks" className="mt-4">
+                <TabsContent value="subtasks" className="mt-4 space-y-3">
                   <ListSection
                     items={subtasks ?? []}
                     renderItem={(st) => (
@@ -180,6 +242,17 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                     )}
                     emptyText="No subtasks yet."
                   />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add subtask..."
+                      value={newSubtask}
+                      onChange={(e) => setNewSubtask(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                    />
+                    <Button size="sm" onClick={handleAddSubtask} disabled={!newSubtask.trim()}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TabsContent>
               </Tabs>
             </>
@@ -200,7 +273,7 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
   );
 }
 
-function ListSection<T>({
+function ListSection<T extends { id?: string }>({
   items,
   renderItem,
   emptyText,
@@ -220,9 +293,9 @@ function ListSection<T>({
 
   return (
     <div className="space-y-2">
-      {items.map((item, i) => (
+      {items.map((item) => (
         <div
-          key={i}
+          key={item.id ?? Math.random()}
           className="flex items-center gap-2 rounded-md border p-3"
         >
           {renderItem(item)}
