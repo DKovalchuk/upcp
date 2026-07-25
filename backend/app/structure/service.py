@@ -9,12 +9,28 @@ class ComponentService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def create(self, *, project_id: str, name: str, slug: str | None = None, description: str | None = None, status: str = "active") -> Component:
+    def create(
+        self,
+        *,
+        project_id: str,
+        name: str,
+        slug: str | None = None,
+        description: str | None = None,
+        status: str = "active",
+    ) -> Component:
         final_slug = slug or slugify(name)
-        existing = self._session.query(Component).filter_by(project_id=project_id, slug=final_slug).first()
+        existing = (
+            self._session.query(Component).filter_by(project_id=project_id, slug=final_slug).first()
+        )
         if existing:
             raise Conflict(f"slug '{final_slug}' already exists in project")
-        comp = Component(project_id=project_id, name=name, slug=final_slug, description=description, status=status)
+        comp = Component(
+            project_id=project_id,
+            name=name,
+            slug=final_slug,
+            description=description,
+            status=status,
+        )
         self._session.add(comp)
         self._session.flush()
         return comp
@@ -28,11 +44,15 @@ class ComponentService:
     def update(self, component_id: str, **fields: str | None) -> Component:
         comp = self.get(component_id)
         if "slug" in fields and fields["slug"] is not None:
-            existing = self._session.query(Component).filter(
-                Component.project_id == comp.project_id,
-                Component.slug == fields["slug"],
-                Component.id != component_id,
-            ).first()
+            existing = (
+                self._session.query(Component)
+                .filter(
+                    Component.project_id == comp.project_id,
+                    Component.slug == fields["slug"],
+                    Component.id != component_id,
+                )
+                .first()
+            )
             if existing:
                 raise Conflict(f"slug '{fields['slug']}' already exists in project")
         for key, value in fields.items():
@@ -46,7 +66,9 @@ class ComponentService:
         self._session.delete(comp)
         self._session.flush()
 
-    def list_components(self, project_id: str, *, offset: int = 0, limit: int = 20) -> tuple[list[Component], int]:
+    def list_components(
+        self, project_id: str, *, offset: int = 0, limit: int = 20
+    ) -> tuple[list[Component], int]:
         q = self._session.query(Component).filter_by(project_id=project_id)
         total = q.count()
         items = q.offset(offset).limit(limit).all()
@@ -57,12 +79,30 @@ class ModuleService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def create(self, *, component_id: str, name: str, slug: str | None = None, description: str | None = None, status: str = "active") -> Module:
+    def create(
+        self,
+        *,
+        component_id: str,
+        name: str,
+        slug: str | None = None,
+        description: str | None = None,
+        status: str = "active",
+    ) -> Module:
         final_slug = slug or slugify(name)
-        existing = self._session.query(Module).filter_by(component_id=component_id, slug=final_slug).first()
+        existing = (
+            self._session.query(Module)
+            .filter_by(component_id=component_id, slug=final_slug)
+            .first()
+        )
         if existing:
             raise Conflict(f"slug '{final_slug}' already exists in component")
-        mod = Module(component_id=component_id, name=name, slug=final_slug, description=description, status=status)
+        mod = Module(
+            component_id=component_id,
+            name=name,
+            slug=final_slug,
+            description=description,
+            status=status,
+        )
         self._session.add(mod)
         self._session.flush()
         return mod
@@ -76,11 +116,15 @@ class ModuleService:
     def update(self, module_id: str, **fields: str | None) -> Module:
         mod = self.get(module_id)
         if "slug" in fields and fields["slug"] is not None:
-            existing = self._session.query(Module).filter(
-                Module.component_id == mod.component_id,
-                Module.slug == fields["slug"],
-                Module.id != module_id,
-            ).first()
+            existing = (
+                self._session.query(Module)
+                .filter(
+                    Module.component_id == mod.component_id,
+                    Module.slug == fields["slug"],
+                    Module.id != module_id,
+                )
+                .first()
+            )
             if existing:
                 raise Conflict(f"slug '{fields['slug']}' already exists in component")
         for key, value in fields.items():
@@ -94,7 +138,9 @@ class ModuleService:
         self._session.delete(mod)
         self._session.flush()
 
-    def list_modules(self, component_id: str, *, offset: int = 0, limit: int = 20) -> tuple[list[Module], int]:
+    def list_modules(
+        self, component_id: str, *, offset: int = 0, limit: int = 20
+    ) -> tuple[list[Module], int]:
         q = self._session.query(Module).filter_by(component_id=component_id)
         total = q.count()
         items = q.offset(offset).limit(limit).all()

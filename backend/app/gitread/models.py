@@ -23,7 +23,9 @@ class GitBranch(Base):
     __tablename__ = "git_branch"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    provider_id: Mapped[str] = mapped_column(String(36), ForeignKey("git_provider.id"), nullable=False)
+    provider_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("git_provider.id"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     last_commit_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -34,7 +36,9 @@ class GitCommit(Base):
     __tablename__ = "git_commit"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    provider_id: Mapped[str] = mapped_column(String(36), ForeignKey("git_provider.id"), nullable=False)
+    provider_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("git_provider.id"), nullable=False
+    )
     sha: Mapped[str] = mapped_column(String(40), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     author: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -46,7 +50,9 @@ class GitPullRequest(Base):
     __tablename__ = "git_pull_request"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    provider_id: Mapped[str] = mapped_column(String(36), ForeignKey("git_provider.id"), nullable=False)
+    provider_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("git_provider.id"), nullable=False
+    )
     number: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     state: Mapped[str] = mapped_column(String(50), nullable=False)

@@ -1,4 +1,5 @@
 """Tests for dashboard statistics endpoint."""
+
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.delivery import router as delivery_router
 from app.api.v1.projects import router as projects_router
@@ -82,35 +83,31 @@ def test_dashboard_stats_with_data() -> None:
     project2 = client.post("/api/v1/projects", json={"name": "Project 2"}).json()
 
     # Create features and tasks for project1
-    feature1_resp = client.post(f"/api/v1/projects/{project1['id']}/features", json={
-        "name": "Feature 1",
-        "slug": "feature-1"
-    })
+    feature1_resp = client.post(
+        f"/api/v1/projects/{project1['id']}/features",
+        json={"name": "Feature 1", "slug": "feature-1"},
+    )
     if feature1_resp.status_code != 201:
         print("Feature creation failed:", feature1_resp.status_code, feature1_resp.json())
     feature1 = feature1_resp.json()
 
     # Create tasks with different statuses
-    task1_resp = client.post(f"/api/v1/features/{feature1['id']}/tasks", json={
-        "title": "Task 1",
-        "status": "backlog"
-    })
-    client.post(f"/api/v1/features/{feature1['id']}/tasks", json={
-        "title": "Task 2",
-        "status": "in_progress"
-    })
-    client.post(f"/api/v1/features/{feature1['id']}/tasks", json={
-        "title": "Task 3",
-        "status": "review"
-    })
-    client.post(f"/api/v1/features/{feature1['id']}/tasks", json={
-        "title": "Task 4",
-        "status": "done"
-    })
-    client.post(f"/api/v1/features/{feature1['id']}/tasks", json={
-        "title": "Task 5",
-        "status": "done"
-    })
+    task1_resp = client.post(
+        f"/api/v1/features/{feature1['id']}/tasks", json={"title": "Task 1", "status": "backlog"}
+    )
+    client.post(
+        f"/api/v1/features/{feature1['id']}/tasks",
+        json={"title": "Task 2", "status": "in_progress"},
+    )
+    client.post(
+        f"/api/v1/features/{feature1['id']}/tasks", json={"title": "Task 3", "status": "review"}
+    )
+    client.post(
+        f"/api/v1/features/{feature1['id']}/tasks", json={"title": "Task 4", "status": "done"}
+    )
+    client.post(
+        f"/api/v1/features/{feature1['id']}/tasks", json={"title": "Task 5", "status": "done"}
+    )
 
     # Create audit events manually
     session = TestSessionLocal()
@@ -185,17 +182,17 @@ def test_dashboard_stats_recent_activity_limit() -> None:
 
     # Create a project and feature
     project = client.post("/api/v1/projects", json={"name": "Test Project"}).json()
-    feature = client.post(f"/api/v1/projects/{project['id']}/features", json={
-        "name": "Test Feature",
-        "slug": "test-feature"
-    }).json()
+    feature = client.post(
+        f"/api/v1/projects/{project['id']}/features",
+        json={"name": "Test Feature", "slug": "test-feature"},
+    ).json()
 
     # Create 12 tasks to generate audit events
     for i in range(12):
-        client.post(f"/api/v1/features/{feature['id']}/tasks", json={
-            "title": f"Task {i}",
-            "status": "backlog"
-        })
+        client.post(
+            f"/api/v1/features/{feature['id']}/tasks",
+            json={"title": f"Task {i}", "status": "backlog"},
+        )
 
     # Create 12 audit events manually
     session = TestSessionLocal()

@@ -43,21 +43,34 @@ def _mod_resp(m: Module) -> dict[str, str | None]:
 
 # ── Component ──
 
+
 @router.post("/projects/{project_id}/components", status_code=201)
-def create_component(project_id: str, body: ComponentCreate, session: Session = Depends(get_session)) -> dict[str, str | None]:  # noqa: B008
+def create_component(
+    project_id: str, body: ComponentCreate, session: Session = Depends(get_session)
+) -> dict[str, str | None]:  # noqa: B008
     service = ComponentService(session)
-    comp = service.create(project_id=project_id, name=body.name, slug=body.slug, description=body.description, status=body.status)
+    comp = service.create(
+        project_id=project_id,
+        name=body.name,
+        slug=body.slug,
+        description=body.description,
+        status=body.status,
+    )
     return _comp_resp(comp)
 
 
 @router.get("/components/{component_id}")
-def get_component(component_id: str, session: Session = Depends(get_session)) -> dict[str, str | None]:  # noqa: B008
+def get_component(
+    component_id: str, session: Session = Depends(get_session)
+) -> dict[str, str | None]:  # noqa: B008
     service = ComponentService(session)
     return _comp_resp(service.get(component_id))
 
 
 @router.patch("/components/{component_id}")
-def update_component(component_id: str, body: ComponentUpdate, session: Session = Depends(get_session)) -> dict[str, str | None]:  # noqa: B008
+def update_component(
+    component_id: str, body: ComponentUpdate, session: Session = Depends(get_session)
+) -> dict[str, str | None]:  # noqa: B008
     service = ComponentService(session)
     comp = service.update(component_id, **body.model_dump(exclude_unset=True))
     return _comp_resp(comp)
@@ -75,16 +88,32 @@ def list_components(
     session: Session = Depends(get_session),  # noqa: B008
 ) -> dict[str, object]:
     service = ComponentService(session)
-    items, total = service.list_components(project_id, offset=pagination.offset, limit=pagination.limit)
-    return {"items": [_comp_resp(c) for c in items], "total": total, "offset": pagination.offset, "limit": pagination.limit}
+    items, total = service.list_components(
+        project_id, offset=pagination.offset, limit=pagination.limit
+    )
+    return {
+        "items": [_comp_resp(c) for c in items],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
 
 
 # ── Module ──
 
+
 @router.post("/components/{component_id}/modules", status_code=201)
-def create_module(component_id: str, body: ModuleCreate, session: Session = Depends(get_session)) -> dict[str, str | None]:  # noqa: B008
+def create_module(
+    component_id: str, body: ModuleCreate, session: Session = Depends(get_session)
+) -> dict[str, str | None]:  # noqa: B008
     service = ModuleService(session)
-    mod = service.create(component_id=component_id, name=body.name, slug=body.slug, description=body.description, status=body.status)
+    mod = service.create(
+        component_id=component_id,
+        name=body.name,
+        slug=body.slug,
+        description=body.description,
+        status=body.status,
+    )
     return _mod_resp(mod)
 
 
@@ -95,7 +124,9 @@ def get_module(module_id: str, session: Session = Depends(get_session)) -> dict[
 
 
 @router.patch("/modules/{module_id}")
-def update_module(module_id: str, body: ModuleUpdate, session: Session = Depends(get_session)) -> dict[str, str | None]:  # noqa: B008
+def update_module(
+    module_id: str, body: ModuleUpdate, session: Session = Depends(get_session)
+) -> dict[str, str | None]:  # noqa: B008
     service = ModuleService(session)
     mod = service.update(module_id, **body.model_dump(exclude_unset=True))
     return _mod_resp(mod)
@@ -113,5 +144,12 @@ def list_modules(
     session: Session = Depends(get_session),  # noqa: B008
 ) -> dict[str, object]:
     service = ModuleService(session)
-    items, total = service.list_modules(component_id, offset=pagination.offset, limit=pagination.limit)
-    return {"items": [_mod_resp(m) for m in items], "total": total, "offset": pagination.offset, "limit": pagination.limit}
+    items, total = service.list_modules(
+        component_id, offset=pagination.offset, limit=pagination.limit
+    )
+    return {
+        "items": [_mod_resp(m) for m in items],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }

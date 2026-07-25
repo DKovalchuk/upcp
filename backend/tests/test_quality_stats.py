@@ -56,6 +56,7 @@ def _project_with_tasks(c: TestClient, num_tasks: int = 3) -> tuple[str, list[st
 
 # ── Quality Stats ──
 
+
 def test_quality_stats_empty_project() -> None:
     """Project with no tasks returns zeroed stats."""
     c = TestClient(_app())

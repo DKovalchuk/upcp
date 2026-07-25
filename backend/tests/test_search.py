@@ -13,13 +13,27 @@ app = make_test_app(search_router)
 def _seed():
     """Insert test data into a fresh database."""
     session = _TestSession()
-    p = Project(name="Test Project", slug="test-project", description="A test project", status="active")
+    p = Project(
+        name="Test Project", slug="test-project", description="A test project", status="active"
+    )
     session.add(p)
     session.flush()
-    f = Feature(project_id=p.id, name="Auth Feature", slug="auth", description="Authentication", status="backlog")
+    f = Feature(
+        project_id=p.id,
+        name="Auth Feature",
+        slug="auth",
+        description="Authentication",
+        status="backlog",
+    )
     session.add(f)
     session.flush()
-    t = Task(feature_id=f.id, title="Login page", description="Build login page", status="backlog", priority=0)
+    t = Task(
+        feature_id=f.id,
+        title="Login page",
+        description="Build login page",
+        status="backlog",
+        priority=0,
+    )
     session.add(t)
     session.commit()
     session.close()

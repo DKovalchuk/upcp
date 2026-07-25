@@ -1,4 +1,5 @@
 """Context pack generator for AI agents."""
+
 from typing import Any
 
 from app.delivery.service import TaskService
@@ -11,7 +12,9 @@ class ContextPackGenerator:
     """Generate markdown context packs for AI agents."""
 
     def generate_project_context(
-        self, project_id: str, session: Any | None = None,
+        self,
+        project_id: str,
+        session: Any | None = None,
     ) -> str:
         """Generate context pack for a project.
 
@@ -58,13 +61,15 @@ class ContextPackGenerator:
             else:
                 lines.append("No git links.")
 
-            lines.extend([
-                "",
-                "## Context Pack Generated",
-                "",
-                "This context pack provides a summary of the project for AI agents.",
-                "Use this information to understand the project structure and status.",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Context Pack Generated",
+                    "",
+                    "This context pack provides a summary of the project for AI agents.",
+                    "Use this information to understand the project structure and status.",
+                ]
+            )
 
             return "\n".join(lines)
         finally:

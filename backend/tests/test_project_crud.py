@@ -39,6 +39,7 @@ def _test_app() -> FastAPI:
 
 # ── Create ──
 
+
 def test_create_project_returns_201() -> None:
     client = TestClient(_test_app())
     resp = client.post("/api/v1/projects", json={"name": "Test Project"})
@@ -73,6 +74,7 @@ def test_create_project_missing_name_returns_422() -> None:
 
 # ── Read ──
 
+
 def test_get_project_returns_200() -> None:
     app = _test_app()
     client = TestClient(app)
@@ -89,6 +91,7 @@ def test_get_project_not_found_returns_404() -> None:
 
 
 # ── Update ──
+
 
 def test_update_project_returns_200() -> None:
     app = _test_app()
@@ -107,6 +110,7 @@ def test_update_project_not_found_returns_404() -> None:
 
 # ── Delete ──
 
+
 def test_delete_project_returns_204() -> None:
     app = _test_app()
     client = TestClient(app)
@@ -122,6 +126,7 @@ def test_delete_project_not_found_returns_404() -> None:
 
 
 # ── List ──
+
 
 def test_list_projects_returns_paginated() -> None:
     app = _test_app()

@@ -1,4 +1,5 @@
 """MCP server implementation."""
+
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException

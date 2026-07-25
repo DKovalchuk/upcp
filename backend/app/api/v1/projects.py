@@ -12,7 +12,9 @@ router = APIRouter(tags=["projects"])
 @router.post("/projects", response_model=ProjectResponse, status_code=201)
 def create_project(body: ProjectCreate, session: Session = Depends(get_session)) -> ProjectResponse:  # noqa: B008
     service = ProjectService(session)
-    project = service.create(name=body.name, slug=body.slug, description=body.description, status=body.status)
+    project = service.create(
+        name=body.name, slug=body.slug, description=body.description, status=body.status
+    )
     return ProjectResponse(
         id=project.id,
         name=project.name,
@@ -40,7 +42,9 @@ def get_project(project_id: str, session: Session = Depends(get_session)) -> Pro
 
 
 @router.patch("/projects/{project_id}", response_model=ProjectResponse)
-def update_project(project_id: str, body: ProjectUpdate, session: Session = Depends(get_session)) -> ProjectResponse:  # noqa: B008
+def update_project(
+    project_id: str, body: ProjectUpdate, session: Session = Depends(get_session)
+) -> ProjectResponse:  # noqa: B008
     service = ProjectService(session)
     fields = body.model_dump(exclude_unset=True)
     project = service.update(project_id, **fields)

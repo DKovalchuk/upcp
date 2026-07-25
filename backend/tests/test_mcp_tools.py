@@ -1,4 +1,5 @@
 """Tests for MCP tools."""
+
 import pytest
 from app.mcp.server import create_mcp_router
 from fastapi import FastAPI

@@ -8,7 +8,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-_engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+_engine = create_engine(
+    "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+)
 _Session = sessionmaker(bind=_engine)
 
 
@@ -48,6 +50,7 @@ def _tid(c: TestClient, fid: str) -> str:
 
 
 # ── Feature ──
+
 
 def test_create_feature() -> None:
     c = TestClient(_app())
@@ -91,6 +94,7 @@ def test_feature_not_found() -> None:
 
 # ── Task ──
 
+
 def test_create_task() -> None:
     c = TestClient(_app())
     fid = _fid(c, _pid(c))
@@ -127,6 +131,7 @@ def test_list_tasks() -> None:
 
 
 # ── Subtask ──
+
 
 def test_create_subtask() -> None:
     c = TestClient(_app())

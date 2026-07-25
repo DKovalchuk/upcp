@@ -1,4 +1,5 @@
 """MCP tool implementations."""
+
 import json
 from collections.abc import Callable
 from typing import Any
@@ -202,7 +203,9 @@ def _get_str_arg(arguments: dict[str, object], key: str, default: str = "") -> s
     return str(val)
 
 
-def _serialize_paginated(items: list[dict[str, Any]], total: int, offset: int, limit: int) -> dict[str, Any]:
+def _serialize_paginated(
+    items: list[dict[str, Any]], total: int, offset: int, limit: int
+) -> dict[str, Any]:
     """Serialize paginated result."""
     return {"items": items, "total": total, "offset": offset, "limit": limit}
 
@@ -370,7 +373,9 @@ def _handle_feature_create(session: Any, arguments: dict[str, object]) -> ToolRe
     description = _get_str_arg(arguments, "description") or None
     status = _get_str_arg(arguments, "status", "backlog") or "backlog"
     service = FeatureService(session)
-    feature = service.create(project_id=project_id, name=name, slug=slug, description=description, status=status)
+    feature = service.create(
+        project_id=project_id, name=name, slug=slug, description=description, status=status
+    )
     result = _serialize_feature(feature)
     return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
 
@@ -391,8 +396,11 @@ def _handle_task_create(session: Any, arguments: dict[str, object]) -> ToolResul
     feature_svc.get(feature_id)
     service = TaskService(session)
     task = service.create(
-        feature_id=feature_id, title=title, description=description,
-        status=status, priority=priority,
+        feature_id=feature_id,
+        title=title,
+        description=description,
+        status=status,
+        priority=priority,
     )
     result = _serialize_task(task)
     return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])

@@ -12,13 +12,17 @@ class Feature(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     project_id: Mapped[str] = mapped_column(String(36), ForeignKey("project.id"), nullable=False)
-    component_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("component.id"), nullable=True)
+    component_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("component.id"), nullable=True
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="backlog")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
 
 class Task(Base):
@@ -26,8 +30,12 @@ class Task(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     feature_id: Mapped[str] = mapped_column(String(36), ForeignKey("feature.id"), nullable=False)
-    component_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("component.id"), nullable=True)
-    module_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("module.id"), nullable=True)
+    component_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("component.id"), nullable=True
+    )
+    module_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("module.id"), nullable=True
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="backlog")
@@ -35,7 +43,9 @@ class Task(Base):
     assignee_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     assignee_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
 
 class Subtask(Base):
@@ -47,4 +57,6 @@ class Subtask(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="todo")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )

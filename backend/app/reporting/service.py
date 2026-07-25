@@ -36,16 +36,20 @@ class ReportingService:
     def generate_daily_report(self, project_id: str) -> Report:
         """Generate a daily report for a project."""
         from app.delivery.models import Feature
-        
+
         # Verify project exists
         project = self._session.get(Project, project_id)
         if not project:
             from app.shared.errors import NotFound
+
             raise NotFound(f"Project {project_id} not found")
 
         # Get feature IDs for this project
-        feature_ids = [f.id for f in self._session.query(Feature.id).filter(Feature.project_id == project_id).all()]
-        
+        feature_ids = [
+            f.id
+            for f in self._session.query(Feature.id).filter(Feature.project_id == project_id).all()
+        ]
+
         # Get task counts by status
         task_counts: dict[str, int] = {}
         if feature_ids:
@@ -59,12 +63,16 @@ class ReportingService:
 
         # Get recent tasks (last 10)
         recent_tasks = (
-            self._session.query(Task)
-            .filter(Task.feature_id.in_(feature_ids))
-            .order_by(Task.updated_at.desc())
-            .limit(10)
-            .all()
-        ) if feature_ids else []
+            (
+                self._session.query(Task)
+                .filter(Task.feature_id.in_(feature_ids))
+                .order_by(Task.updated_at.desc())
+                .limit(10)
+                .all()
+            )
+            if feature_ids
+            else []
+        )
 
         # Build report content
         content: dict[str, object] = {
@@ -96,13 +104,13 @@ class ReportingService:
     ) -> tuple[list[Report], int]:
         """List reports with optional filtering."""
         query = self._session.query(Report)
-        
+
         if project_id:
             query = query.filter(Report.project_id == project_id)
-        
+
         total = query.count()
         reports = query.order_by(Report.created_at.desc()).offset(offset).limit(limit).all()
-        
+
         return reports, total
 
     def update_report_summary(self, report_id: str, summary: str) -> Report:
@@ -110,8 +118,9 @@ class ReportingService:
         report = self.get_report(report_id)
         if not report:
             from app.shared.errors import NotFound
+
             raise NotFound(f"Report {report_id} not found")
-        
+
         report.summary = summary
         self._session.flush()
         return report

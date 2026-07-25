@@ -5,6 +5,7 @@ Revises: 0003
 Create Date: 2026-07-24
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -43,7 +44,9 @@ def upgrade() -> None:
     op.create_table(
         "role_permission",
         sa.Column("role_id", sa.String(36), sa.ForeignKey("rbac_role.id"), primary_key=True),
-        sa.Column("permission_id", sa.String(36), sa.ForeignKey("rbac_permission.id"), primary_key=True),
+        sa.Column(
+            "permission_id", sa.String(36), sa.ForeignKey("rbac_permission.id"), primary_key=True
+        ),
     )
 
 

@@ -1,4 +1,5 @@
 """Tests for Typer CLI."""
+
 from unittest.mock import patch
 
 import pytest

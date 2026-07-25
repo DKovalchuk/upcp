@@ -9,7 +9,14 @@ class ProjectService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def create(self, *, name: str, slug: str | None = None, description: str | None = None, status: str = "active") -> Project:
+    def create(
+        self,
+        *,
+        name: str,
+        slug: str | None = None,
+        description: str | None = None,
+        status: str = "active",
+    ) -> Project:
         final_slug = slug or slugify(name)
         existing = self._session.query(Project).filter_by(slug=final_slug).first()
         if existing:
@@ -28,9 +35,11 @@ class ProjectService:
     def update(self, project_id: str, **fields: str | None) -> Project:
         project = self.get(project_id)
         if "slug" in fields and fields["slug"] is not None:
-            existing = self._session.query(Project).filter(
-                Project.slug == fields["slug"], Project.id != project_id
-            ).first()
+            existing = (
+                self._session.query(Project)
+                .filter(Project.slug == fields["slug"], Project.id != project_id)
+                .first()
+            )
             if existing:
                 raise Conflict(f"slug '{fields['slug']}' already exists")
         for key, value in fields.items():

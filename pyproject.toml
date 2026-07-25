@@ -24,7 +24,8 @@ select = [
   "SIM"
 ]
 ignore = [
-  "E501"
+  "E501",
+  "B008"
 ]
 
 [tool.mypy]

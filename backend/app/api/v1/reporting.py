@@ -63,7 +63,7 @@ def export_report_markdown(
     report = service.get_report(report_id)
     if not report:
         raise NotFound(f"Report {report_id} not found")
-    
+
     # Generate markdown from report content
     markdown = _generate_markdown(report)
     return {"markdown": markdown}
@@ -78,21 +78,21 @@ def summarize_report(
     from app.llm.gateway import LLMGateway
     from app.llm.redaction import Redactor
     from app.shared.errors import ValidationError
-    
+
     service = ReportingService(session)
     report = service.get_report(report_id)
     if not report:
         raise NotFound(f"Report {report_id} not found")
-    
+
     # Check if LLM is enabled
     try:
         gateway = LLMGateway()
     except ValueError as e:
         raise ValidationError(str(e)) from e
-    
+
     if not gateway.is_enabled:
         raise ValidationError("LLM is not enabled in configuration")
-    
+
     # Prepare text for summarization
     text = ""
     if report.content:
@@ -103,22 +103,26 @@ def summarize_report(
             text += "Task counts:\n"
             for status, count in report.content["task_counts"].items():
                 text += f"  - {status}: {count}\n"
-        if "recent_changes" in report.content and isinstance(report.content["recent_changes"], list):
+        if "recent_changes" in report.content and isinstance(
+            report.content["recent_changes"], list
+        ):
             text += "Recent changes:\n"
             for change in report.content["recent_changes"]:
                 if isinstance(change, dict):
                     text += f"  - {change.get('title', 'Unknown')} ({change.get('status', 'unknown')})\n"
-    
+
     if not text:
         raise ValidationError("Report has no content to summarize")
-    
+
     # Redact secrets before sending to LLM
     redactor = Redactor()
     redaction_result = redactor.redact(text)
-    
+
     if redaction_result.redaction_count > 0:
-        logger.warning(f"Redacted {redaction_result.redaction_count} secrets before LLM summarization")
-    
+        logger.warning(
+            f"Redacted {redaction_result.redaction_count} secrets before LLM summarization"
+        )
+
     # Generate summary using LLM
     try:
         summary = gateway.generate_summary(redaction_result.redacted_text)
@@ -128,10 +132,10 @@ def summarize_report(
         raise ValidationError(str(e)) from e
     except Exception as e:
         raise ValidationError(f"LLM error: {str(e)}") from e
-    
+
     # Update report with summary
     service.update_report_summary(report_id, summary)
-    
+
     return ReportSummary(summary=summary)
 
 
@@ -167,13 +171,13 @@ def _generate_markdown(report: Report) -> str:
     lines = []
     lines.append(f"# {report.report_type.title()} Report")
     lines.append("")
-    
+
     # Add project name if available in content
     if report.content and "project_name" in report.content:
         lines.append(f"**Project:** {report.content['project_name']}")
     else:
         lines.append(f"**Project ID:** {report.project_id}")
-    
+
     lines.append(f"**Generated:** {report.created_at.isoformat()}")
     lines.append("")
 
@@ -187,12 +191,16 @@ def _generate_markdown(report: Report) -> str:
             lines.append("")
 
         # Recent changes
-        if "recent_changes" in report.content and isinstance(report.content["recent_changes"], list):
+        if "recent_changes" in report.content and isinstance(
+            report.content["recent_changes"], list
+        ):
             lines.append("## Recent Changes")
             lines.append("")
             for change in report.content["recent_changes"]:
                 if isinstance(change, dict):
-                    lines.append(f"- **{change.get('title', 'Unknown')}** ({change.get('status', 'unknown')}) - {change.get('updated_at', 'Unknown')}")
+                    lines.append(
+                        f"- **{change.get('title', 'Unknown')}** ({change.get('status', 'unknown')}) - {change.get('updated_at', 'Unknown')}"
+                    )
             lines.append("")
 
         # Blockers

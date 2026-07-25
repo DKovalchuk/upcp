@@ -32,9 +32,11 @@ def test_get_current_user_returns_placeholder() -> None:
 
 def test_user_role_association_exists() -> None:
     from app.auth.models import user_role
+
     assert user_role.name == "user_role"
 
 
 def test_role_permission_association_exists() -> None:
     from app.auth.models import role_permission
+
     assert role_permission.name == "role_permission"

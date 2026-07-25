@@ -1,4 +1,5 @@
 """MCP resource implementations."""
+
 from app.mcp.context_pack import get_context_pack
 from app.mcp.schemas import Resource
 

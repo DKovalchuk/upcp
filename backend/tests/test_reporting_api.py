@@ -47,12 +47,12 @@ def _test_app() -> FastAPI:
 def test_generate_daily_report() -> None:
     """Test generating a daily report for a project."""
     client = TestClient(_test_app())
-    
+
     # First create a project
     project_resp = client.post("/api/v1/projects", json={"name": "Test Project"})
     print("Project response:", project_resp.status_code, project_resp.json())
     project_id = project_resp.json()["id"]
-    
+
     # Generate daily report
     resp = client.post(f"/api/v1/projects/{project_id}/reports/daily")
     assert resp.status_code == 201
@@ -75,15 +75,15 @@ def test_generate_daily_report_project_not_found() -> None:
 def test_get_report() -> None:
     """Test getting a report by ID."""
     client = TestClient(_test_app())
-    
+
     # Create a project
     project_resp = client.post("/api/v1/projects", json={"name": "Test Project"})
     project_id = project_resp.json()["id"]
-    
+
     # Generate daily report
     report_resp = client.post(f"/api/v1/projects/{project_id}/reports/daily")
     report_id = report_resp.json()["id"]
-    
+
     # Get report
     resp = client.get(f"/api/v1/reports/{report_id}")
     assert resp.status_code == 200
@@ -102,15 +102,15 @@ def test_get_report_not_found() -> None:
 def test_export_report_markdown() -> None:
     """Test exporting report as markdown."""
     client = TestClient(_test_app())
-    
+
     # Create a project
     project_resp = client.post("/api/v1/projects", json={"name": "Test Project"})
     project_id = project_resp.json()["id"]
-    
+
     # Generate daily report
     report_resp = client.post(f"/api/v1/projects/{project_id}/reports/daily")
     report_id = report_resp.json()["id"]
-    
+
     # Export as markdown
     resp = client.get(f"/api/v1/reports/{report_id}/markdown")
     assert resp.status_code == 200
@@ -130,15 +130,15 @@ def test_export_report_markdown_not_found() -> None:
 def test_summarize_report_placeholder() -> None:
     """Test summarize endpoint returns placeholder error."""
     client = TestClient(_test_app())
-    
+
     # Create a project
     project_resp = client.post("/api/v1/projects", json={"name": "Test Project"})
     project_id = project_resp.json()["id"]
-    
+
     # Generate daily report
     report_resp = client.post(f"/api/v1/projects/{project_id}/reports/daily")
     report_id = report_resp.json()["id"]
-    
+
     # Try to summarize
     resp = client.post(f"/api/v1/reports/{report_id}/summarize")
     assert resp.status_code == 422
@@ -149,15 +149,15 @@ def test_summarize_report_placeholder() -> None:
 def test_list_project_reports() -> None:
     """Test listing reports for a project."""
     client = TestClient(_test_app())
-    
+
     # Create a project
     project_resp = client.post("/api/v1/projects", json={"name": "Test Project"})
     project_id = project_resp.json()["id"]
-    
+
     # Generate multiple reports
     for _ in range(3):
         client.post(f"/api/v1/projects/{project_id}/reports/daily")
-    
+
     # List reports
     resp = client.get(f"/api/v1/projects/{project_id}/reports")
     assert resp.status_code == 200

@@ -8,7 +8,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-_engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+_engine = create_engine(
+    "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+)
 _Session = sessionmaker(bind=_engine)
 
 
@@ -44,6 +46,7 @@ def _component_id(client: TestClient, project_id: str) -> str:
 
 
 # ── Component CRUD ──
+
 
 def test_create_component() -> None:
     c = TestClient(_app())
@@ -97,6 +100,7 @@ def test_component_duplicate_slug_returns_409() -> None:
 
 
 # ── Module CRUD ──
+
 
 def test_create_module() -> None:
     c = TestClient(_app())

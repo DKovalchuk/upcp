@@ -166,6 +166,7 @@ def test_list_events_filter_by_date_range() -> None:
         actor_id="user-1",
     )
     from datetime import datetime, timedelta
+
     future = datetime.now(UTC) + timedelta(days=1)
     events, total = service.list_events("proj-1", date_from=future)
     assert total == 0

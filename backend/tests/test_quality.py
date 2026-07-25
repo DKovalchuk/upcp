@@ -10,7 +10,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-_engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+_engine = create_engine(
+    "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+)
 _Session = sessionmaker(bind=_engine)
 
 
@@ -47,6 +49,7 @@ def _task_id(c: TestClient) -> str:
 
 # ── Acceptance Criterion ──
 
+
 def test_create_ac() -> None:
     c = TestClient(_app())
     tid = _task_id(c)
@@ -58,7 +61,9 @@ def test_create_ac() -> None:
 def test_update_ac_status() -> None:
     c = TestClient(_app())
     tid = _task_id(c)
-    acid = c.post(f"/api/v1/tasks/{tid}/acceptance-criteria", json={"description": "X"}).json()["id"]
+    acid = c.post(f"/api/v1/tasks/{tid}/acceptance-criteria", json={"description": "X"}).json()[
+        "id"
+    ]
     resp = c.patch(f"/api/v1/acceptance-criteria/{acid}", json={"status": "passed"})
     assert resp.json()["status"] == "passed"
 
@@ -66,7 +71,9 @@ def test_update_ac_status() -> None:
 def test_delete_ac() -> None:
     c = TestClient(_app())
     tid = _task_id(c)
-    acid = c.post(f"/api/v1/tasks/{tid}/acceptance-criteria", json={"description": "X"}).json()["id"]
+    acid = c.post(f"/api/v1/tasks/{tid}/acceptance-criteria", json={"description": "X"}).json()[
+        "id"
+    ]
     assert c.delete(f"/api/v1/acceptance-criteria/{acid}").status_code == 204
 
 
@@ -79,6 +86,7 @@ def test_list_acs() -> None:
 
 
 # ── DoD Item ──
+
 
 def test_create_dod() -> None:
     c = TestClient(_app())
@@ -111,6 +119,7 @@ def test_list_dods() -> None:
 
 
 # ── Quality Gate ──
+
 
 def test_complete_task_with_all_dod_passed() -> None:
     c = TestClient(_app())

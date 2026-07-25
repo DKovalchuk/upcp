@@ -45,12 +45,16 @@ class LocalGitAdapter:
             parts = line.split("|")
             name = parts[0]
             sha = parts[1] if len(parts) > 1 else ""
-            branches.append(RemoteBranch(name=name, last_commit_sha=sha, is_default=(name == default)))
+            branches.append(
+                RemoteBranch(name=name, last_commit_sha=sha, is_default=(name == default))
+            )
         return branches
 
     def get_commits(self, branch: str = "HEAD", limit: int = 20) -> list[RemoteCommit]:
         output = self._run(
-            "log", branch, f"--max-count={limit}",
+            "log",
+            branch,
+            f"--max-count={limit}",
             "--format=%H|%s|%an|%aI",
         )
         commits = []
@@ -60,12 +64,14 @@ class LocalGitAdapter:
             parts = line.split("|", 3)
             if len(parts) < 4:
                 continue
-            commits.append(RemoteCommit(
-                sha=parts[0],
-                message=parts[1],
-                author=parts[2],
-                committed_at=datetime.fromisoformat(parts[3]),
-            ))
+            commits.append(
+                RemoteCommit(
+                    sha=parts[0],
+                    message=parts[1],
+                    author=parts[2],
+                    committed_at=datetime.fromisoformat(parts[3]),
+                )
+            )
         return commits
 
 
@@ -102,7 +108,9 @@ class GitHubAdapter:
                     sha=c["sha"],
                     message=c["commit"]["message"].split("\n")[0],
                     author=c["commit"]["author"]["name"] or "unknown",
-                    committed_at=datetime.fromisoformat(c["commit"]["author"]["date"].replace("Z", "+00:00")),
+                    committed_at=datetime.fromisoformat(
+                        c["commit"]["author"]["date"].replace("Z", "+00:00")
+                    ),
                 )
                 for c in resp.json()
             ]

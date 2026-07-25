@@ -9,6 +9,7 @@ from app.shared.text import new_id
 @dataclass
 class RedactionResult:
     """Result of redaction process."""
+
     redacted_text: str
     redaction_count: int
     redaction_types: list[str]
@@ -16,7 +17,7 @@ class RedactionResult:
 
 class Redactor:
     """Redact secrets from text before sending to LLM."""
-    
+
     # Regex patterns for different secret types
     PATTERNS = {
         "api_key": [
@@ -43,16 +44,16 @@ class Redactor:
             re.compile(r"(-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----)"),
         ],
     }
-    
+
     def __init__(self, audit_service: AuditService | None = None) -> None:
         self._audit_service = audit_service
-    
+
     def redact(self, text: str) -> RedactionResult:
         """Redact secrets from text."""
         redacted_text = text
         redaction_count = 0
         redaction_types = []
-        
+
         for secret_type, patterns in self.PATTERNS.items():
             for pattern in patterns:
                 matches = list(pattern.finditer(redacted_text))
@@ -60,7 +61,7 @@ class Redactor:
                     redaction_count += len(matches)
                     if secret_type not in redaction_types:
                         redaction_types.append(secret_type)
-                    
+
                     # Replace matches with redacted version
                     for match in reversed(matches):  # Reverse to maintain positions
                         start, end = match.span()
@@ -77,8 +78,10 @@ class Redactor:
                         else:
                             # Pattern has only the secret group
                             redacted_secret = f"[REDACTED_{secret_type.upper()}]"
-                        redacted_text = redacted_text[:start] + redacted_secret + redacted_text[end:]
-        
+                        redacted_text = (
+                            redacted_text[:start] + redacted_secret + redacted_text[end:]
+                        )
+
         # Log redaction event if audit service is available
         if self._audit_service and redaction_count > 0:
             self._audit_service.log_event(
@@ -95,13 +98,13 @@ class Redactor:
                 },
                 note=f"Redacted {redaction_count} secrets of types: {', '.join(redaction_types)}",
             )
-        
+
         return RedactionResult(
             redacted_text=redacted_text,
             redaction_count=redaction_count,
             redaction_types=redaction_types,
         )
-    
+
     def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         """Recursively redact secrets from a dictionary."""
         if isinstance(data, str):

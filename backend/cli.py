@@ -1,4 +1,5 @@
 """Typer CLI for UPCP."""
+
 import typer
 from app.delivery.service import TaskService
 from app.projects.service import ProjectService

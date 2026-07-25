@@ -7,6 +7,7 @@ BUG-4: ContextPackGenerator session bypass
 BUG-5: _get_int_arg bool/empty-string handling
 BUG-6: No input validation (max limit, min offset)
 """
+
 import json
 from unittest.mock import MagicMock, patch
 
@@ -209,7 +210,10 @@ class TestCallToolSessionBug1:
         """Backward compat: no session param should create SessionLocal."""
         mock_session = MagicMock()
         with patch("app.mcp.tools.SessionLocal", return_value=mock_session):
-            mock_session.query.return_value.offset.return_value.limit.return_value.all.return_value = ([], 0)
+            mock_session.query.return_value.offset.return_value.limit.return_value.all.return_value = (
+                [],
+                0,
+            )
             mock_session.query.return_value.count.return_value = 0
             await call_tool("project_list", {"offset": 0, "limit": 10})
             # SessionLocal SHOULD have been called

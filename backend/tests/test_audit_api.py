@@ -63,6 +63,7 @@ def test_list_audit_events_with_events() -> None:
     project_id = project_resp.json()["id"]
     session = TestSessionLocal()
     from app.audit.service import AuditService
+
     service = AuditService(session)
     service.log_event(
         event_type="project.created",
@@ -105,6 +106,7 @@ def test_list_audit_events_filter_event_type() -> None:
     project_id = project_resp.json()["id"]
     session = TestSessionLocal()
     from app.audit.service import AuditService
+
     service = AuditService(session)
     service.log_event(
         event_type="project.created",
@@ -139,6 +141,7 @@ def test_list_audit_events_filter_entity_type() -> None:
     project_id = project_resp.json()["id"]
     session = TestSessionLocal()
     from app.audit.service import AuditService
+
     service = AuditService(session)
     service.log_event(
         event_type="project.created",
@@ -173,6 +176,7 @@ def test_list_audit_events_pagination() -> None:
     project_id = project_resp.json()["id"]
     session = TestSessionLocal()
     from app.audit.service import AuditService
+
     service = AuditService(session)
     for i in range(5):
         service.log_event(

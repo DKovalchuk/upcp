@@ -9,12 +9,30 @@ class FeatureService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def create(self, *, project_id: str, name: str, slug: str | None = None, description: str | None = None, status: str = "backlog", component_id: str | None = None) -> Feature:
+    def create(
+        self,
+        *,
+        project_id: str,
+        name: str,
+        slug: str | None = None,
+        description: str | None = None,
+        status: str = "backlog",
+        component_id: str | None = None,
+    ) -> Feature:
         final_slug = slug or slugify(name)
-        existing = self._session.query(Feature).filter_by(project_id=project_id, slug=final_slug).first()
+        existing = (
+            self._session.query(Feature).filter_by(project_id=project_id, slug=final_slug).first()
+        )
         if existing:
             raise Conflict(f"slug '{final_slug}' already exists in project")
-        f = Feature(project_id=project_id, name=name, slug=final_slug, description=description, status=status, component_id=component_id)
+        f = Feature(
+            project_id=project_id,
+            name=name,
+            slug=final_slug,
+            description=description,
+            status=status,
+            component_id=component_id,
+        )
         self._session.add(f)
         self._session.flush()
         return f
@@ -38,7 +56,9 @@ class FeatureService:
         self._session.delete(f)
         self._session.flush()
 
-    def list_features(self, project_id: str, *, offset: int = 0, limit: int = 20) -> tuple[list[Feature], int]:
+    def list_features(
+        self, project_id: str, *, offset: int = 0, limit: int = 20
+    ) -> tuple[list[Feature], int]:
         q = self._session.query(Feature).filter_by(project_id=project_id)
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
@@ -95,12 +115,16 @@ class TaskService:
         self._session.delete(t)
         self._session.flush()
 
-    def list_tasks(self, feature_id: str, *, offset: int = 0, limit: int = 20) -> tuple[list[Task], int]:
+    def list_tasks(
+        self, feature_id: str, *, offset: int = 0, limit: int = 20
+    ) -> tuple[list[Task], int]:
         q = self._session.query(Task).filter_by(feature_id=feature_id)
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
 
-    def list_tasks_by_project(self, project_id: str, *, offset: int = 0, limit: int = 20) -> tuple[list[Task], int]:
+    def list_tasks_by_project(
+        self, project_id: str, *, offset: int = 0, limit: int = 20
+    ) -> tuple[list[Task], int]:
         """List all tasks belonging to features of a project (JOIN via Feature)."""
         q = (
             self._session.query(Task)
@@ -128,7 +152,9 @@ class SubtaskService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def create(self, *, task_id: str, title: str, description: str | None = None, status: str = "todo") -> Subtask:
+    def create(
+        self, *, task_id: str, title: str, description: str | None = None, status: str = "todo"
+    ) -> Subtask:
         s = Subtask(task_id=task_id, title=title, description=description, status=status)
         self._session.add(s)
         self._session.flush()
@@ -153,7 +179,9 @@ class SubtaskService:
         self._session.delete(s)
         self._session.flush()
 
-    def list_subtasks(self, task_id: str, *, offset: int = 0, limit: int = 20) -> tuple[list[Subtask], int]:
+    def list_subtasks(
+        self, task_id: str, *, offset: int = 0, limit: int = 20
+    ) -> tuple[list[Subtask], int]:
         q = self._session.query(Subtask).filter_by(task_id=task_id)
         total = q.count()
         return q.offset(offset).limit(limit).all(), total

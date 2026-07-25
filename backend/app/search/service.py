@@ -21,7 +21,13 @@ class SearchService:
         )
         for p in projects:
             results.append(
-                {"entity_type": "project", "id": p.id, "title": p.name, "subtitle": p.description or "", "url": f"/projects/{p.id}"}
+                {
+                    "entity_type": "project",
+                    "id": p.id,
+                    "title": p.name,
+                    "subtitle": p.description or "",
+                    "url": f"/projects/{p.id}",
+                }
             )
 
         remaining = limit - len(results)
@@ -34,7 +40,13 @@ class SearchService:
             )
             for f in features:
                 results.append(
-                    {"entity_type": "feature", "id": f.id, "title": f.name, "subtitle": f.description or "", "url": f"/projects/{f.project_id}/delivery"}
+                    {
+                        "entity_type": "feature",
+                        "id": f.id,
+                        "title": f.name,
+                        "subtitle": f.description or "",
+                        "url": f"/projects/{f.project_id}/delivery",
+                    }
                 )
 
         remaining = limit - len(results)
@@ -47,7 +59,13 @@ class SearchService:
             )
             for t in tasks:
                 results.append(
-                    {"entity_type": "task", "id": t.id, "title": t.title, "subtitle": t.description or "", "url": f"/projects/{t.feature_id}/delivery"}
+                    {
+                        "entity_type": "task",
+                        "id": t.id,
+                        "title": t.title,
+                        "subtitle": t.description or "",
+                        "url": f"/projects/{t.feature_id}/delivery",
+                    }
                 )
 
         return results
