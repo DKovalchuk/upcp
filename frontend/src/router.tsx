@@ -112,6 +112,12 @@ const reportsRoute = createRoute({
   component: () => <LazyRoute Component={ReportsPage} />,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: () => <LazyRoute Component={NotFoundPage} />,
+});
+
 const healthRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/health',
@@ -135,6 +141,7 @@ const routeTree = rootRoute.addChildren([
   projectGitRoute,
   projectSettingsRoute,
   reportsRoute,
+  settingsRoute,
   healthRoute,
   notFoundRoute,
 ]);
