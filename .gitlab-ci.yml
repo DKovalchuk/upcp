@@ -272,7 +272,7 @@ deploy:stage:
     - docker pull "$CI_REGISTRY_IMAGE/frontend:dev"
     - docker tag "$CI_REGISTRY_IMAGE/frontend:dev" "$CI_REGISTRY_IMAGE/frontend:stage"
     - docker push "$CI_REGISTRY_IMAGE/frontend:stage"
-    - echo "Stage images tagged. Deploy with: docker compose -f docker-compose.stage.yml up -d"
+    - echo "Stage images tagged. Deploy with docker compose.stage.yml"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       when: manual
