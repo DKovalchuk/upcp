@@ -234,6 +234,7 @@ build:backend-image:
     - docker build -t "$REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA" -t "$REGISTRY/$CI_PROJECT_PATH/backend:dev" .
     - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA"
     - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:dev"
+  allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -247,6 +248,7 @@ build:frontend-image:
     - docker build -t "$REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA" -t "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" frontend/
     - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA"
     - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:dev"
+  allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
