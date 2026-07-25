@@ -1,7 +1,12 @@
 from app.shared.config import Settings, get_settings
 
 
-def test_settings_loads_defaults() -> None:
+def test_settings_loads_defaults(monkeypatch: object) -> None:
+    from pytest import MonkeyPatch
+
+    assert isinstance(monkeypatch, MonkeyPatch)
+    monkeypatch.delenv("UPCP_ENV", raising=False)
+    monkeypatch.delenv("UPCP_DEBUG", raising=False)
     settings = Settings()
     assert settings.app_name == "UPCP Backend"
     assert settings.env == "local"
