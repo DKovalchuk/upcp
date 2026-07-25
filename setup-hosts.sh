@@ -21,6 +21,6 @@ done
 
 echo ""
 echo "Domains configured:"
-echo "  upcp.local       → stage  (port 80)"
-echo "  dev.upcp.local   → dev    (port 3080)"
-echo "  test.upcp.local  → test   (port 3081)"
+echo "  upcp.local       → stage  (port 3080)"
+echo "  dev.upcp.local   → dev    (port 3081)"
+echo "  test.upcp.local  → test   (port 3082)"
