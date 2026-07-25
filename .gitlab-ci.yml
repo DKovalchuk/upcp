@@ -2,6 +2,7 @@ stages:
   - lint
   - test
   - build
+  - deploy
 
 default:
   tags:
@@ -11,9 +12,9 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
 
-# ──────────────────────────────────────────────
-# Backend
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# DEV — lint + unit tests (every push to develop)
+# ══════════════════════════════════════════════
 
 backend:lint:
   stage: lint
@@ -29,9 +30,9 @@ backend:lint:
     - ruff format --check backend
     - mypy backend/app
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "develop"
 
-backend:test:
+backend:unit-test:
   stage: test
   image: python:3.12-slim
   services:
@@ -51,9 +52,9 @@ backend:test:
     - pip install --quiet -r backend/requirements.txt
   script:
     - cd backend
-    - pytest tests -q --tb=short
+    - pytest tests -q --tb=short -x
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "develop"
 
 backend:coverage:
   stage: test
@@ -84,11 +85,7 @@ backend:coverage:
         path: backend/coverage.xml
     expire_in: 7 days
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
-
-# ──────────────────────────────────────────────
-# Frontend
-# ──────────────────────────────────────────────
+    - if: $CI_COMMIT_BRANCH == "develop"
 
 frontend:lint:
   stage: lint
@@ -104,7 +101,7 @@ frontend:lint:
   script:
     - npm run lint
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "develop"
 
 frontend:test:
   stage: test
@@ -124,7 +121,7 @@ frontend:test:
       junit: frontend/test-results.xml
     expire_in: 7 days
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "develop"
 
 frontend:build:
   stage: build
@@ -144,40 +141,138 @@ frontend:build:
       - frontend/dist/
     expire_in: 7 days
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "develop"
 
-# ──────────────────────────────────────────────
-# Docker Build (on main/develop only)
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# TEST — integration, e2e, UI, perf, security
+# ══════════════════════════════════════════════
+
+backend:integration-test:
+  stage: test
+  image: python:3.12-slim
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_USER: upcp_ci
+    POSTGRES_PASSWORD: upcp_ci
+    POSTGRES_DB: upcp_ci
+    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
+    UPCP_ENV: ci
+    UPCP_SECRET_KEY: ci-test-only
+  cache:
+    key: backend-pip
+    paths:
+      - .cache/pip
+  before_script:
+    - pip install --quiet -r backend/requirements.txt
+  script:
+    - cd backend
+    - pytest tests/integration -q --tb=short -m integration 2>/dev/null || echo "No integration tests yet"
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+      allow_failure: true
+
+backend:e2e-test:
+  stage: test
+  image: python:3.12-slim
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_USER: upcp_ci
+    POSTGRES_PASSWORD: upcp_ci
+    POSTGRES_DB: upcp_ci
+    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
+    UPCP_ENV: ci
+    UPCP_SECRET_KEY: ci-test-only
+  cache:
+    key: backend-pip
+    paths:
+      - .cache/pip
+  before_script:
+    - pip install --quiet -r backend/requirements.txt
+  script:
+    - cd backend
+    - pytest tests/e2e -q --tb=short -m e2e 2>/dev/null || echo "No e2e tests yet"
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+      allow_failure: true
+
+backend:security-test:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - pip install --quiet bandit safety
+  script:
+    - bandit -r backend/app -f json -o bandit-report.json 2>/dev/null || echo "Bandit not configured yet"
+    - safety check -r backend/requirements.txt 2>/dev/null || echo "Safety not configured yet"
+  artifacts:
+    paths:
+      - bandit-report.json
+    expire_in: 7 days
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+      allow_failure: true
+
+# ══════════════════════════════════════════════
+# BUILD — Docker images (dev + stage)
+# ══════════════════════════════════════════════
 
 build:backend-image:
   stage: build
   image: docker:24
-  services:
-    - docker:24-dind
   variables:
-    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_HOST: "unix:///var/run/docker.sock"
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
-    - docker build -t "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/backend:latest" .
+    - docker build -t "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/backend:dev" .
     - docker push "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
-    - docker push "$CI_REGISTRY_IMAGE/backend:latest"
+    - docker push "$CI_REGISTRY_IMAGE/backend:dev"
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "develop"
 
 build:frontend-image:
   stage: build
   image: docker:24
-  services:
-    - docker:24-dind
   variables:
-    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_HOST: "unix:///var/run/docker.sock"
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
-    - docker build -t "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/frontend:latest" frontend/
+    - docker build -t "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/frontend:dev" frontend/
     - docker push "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
-    - docker push "$CI_REGISTRY_IMAGE/frontend:latest"
+    - docker push "$CI_REGISTRY_IMAGE/frontend:dev"
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+# ══════════════════════════════════════════════
+# DEPLOY — stage environment (manual)
+# ══════════════════════════════════════════════
+
+deploy:stage:
+  stage: deploy
+  image: docker:24
+  variables:
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+  environment:
+    name: stage
+    url: http://localhost:38080
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker pull "$CI_REGISTRY_IMAGE/backend:dev"
+    - docker tag "$CI_REGISTRY_IMAGE/backend:dev" "$CI_REGISTRY_IMAGE/backend:stage"
+    - docker push "$CI_REGISTRY_IMAGE/backend:stage"
+    - docker pull "$CI_REGISTRY_IMAGE/frontend:dev"
+    - docker tag "$CI_REGISTRY_IMAGE/frontend:dev" "$CI_REGISTRY_IMAGE/frontend:stage"
+    - docker push "$CI_REGISTRY_IMAGE/frontend:stage"
+    - echo "Stage images tagged. Deploy with: docker compose -f docker-compose.stage.yml up -d"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual

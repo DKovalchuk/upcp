@@ -1,0 +1,51 @@
+name: upcp-stage
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-upcp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upcp_stage}
+      POSTGRES_DB: ${POSTGRES_DB:-upcp}
+    ports:
+      - "127.0.0.1:35432:5432"
+    volumes:
+      - ./data/postgres-stage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U upcp -d upcp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    image: ${CI_REGISTRY_IMAGE:-registry.gitlab.local/dmitry.kovalchuk/upcp}/backend:stage
+    restart: unless-stopped
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8080"
+    environment:
+      DATABASE_URL: postgresql+psycopg://upcp:upcp_stage@db:5432/upcp
+      UPCP_ENV: stage
+      UPCP_LOG_LEVEL: INFO
+      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-stage_change_me}
+      UPCP_DEBUG: "false"
+    ports:
+      - "127.0.0.1:38080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  frontend:
+    image: ${CI_REGISTRY_IMAGE:-registry.gitlab.local/dmitry.kovalchuk/upcp}/frontend:stage
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:35173:80"
+    depends_on:
+      - app
