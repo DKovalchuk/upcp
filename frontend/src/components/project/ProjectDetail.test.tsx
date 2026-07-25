@@ -15,6 +15,12 @@ vi.mock('@tanstack/react-router', async () => {
 // Mock hooks
 vi.mock('@/hooks/use-projects', () => ({
   useProject: vi.fn(),
+  useUpdateProject: vi.fn(() => ({ mutateAsync: vi.fn() })),
+  useDeleteProject: vi.fn(() => ({ mutateAsync: vi.fn() })),
+}));
+
+vi.mock('@/hooks/use-project-id', () => ({
+  useProjectId: () => 'test-project-id',
 }));
 
 vi.mock('@/hooks/use-components', () => ({
@@ -112,7 +118,7 @@ describe('ProjectDetail', () => {
     expect(screen.getByRole('tab', { name: 'Delivery' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Quality' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Audit' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Reports' })).toBeInTheDocument();
   });
 
   it('renders status badge', () => {

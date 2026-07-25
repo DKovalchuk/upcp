@@ -81,7 +81,10 @@ services:
       - frontend
     ports:
       - "127.0.0.1:35173:35173"
+    environment:
+      VITE_API_URL: http://app:8080
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/vite.config.ts:/app/vite.config.ts:ro
     depends_on:
       - app

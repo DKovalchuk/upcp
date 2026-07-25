@@ -1,4 +1,5 @@
-import { useProjects } from '@/hooks/use-projects';
+import { useState } from 'react';
+import { useProjects, useCreateProject } from '@/hooks/use-projects';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
 import { ProjectTable } from '@/components/ProjectTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,14 +8,33 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
+import { showToast } from '@/lib/toast';
 import { FolderKanban } from 'lucide-react';
+
+const PROJECT_FIELDS = [
+  { name: 'name', label: 'Name', required: true, placeholder: 'My Project' },
+  { name: 'slug', label: 'Slug', placeholder: 'my-project' },
+  { name: 'description', label: 'Description', type: 'textarea' as const, placeholder: 'Project description...' },
+];
 
 export function ProjectList() {
   const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
   const { data, isLoading, error, refetch } = useProjects({ offset, limit });
+  const createProject = useCreateProject();
+  const [showCreate, setShowCreate] = useState(false);
 
   const projects = data?.items ?? [];
   const total = data?.total ?? 0;
+
+  const handleCreate = async (formData: Record<string, string>) => {
+    await createProject.mutateAsync({
+      name: formData.name,
+      slug: formData.slug || undefined,
+      description: formData.description || undefined,
+    });
+    showToast.created('Project');
+  };
 
   if (isLoading) {
     return (
@@ -48,37 +68,57 @@ export function ProjectList() {
 
   if (!projects.length) {
     return (
-      <Card>
-        <CardContent>
-          <EmptyState
-            icon={FolderKanban}
-            title="No projects yet"
-            description="Create your first project to get started."
-            action={{ label: 'New Project', onClick: () => {} }}
-          />
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent>
+            <EmptyState
+              icon={FolderKanban}
+              title="No projects yet"
+              description="Create your first project to get started."
+              action={{ label: 'New Project', onClick: () => setShowCreate(true) }}
+            />
+          </CardContent>
+        </Card>
+        <EntityFormDialog
+          open={showCreate}
+          onOpenChange={setShowCreate}
+          title="New Project"
+          fields={PROJECT_FIELDS}
+          onSubmit={handleCreate}
+          submitLabel="Create"
+        />
+      </>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-2xl font-bold">Projects</CardTitle>
-        <Button size="sm">New Project</Button>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <ProjectTable projects={projects} />
-        {total > limit && (
-          <DataTablePagination
-            offset={offset}
-            limit={limit}
-            total={total}
-            onPageChange={setOffset}
-            onPageSizeChange={setPageSize}
-          />
-        )}
-      </CardContent>
-    </Card>
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-2xl font-bold">Projects</CardTitle>
+          <Button size="sm" onClick={() => setShowCreate(true)}>New Project</Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ProjectTable projects={projects} />
+          {total > limit && (
+            <DataTablePagination
+              offset={offset}
+              limit={limit}
+              total={total}
+              onPageChange={setOffset}
+              onPageSizeChange={setPageSize}
+            />
+          )}
+        </CardContent>
+      </Card>
+      <EntityFormDialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        title="New Project"
+        fields={PROJECT_FIELDS}
+        onSubmit={handleCreate}
+        submitLabel="Create"
+      />
+    </>
   );
 }

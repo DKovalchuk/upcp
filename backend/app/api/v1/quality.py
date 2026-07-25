@@ -84,5 +84,13 @@ def complete_task(task_id: str, session: Session = Depends(get_session)) -> dict
 @router.get("/projects/{project_id}/quality/stats", response_model=QualityStatsResponse)
 def get_quality_stats(project_id: str, session: Session = Depends(get_session)) -> QualityStatsResponse:  # noqa: B008
     svc = QualityStatsService(session)
-    stats = svc.get_quality_stats(project_id)
-    return QualityStatsResponse(**stats)
+    raw = svc.get_quality_stats(project_id)
+    return QualityStatsResponse(
+        total_tasks=raw["total_tasks"],
+        tasks_with_ac=raw["tasks_with_ac"],
+        total_ac=raw["total_ac"],
+        passed_ac=raw["passed_ac"],
+        total_dod=raw["total_dod"],
+        passed_dod=raw["passed_dod"],
+        pass_rate=raw["pass_rate"],
+    )

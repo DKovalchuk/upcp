@@ -6,19 +6,47 @@ interface BreadcrumbItem {
   title: string;
 }
 
+const SEGMENT_LABELS: Record<string, string> = {
+  projects: 'Projects',
+  structure: 'Structure',
+  delivery: 'Delivery',
+  quality: 'Quality',
+  audit: 'Audit',
+  git: 'Git',
+  settings: 'Settings',
+  health: 'Health',
+  reports: 'Reports',
+};
+
+function isUuid(s: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+
+function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
+  const segments = pathname.split('/').filter(Boolean);
+  const crumbs: BreadcrumbItem[] = [];
+  let builtPath = '';
+
+  for (const seg of segments) {
+    builtPath += `/${seg}`;
+    if (isUuid(seg)) {
+      continue;
+    }
+    const label = SEGMENT_LABELS[seg] ?? seg.charAt(0).toUpperCase() + seg.slice(1);
+    crumbs.push({ path: builtPath, title: label });
+  }
+
+  return crumbs;
+}
+
 export function BreadcrumbBar() {
   const matches = useMatches();
+  const lastMatch = matches[matches.length - 1];
+  const pathname = lastMatch?.pathname ?? '/';
 
-  const breadcrumbs: BreadcrumbItem[] = matches
-    .filter((match) => match.pathname !== '/')
-    .map((match) => ({
-      path: match.pathname,
-      title: match.pathname.split('/').filter(Boolean).pop() || 'Home',
-    }));
+  if (pathname === '/') return null;
 
-  if (breadcrumbs.length === 0) {
-    return null;
-  }
+  const breadcrumbs = buildBreadcrumbs(pathname);
 
   return (
     <nav className="flex items-center gap-1 px-4 py-2 text-sm text-muted-foreground lg:px-6">

@@ -1,25 +1,15 @@
-import { useState, useMemo } from 'react';
-import { useLocation } from '@tanstack/react-router';
+import { useState } from 'react';
 import { useAuditEvents } from '@/hooks/use-audit';
+import { useProjectId } from '@/hooks/use-project-id';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { formatRelativeTime } from '@/lib/format';
 import { ScrollText } from 'lucide-react';
 import type { AuditEvent } from '@/types/audit';
-
-function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 const EVENT_COLORS: Record<string, string> = {
   created: 'bg-emerald-500',
@@ -29,11 +19,7 @@ const EVENT_COLORS: Record<string, string> = {
 };
 
 export function AuditPage() {
-  const location = useLocation();
-  const projectId = useMemo(() => {
-    const match = location.pathname.match(/^\/projects\/([^/]+)/);
-    return match?.[1] ?? '';
-  }, [location.pathname]);
+  const projectId = useProjectId();
 
   const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
   const [eventType, setEventType] = useState('');

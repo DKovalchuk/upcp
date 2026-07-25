@@ -24,7 +24,12 @@ export function PriorityDot({ priority }: PriorityDotProps) {
   return (
     <Tooltip>
       <TooltipTrigger>
-        <div className={`h-2.5 w-2.5 rounded-full ${color}`} />
+        <span
+          role="img"
+          aria-label={`Priority: ${label}`}
+          className={`inline-block h-2.5 w-2.5 rounded-full ${color}`}
+          tabIndex={0}
+        />
       </TooltipTrigger>
       <TooltipContent>
         <p>{label}</p>

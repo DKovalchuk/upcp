@@ -1,12 +1,16 @@
-import { useMemo } from 'react';
-import { useLocation } from '@tanstack/react-router';
-import { useProject } from '@/hooks/use-projects';
+import { useMemo, useState } from 'react';
+import { useLocation, useNavigate } from '@tanstack/react-router';
+import { useProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
+import { useProjectId } from '@/hooks/use-project-id';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
+import { showToast } from '@/lib/toast';
 import { Pencil, Trash2 } from 'lucide-react';
 import { StructurePage } from './StructurePage';
 import { DeliveryPage } from './DeliveryPage';
@@ -14,6 +18,22 @@ import { QualityPage } from './QualityPage';
 import { AuditPage } from './AuditPage';
 import { ReportsPage } from './ReportsPage';
 import { GitIntegrationPage } from './GitIntegrationPage';
+
+const PROJECT_FIELDS = [
+  { name: 'name', label: 'Name', required: true },
+  { name: 'slug', label: 'Slug' },
+  { name: 'description', label: 'Description', type: 'textarea' as const },
+  {
+    name: 'status',
+    label: 'Status',
+    type: 'select' as const,
+    options: [
+      { label: 'Active', value: 'active' },
+      { label: 'Paused', value: 'paused' },
+      { label: 'Archived', value: 'archived' },
+    ],
+  },
+];
 
 const TAB_ROUTES: Record<string, string> = {
   structure: 'structure',
@@ -26,11 +46,24 @@ const TAB_ROUTES: Record<string, string> = {
 
 export function ProjectDetail() {
   const location = useLocation();
-  const projectId = useMemo(() => {
-    const match = location.pathname.match(/^\/projects\/([^/]+)/);
-    return match?.[1] ?? '';
-  }, [location.pathname]);
+  const navigate = useNavigate();
+  const projectId = useProjectId();
   const { data: project, isLoading, error } = useProject(projectId);
+  const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
+  const [showEdit, setShowEdit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleEdit = async (formData: Record<string, string>) => {
+    await updateProject.mutateAsync({ id: projectId, data: formData });
+    showToast.updated('Project');
+  };
+
+  const handleDelete = async () => {
+    await deleteProject.mutateAsync(projectId);
+    showToast.deleted('Project');
+    navigate({ to: '/projects' });
+  };
 
   const activeTab = useMemo(() => {
     const segment = location.pathname.split('/').pop();
@@ -63,10 +96,10 @@ export function ProjectDetail() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={project.status} />
-          <Button variant="outline" size="icon" className="h-8 w-8">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setShowEdit(true)}>
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive">
+          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive" onClick={() => setConfirmDelete(true)}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -80,7 +113,7 @@ export function ProjectDetail() {
           <TabsTrigger value="quality">Quality</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
           <TabsTrigger value="git">Git</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="settings">Reports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -145,6 +178,31 @@ export function ProjectDetail() {
           <ReportsPage />
         </TabsContent>
       </Tabs>
+
+      <EntityFormDialog
+        open={showEdit}
+        onOpenChange={setShowEdit}
+        title="Edit Project"
+        fields={PROJECT_FIELDS}
+        initialData={{
+          name: project.name,
+          slug: project.slug,
+          description: project.description ?? '',
+          status: project.status,
+        }}
+        onSubmit={handleEdit}
+        submitLabel="Save"
+      />
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete Project"
+        description={`Are you sure you want to delete "${project.name}"? This will permanently remove all associated data.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

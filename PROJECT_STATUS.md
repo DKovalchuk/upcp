@@ -1,10 +1,51 @@
 # PROJECT_STATUS
 
-Updated: 2026-07-24
-Milestone: M6+ (UI Polish)
-Current Task: None
-Next Task: TBD
+Updated: 2026-07-25
+Milestone: M6+ (UI Polish + Audit)
+Current Task: Comprehensive audit (in progress)
+Next Task: Notifications system (TASK-0062)
 Blockers: none
+
+## Comprehensive Audit (2026-07-25)
+
+Full audit across API, UI, MCP, Security dimensions.
+
+### Audit Results
+- **API**: 20 findings (2C, 4H, 7M, 4L) — see COMPREHENSIVE_API_AUDIT_REPORT.md
+- **UI/UX**: 44 findings (2C, 9H, 19M, 14L) — see frontend audit agent
+- **Security**: 11 findings (3C, 3H, 3M, 2L) — OWASP Top 10
+- **MCP**: 6 observations, 12 tools functional, 79 tests pass
+
+### Issues Fixed (26 total)
+- Test isolation bug (5 failing search tests)
+- Mypy type errors (dashboard.py, quality.py)
+- Docker frontend missing deps (cmdk, @dnd-kit)
+- Health page proxy (/api/v1/health endpoint)
+- Missing /reports route + empty projectId handler
+- Breadcrumb showing UUID → filtered with label map
+- ProjectTable rows not clickable → navigate on click
+- ProjectTable not using StatusBadge → replaced
+- New Project button non-functional → EntityFormDialog wired
+- Edit/Delete buttons on ProjectDetail → handlers added
+- Settings tab renamed to Reports
+- TaskDetailSheet: AC/DoD/Subtask creation added
+- TaskDetailSheet: responsive width (w-full sm:max-w)
+- TaskDetailSheet: ListSection keys by item.id
+- ConfirmDialog async-aware (doesn't close before mutation)
+- PriorityDot accessibility (role=img, aria-label, tabIndex)
+- useProjectId hook extracted (eliminates 7x duplication)
+- formatRelativeTime utility extracted (eliminates 2x duplication)
+- API sort_by whitelist (prevents injection)
+- Security headers: CSP, Referrer-Policy, Permissions-Policy
+- Vite proxy target fixed for local dev
+- docker-compose.yml: VITE_API_URL + vite.config.ts mount
+
+### Remaining (documented in COMPREHENSIVE_AUDIT_REPORT.md)
+- No authentication (Critical — known, deferred to TASK-0062+)
+- No rate limiting (High)
+- Hardcoded secrets in defaults (Critical)
+- Missing /settings page (Medium)
+- Dead CSS custom properties (Medium)
 
 ## Last Result
 
