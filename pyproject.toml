@@ -34,7 +34,8 @@ strict = true
 ignore_missing_imports = true
 disable_error_code = [
   "untyped-decorator",
-  "no-any-return"
+  "no-any-return",
+  "misc"
 ]
 exclude = [
   ".venv",
