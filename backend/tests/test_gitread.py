@@ -138,6 +138,18 @@ def test_delete_link() -> None:
 def _init_git_repo(path: str, branch: str = "main") -> None:
     subprocess.run(["git", "init"], cwd=path, capture_output=True, check=True)
     subprocess.run(
+        ["git", "config", "user.email", "test@test.com"],
+        cwd=path,
+        capture_output=True,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test"],
+        cwd=path,
+        capture_output=True,
+        check=True,
+    )
+    subprocess.run(
         ["git", "checkout", "-b", branch],
         cwd=path,
         capture_output=True,
