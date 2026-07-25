@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-upcp}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upcp_stage}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upcp_local_change_me}
       POSTGRES_DB: ${POSTGRES_DB:-upcp}
     ports:
       - "127.0.0.1:35433:5432"
@@ -28,7 +28,7 @@ services:
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8080"
     environment:
-      DATABASE_URL: postgresql+psycopg://upcp:upcp_stage@db:5432/upcp
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-upcp}:${POSTGRES_PASSWORD:-upcp_local_change_me}@db:5432/${POSTGRES_DB:-upcp}
       UPCP_ENV: stage
       UPCP_LOG_LEVEL: INFO
       UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-stage_change_me}
@@ -52,6 +52,6 @@ services:
     image: ${CI_REGISTRY_IMAGE:-registry.gitlab.local/dmitry.kovalchuk/upcp}/frontend:stage
     restart: unless-stopped
     ports:
-      - "127.0.0.1:35174:80"
+      - "127.0.0.1:35174:35173"
     depends_on:
       - app
