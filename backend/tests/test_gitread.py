@@ -1,4 +1,4 @@
-import os
+import subprocess
 import tempfile
 
 from app.api.v1.gitread import router as gitread_router
@@ -135,9 +135,25 @@ def test_delete_link() -> None:
 # ── LocalGitAdapter ──
 
 
+def _init_git_repo(path: str, branch: str = "main") -> None:
+    subprocess.run(["git", "init"], cwd=path, capture_output=True, check=True)
+    subprocess.run(
+        ["git", "checkout", "-b", branch],
+        cwd=path,
+        capture_output=True,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "commit", "--allow-empty", "-m", "init"],
+        cwd=path,
+        capture_output=True,
+        check=True,
+    )
+
+
 def test_local_adapter_list_branches() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
-        os.system(f"git -C {tmpdir} init -b main && git -C {tmpdir} commit --allow-empty -m 'init'")
+        _init_git_repo(tmpdir)
         adapter = LocalGitAdapter(tmpdir)
         branches = adapter.list_branches()
         assert len(branches) >= 1
@@ -146,8 +162,11 @@ def test_local_adapter_list_branches() -> None:
 
 def test_local_adapter_get_commits() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
-        os.system(
-            f"git -C {tmpdir} init -b main && git -C {tmpdir} commit --allow-empty -m 'first' && git -C {tmpdir} commit --allow-empty -m 'second'"
+        _init_git_repo(tmpdir)
+        subprocess.run(
+            ["git", "-C", tmpdir, "commit", "--allow-empty", "-m", "second"],
+            capture_output=True,
+            check=True,
         )
         adapter = LocalGitAdapter(tmpdir)
         commits = adapter.get_commits(limit=2)
