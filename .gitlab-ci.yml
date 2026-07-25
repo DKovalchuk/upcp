@@ -31,10 +31,10 @@ default:
     max: 1
     when:
       - runner_system_failure
-  variables:
-    GIT_STRATEGY: fetch
-    GIT_DEPTH: 1
-    GIT_CLEAN_FLAGS: -ffdx -e .cache/ -e node_modules/
+  # variables:
+  #   GIT_STRATEGY: fetch
+  #   GIT_DEPTH: 1
+  #   GIT_CLEAN_FLAGS: -ffdx -e .cache/ -e node_modules/
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
