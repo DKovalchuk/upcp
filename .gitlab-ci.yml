@@ -1,0 +1,202 @@
+stages:
+  - lint
+  - test
+  - build
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
+
+# ──────────────────────────────────────────────
+# Backend
+# ──────────────────────────────────────────────
+
+backend:lint:
+  stage: lint
+  image: python:3.12-slim
+  cache:
+    key: backend-pip
+    paths:
+      - .cache/pip
+  before_script:
+    - pip install --quiet ruff mypy
+  script:
+    - ruff check backend
+    - ruff format --check backend
+    - mypy backend/app
+  rules:
+    - changes:
+        - backend/**/*
+        - pyproject.toml
+        - .gitlab-ci.yml
+
+backend:test:
+  stage: test
+  image: python:3.12-slim
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_USER: upcp_ci
+    POSTGRES_PASSWORD: upcp_ci
+    POSTGRES_DB: upcp_ci
+    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
+    UPCP_ENV: ci
+    UPCP_SECRET_KEY: ci-test-only
+  cache:
+    key: backend-pip
+    paths:
+      - .cache/pip
+  before_script:
+    - pip install --quiet -r backend/requirements.txt
+  script:
+    - cd backend
+    - pytest tests -q --tb=short
+  rules:
+    - changes:
+        - backend/**/*
+        - pyproject.toml
+        - .gitlab-ci.yml
+
+backend:coverage:
+  stage: test
+  image: python:3.12-slim
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_USER: upcp_ci
+    POSTGRES_PASSWORD: upcp_ci
+    POSTGRES_DB: upcp_ci
+    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
+    UPCP_ENV: ci
+    UPCP_SECRET_KEY: ci-test-only
+  cache:
+    key: backend-pip
+    paths:
+      - .cache/pip
+  before_script:
+    - pip install --quiet -r backend/requirements.txt
+  script:
+    - cd backend
+    - pytest tests --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80 -q
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage.xml
+    expire_in: 7 days
+  rules:
+    - changes:
+        - backend/**/*
+        - pyproject.toml
+        - .gitlab-ci.yml
+
+# ──────────────────────────────────────────────
+# Frontend
+# ──────────────────────────────────────────────
+
+frontend:lint:
+  stage: lint
+  image: node:20-alpine
+  cache:
+    key: frontend-npm
+    paths:
+      - .cache/npm
+      - frontend/node_modules
+  before_script:
+    - cd frontend
+    - npm ci --prefer-offline
+  script:
+    - npm run lint
+  rules:
+    - changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+
+frontend:test:
+  stage: test
+  image: node:20-alpine
+  cache:
+    key: frontend-npm
+    paths:
+      - .cache/npm
+      - frontend/node_modules
+  before_script:
+    - cd frontend
+    - npm ci --prefer-offline
+  script:
+    - npm run test
+  artifacts:
+    reports:
+      junit: frontend/test-results.xml
+    expire_in: 7 days
+  rules:
+    - changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+
+frontend:build:
+  stage: build
+  image: node:20-alpine
+  cache:
+    key: frontend-npm
+    paths:
+      - .cache/npm
+      - frontend/node_modules
+  before_script:
+    - cd frontend
+    - npm ci --prefer-offline
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 7 days
+  rules:
+    - changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+
+# ──────────────────────────────────────────────
+# Docker Build (on main/develop only)
+# ──────────────────────────────────────────────
+
+build:backend-image:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/backend:latest" .
+    - docker push "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/backend:latest"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+      changes:
+        - backend/**/*
+        - Dockerfile
+        - .gitlab-ci.yml
+
+build:frontend-image:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/frontend:latest" frontend/
+    - docker push "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/frontend:latest"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+      changes:
+        - frontend/**/*
+        - frontend/Dockerfile
+        - .gitlab-ci.yml
