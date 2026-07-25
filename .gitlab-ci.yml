@@ -49,6 +49,7 @@ backend:unit-test:
     paths:
       - .cache/pip
   before_script:
+    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
     - pip install --quiet -r backend/requirements.txt
   script:
     - cd backend
@@ -73,6 +74,7 @@ backend:coverage:
     paths:
       - .cache/pip
   before_script:
+    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
     - pip install --quiet -r backend/requirements.txt
   script:
     - cd backend
@@ -164,6 +166,7 @@ backend:integration-test:
     paths:
       - .cache/pip
   before_script:
+    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
     - pip install --quiet -r backend/requirements.txt
   script:
     - cd backend
@@ -191,6 +194,7 @@ backend:e2e-test:
     paths:
       - .cache/pip
   before_script:
+    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
     - pip install --quiet -r backend/requirements.txt
   script:
     - cd backend
