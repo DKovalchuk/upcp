@@ -29,10 +29,7 @@ backend:lint:
     - ruff format --check backend
     - mypy backend/app
   rules:
-    - changes:
-        - backend/**/*
-        - pyproject.toml
-        - .gitlab-ci.yml
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
 
 backend:test:
   stage: test
@@ -56,10 +53,7 @@ backend:test:
     - cd backend
     - pytest tests -q --tb=short
   rules:
-    - changes:
-        - backend/**/*
-        - pyproject.toml
-        - .gitlab-ci.yml
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
 
 backend:coverage:
   stage: test
@@ -90,10 +84,7 @@ backend:coverage:
         path: backend/coverage.xml
     expire_in: 7 days
   rules:
-    - changes:
-        - backend/**/*
-        - pyproject.toml
-        - .gitlab-ci.yml
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
 
 # ──────────────────────────────────────────────
 # Frontend
@@ -113,9 +104,7 @@ frontend:lint:
   script:
     - npm run lint
   rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
 
 frontend:test:
   stage: test
@@ -135,9 +124,7 @@ frontend:test:
       junit: frontend/test-results.xml
     expire_in: 7 days
   rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
 
 frontend:build:
   stage: build
@@ -157,9 +144,7 @@ frontend:build:
       - frontend/dist/
     expire_in: 7 days
   rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
 
 # ──────────────────────────────────────────────
 # Docker Build (on main/develop only)
@@ -180,10 +165,6 @@ build:backend-image:
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
   rules:
     - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
-      changes:
-        - backend/**/*
-        - Dockerfile
-        - .gitlab-ci.yml
 
 build:frontend-image:
   stage: build
@@ -200,7 +181,3 @@ build:frontend-image:
     - docker push "$CI_REGISTRY_IMAGE/frontend:latest"
   rules:
     - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
-      changes:
-        - frontend/**/*
-        - frontend/Dockerfile
-        - .gitlab-ci.yml
