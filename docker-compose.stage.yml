@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upcp_stage}
       POSTGRES_DB: ${POSTGRES_DB:-upcp}
     ports:
-      - "127.0.0.1:35432:5432"
+      - "127.0.0.1:35433:5432"
     volumes:
       - ./data/postgres-stage:/var/lib/postgresql/data
     healthcheck:
@@ -19,6 +19,9 @@ services:
       retries: 10
 
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ${CI_REGISTRY_IMAGE:-registry.gitlab.local/dmitry.kovalchuk/upcp}/backend:stage
     restart: unless-stopped
     command: >
@@ -31,7 +34,7 @@ services:
       UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-stage_change_me}
       UPCP_DEBUG: "false"
     ports:
-      - "127.0.0.1:38080:8080"
+      - "127.0.0.1:38081:8080"
     depends_on:
       db:
         condition: service_healthy
@@ -43,9 +46,12 @@ services:
       start_period: 15s
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     image: ${CI_REGISTRY_IMAGE:-registry.gitlab.local/dmitry.kovalchuk/upcp}/frontend:stage
     restart: unless-stopped
     ports:
-      - "127.0.0.1:35173:80"
+      - "127.0.0.1:35174:80"
     depends_on:
       - app
