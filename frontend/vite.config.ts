@@ -14,7 +14,8 @@ export default defineConfig({
   },
   server: {
     port: 35173,
-    host: '127.0.0.1',
+    host: '0.0.0.0',
+    allowedHosts: ['upcp.local', 'dev.upcp.local', 'test.upcp.local'],
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL || 'http://127.0.0.1:38080',
