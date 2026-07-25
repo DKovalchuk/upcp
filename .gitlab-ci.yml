@@ -1,3 +1,14 @@
+# ════════════════════════════════════════════════════════════════
+# UPCP CI/CD Pipeline
+# ════════════════════════════════════════════════════════════════
+#
+# Flow:
+#   feature/* → MR → develop   (lint + unit test)
+#   develop   → MR → main      (lint + all tests + build)
+#   main      → deploy:stage    (manual confirmation)
+#
+# ════════════════════════════════════════════════════════════════
+
 stages:
   - lint
   - test
@@ -7,16 +18,32 @@ stages:
 default:
   tags:
     - laptop
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
 
-# ══════════════════════════════════════════════
-# DEV — lint + unit tests (every push to develop)
-# ══════════════════════════════════════════════
+# ── Workflow rules ─────────────────────────────────────────────
+# Prevent duplicate pipelines (push + MR for same commit)
+workflow:
+  rules:
+    # MR pipeline: always run
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # Branch pipeline: only develop and main
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    # Tag pipeline: future releases
+    - if: $CI_COMMIT_TAG
 
-backend:lint:
+# ════════════════════════════════════════════════════════════════
+# LINT — fast feedback on every pipeline
+# ════════════════════════════════════════════════════════════════
+
+.backend-lint-template:
   stage: lint
   image: python:3.12-slim
   cache:
@@ -25,69 +52,21 @@ backend:lint:
       - .cache/pip
   before_script:
     - pip install --quiet ruff mypy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+backend:lint:
+  extends: .backend-lint-template
   script:
     - ruff check backend
     - ruff format --check backend
+
+backend:typecheck:
+  extends: .backend-lint-template
+  script:
     - mypy backend/app
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-
-backend:unit-test:
-  stage: test
-  image: python:3.12-slim
-  services:
-    - postgres:16
-  variables:
-    POSTGRES_USER: upcp_ci
-    POSTGRES_PASSWORD: upcp_ci
-    POSTGRES_DB: upcp_ci
-    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
-    UPCP_ENV: ci
-    UPCP_SECRET_KEY: ci-test-only
-  cache:
-    key: backend-pip
-    paths:
-      - .cache/pip
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
-    - pip install --quiet -r backend/requirements.txt
-  script:
-    - cd backend
-    - pytest tests -q --tb=short -x
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-
-backend:coverage:
-  stage: test
-  image: python:3.12-slim
-  services:
-    - postgres:16
-  variables:
-    POSTGRES_USER: upcp_ci
-    POSTGRES_PASSWORD: upcp_ci
-    POSTGRES_DB: upcp_ci
-    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
-    UPCP_ENV: ci
-    UPCP_SECRET_KEY: ci-test-only
-  cache:
-    key: backend-pip
-    paths:
-      - .cache/pip
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
-    - pip install --quiet -r backend/requirements.txt
-  script:
-    - cd backend
-    - pytest tests --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80 -q
-  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: backend/coverage.xml
-    expire_in: 7 days
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
 
 frontend:lint:
   stage: lint
@@ -103,7 +82,49 @@ frontend:lint:
   script:
     - npm run lint
   rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ════════════════════════════════════════════════════════════════
+# TEST — unit tests + coverage (every pipeline)
+# ════════════════════════════════════════════════════════════════
+
+.backend-test-template:
+  stage: test
+  image: python:3.12-slim
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_USER: upcp_ci
+    POSTGRES_PASSWORD: upcp_ci
+    POSTGRES_DB: upcp_ci
+    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
+    UPCP_ENV: ci
+    UPCP_SECRET_KEY: ci-test-only
+  cache:
+    key: backend-pip
+    paths:
+      - .cache/pip
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
+    - pip install --quiet -r backend/requirements.txt
+
+backend:test:
+  extends: .backend-test-template
+  script:
+    - python -m pytest backend/tests -q --tb=short -x
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage.xml
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
 
 frontend:test:
   stage: test
@@ -117,13 +138,97 @@ frontend:test:
     - cd frontend
     - npm ci --prefer-offline
   script:
-    - npm run test
+    - npm run test -- --coverage
   artifacts:
     reports:
       junit: frontend/test-results.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: frontend/coverage/cobertura-coverage.xml
     expire_in: 7 days
   rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ════════════════════════════════════════════════════════════════
+# TEST — integration, e2e, security (develop + main only)
+# ════════════════════════════════════════════════════════════════
+
+backend:integration-test:
+  extends: .backend-test-template
+  script:
+    - python -m pytest backend/tests/integration -q --tb=short -m integration
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+backend:e2e-test:
+  extends: .backend-test-template
+  script:
+    - python -m pytest backend/tests/e2e -q --tb=short -m e2e
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+backend:security:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - pip install --quiet bandit pip-audit
+  script:
+    - bandit -r backend/app -f json -o bandit-report.json -q
+    - pip-audit -r backend/requirements.txt
+  artifacts:
+    paths:
+      - bandit-report.json
+    expire_in: 7 days
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ════════════════════════════════════════════════════════════════
+# BUILD — Docker images (develop + main)
+# ════════════════════════════════════════════════════════════════
+
+.build-template:
+  stage: build
+  image: docker:24
+  variables:
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+    REGISTRY: "gitlab.local:8929"
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$REGISTRY"
+
+build:backend-image:
+  extends: .build-template
+  needs:
+    - backend:test
+    - backend:security
+  script:
+    - docker build -t "$REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA" -t "$REGISTRY/$CI_PROJECT_PATH/backend:dev" .
+    - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA"
+    - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:dev"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+build:frontend-image:
+  extends: .build-template
+  needs:
+    - frontend:test
+    - frontend:build
+  script:
+    - docker build -t "$REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA" -t "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" frontend/
+    - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA"
+    - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:dev"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
 
 frontend:build:
   stage: build
@@ -143,125 +248,13 @@ frontend:build:
       - frontend/dist/
     expire_in: 7 days
   rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
 
-# ══════════════════════════════════════════════
-# TEST — integration, e2e, UI, perf, security
-# ══════════════════════════════════════════════
-
-backend:integration-test:
-  stage: test
-  image: python:3.12-slim
-  services:
-    - postgres:16
-  variables:
-    POSTGRES_USER: upcp_ci
-    POSTGRES_PASSWORD: upcp_ci
-    POSTGRES_DB: upcp_ci
-    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
-    UPCP_ENV: ci
-    UPCP_SECRET_KEY: ci-test-only
-  cache:
-    key: backend-pip
-    paths:
-      - .cache/pip
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
-    - pip install --quiet -r backend/requirements.txt
-  script:
-    - cd backend
-    - pytest tests/integration -q --tb=short -m integration 2>/dev/null || echo "No integration tests yet"
-  allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-      when: manual
-      allow_failure: true
-
-backend:e2e-test:
-  stage: test
-  image: python:3.12-slim
-  services:
-    - postgres:16
-  variables:
-    POSTGRES_USER: upcp_ci
-    POSTGRES_PASSWORD: upcp_ci
-    POSTGRES_DB: upcp_ci
-    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
-    UPCP_ENV: ci
-    UPCP_SECRET_KEY: ci-test-only
-  cache:
-    key: backend-pip
-    paths:
-      - .cache/pip
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
-    - pip install --quiet -r backend/requirements.txt
-  script:
-    - cd backend
-    - pytest tests/e2e -q --tb=short -m e2e 2>/dev/null || echo "No e2e tests yet"
-  allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-      when: manual
-      allow_failure: true
-
-backend:security-test:
-  stage: test
-  image: python:3.12-slim
-  before_script:
-    - pip install --quiet bandit safety
-  script:
-    - bandit -r backend/app -f json -o bandit-report.json 2>/dev/null || echo "Bandit not configured yet"
-    - safety check -r backend/requirements.txt 2>/dev/null || echo "Safety not configured yet"
-  artifacts:
-    paths:
-      - bandit-report.json
-    expire_in: 7 days
-  allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-      when: manual
-      allow_failure: true
-
-# ══════════════════════════════════════════════
-# BUILD — Docker images (dev + stage)
-# ══════════════════════════════════════════════
-
-build:backend-image:
-  stage: build
-  image: docker:24
-  variables:
-    DOCKER_HOST: "unix:///var/run/docker.sock"
-    REGISTRY: "gitlab.local:8929"
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$REGISTRY" || echo "Registry login skipped"
-  script:
-    - docker build -t "$REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA" -t "$REGISTRY/$CI_PROJECT_PATH/backend:dev" .
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA" || echo "Push skipped"
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:dev" || echo "Push skipped"
-  allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-
-build:frontend-image:
-  stage: build
-  image: docker:24
-  variables:
-    DOCKER_HOST: "unix:///var/run/docker.sock"
-    REGISTRY: "gitlab.local:8929"
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$REGISTRY" || echo "Registry login skipped"
-  script:
-    - docker build -t "$REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA" -t "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" frontend/
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA" || echo "Push skipped"
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" || echo "Push skipped"
-  allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-
-# ══════════════════════════════════════════════
-# DEPLOY — stage environment (manual)
-# ══════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
+# DEPLOY — stage environment (main only, manual)
+# ════════════════════════════════════════════════════════════════
 
 deploy:stage:
   stage: deploy
@@ -271,17 +264,21 @@ deploy:stage:
     REGISTRY: "gitlab.local:8929"
   environment:
     name: stage
-    url: http://localhost:38080
+    url: http://localhost:3080
   before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$REGISTRY" || echo "Registry login skipped"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$REGISTRY"
   script:
-    - docker pull "$REGISTRY/$CI_PROJECT_PATH/backend:dev" || echo "Pull skipped - build locally"
-    - docker tag "$REGISTRY/$CI_PROJECT_PATH/backend:dev" "$REGISTRY/$CI_PROJECT_PATH/backend:stage" || echo "Tag skipped"
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:stage" || echo "Push skipped"
-    - docker pull "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" || echo "Pull skipped - build locally"
-    - docker tag "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" "$REGISTRY/$CI_PROJECT_PATH/frontend:stage" || echo "Tag skipped"
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:stage" || echo "Push skipped"
-    - echo "Stage images ready. Deploy with docker compose.stage.yml"
+    - docker pull "$REGISTRY/$CI_PROJECT_PATH/backend:dev"
+    - docker tag "$REGISTRY/$CI_PROJECT_PATH/backend:dev" "$REGISTRY/$CI_PROJECT_PATH/backend:stage"
+    - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:stage"
+    - docker pull "$REGISTRY/$CI_PROJECT_PATH/frontend:dev"
+    - docker tag "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" "$REGISTRY/$CI_PROJECT_PATH/frontend:stage"
+    - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:stage"
+    - echo "Stage images ready. Deploy with: docker compose -f docker-compose.stage.yml up -d"
+  needs:
+    - build:backend-image
+    - build:frontend-image
   rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
       when: manual
+      allow_failure: false
