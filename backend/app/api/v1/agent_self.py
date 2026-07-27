@@ -6,8 +6,9 @@ TASK-0075
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.delivery.models import ClarificationRequest, TaskClaim
 from app.identity.agent_auth import get_current_agent
-from app.identity.agents import Agent, AgentToken
+from app.identity.agents import Agent
 from app.identity.dependencies import CurrentAgent
 from app.shared.database import get_session
 
@@ -46,7 +47,17 @@ def agent_me(
     if db_agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    inbox_count = db.query(AgentToken).filter_by(agent_id=agent.agent_id).count()
+    active_claims = db.query(TaskClaim).filter_by(agent_id=agent.agent_id, state="active").count()
+    open_clarifications = (
+        db.query(ClarificationRequest)
+        .filter(
+            ClarificationRequest.author_id == agent.agent_id,
+            ClarificationRequest.author_type == "agent",
+            ClarificationRequest.state == "open",
+        )
+        .count()
+    )
+    inbox_count = active_claims + open_clarifications
 
     return {
         "id": db_agent.id,

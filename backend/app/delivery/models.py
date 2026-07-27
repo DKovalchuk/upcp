@@ -108,7 +108,11 @@ class TaskClaim(Base):
     __tablename__ = "task_claim"
     __table_args__ = (
         Index(
-            "uq_task_claim_active", "task_id", unique=True, sqlite_where=text("state = 'active'")
+            "uq_task_claim_active",
+            "task_id",
+            unique=True,
+            sqlite_where=text("state = 'active'"),
+            postgresql_where=text("state = 'active'"),
         ),
     )
 

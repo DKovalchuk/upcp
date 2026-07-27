@@ -81,6 +81,7 @@ class WorkflowService:
     ) -> Heartbeat:
         """Send a heartbeat on a claimed task."""
         claim = self._get_active_claim(task_id, agent_id)
+        self._validate_progress(progress_percent)
 
         hb = Heartbeat(
             id=new_id(),
@@ -105,18 +106,24 @@ class WorkflowService:
     ) -> Heartbeat:
         """Update progress on a claimed task."""
         claim = self._get_active_claim(task_id, agent_id)
+        self._validate_progress(progress_percent)
 
         hb = Heartbeat(
             id=new_id(),
             claim_id=claim.id,
             progress_percent=progress_percent,
-            current_step="",
-            next_step="",
+            current_step="progress",
+            next_step="continue",
         )
         self._session.add(hb)
         claim.last_heartbeat_at = datetime.now(UTC)
         self._session.flush()
         return hb
+
+    @staticmethod
+    def _validate_progress(progress_percent: int) -> None:
+        if not 0 <= progress_percent <= 100:
+            raise Conflict(f"progress_percent must be 0-100, got {progress_percent}")
 
     def _get_active_claim(self, task_id: str, agent_id: str) -> TaskClaim:
         """Get active claim, verifying ownership."""

@@ -592,7 +592,7 @@ def _handle_heartbeat_task(session: Any, arguments: dict[str, object]) -> ToolRe
 
 
 def _handle_request_clarification(session: Any, arguments: dict[str, object]) -> ToolResult:
-    from app.delivery.models import ClarificationRequest
+    from app.delivery.models import ClarificationRequest, Task
     from app.shared.text import new_id
 
     task_id = _get_str_arg(arguments, "task_id")
@@ -600,6 +600,10 @@ def _handle_request_clarification(session: Any, arguments: dict[str, object]) ->
     question = _get_str_arg(arguments, "question")
     if not task_id or not agent_id or not question:
         raise ValueError("task_id, agent_id, and question are required")
+    task = session.get(Task, task_id)
+    if task is None:
+        raise ValueError(f"task '{task_id}' not found")
+    blocking = arguments.get("blocking", False) is True
     cr = ClarificationRequest(
         id=new_id(),
         task_id=task_id,
@@ -607,9 +611,14 @@ def _handle_request_clarification(session: Any, arguments: dict[str, object]) ->
         author_id=agent_id,
         question=question,
         context=_get_str_arg(arguments, "context") or None,
-        blocking=arguments.get("blocking", False) is True,
+        blocking=blocking,
     )
     session.add(cr)
+    if blocking:
+        from app.delivery.lifecycle import validate_transition
+
+        validate_transition(task.status, "needs_clarification")
+        task.status = "needs_clarification"
     session.flush()
     result = {
         "id": cr.id,
@@ -634,6 +643,8 @@ def _handle_answer_clarification(session: Any, arguments: dict[str, object]) -> 
     cr = session.query(ClarificationRequest).filter_by(id=clar_id).first()
     if cr is None:
         raise ValueError(f"clarification '{clar_id}' not found")
+    if cr.state != "open":
+        raise ValueError(f"clarification is '{cr.state}', can only answer 'open' ones")
     cr.state = "answered"
     cr.answer = answer
     cr.answered_by = answered_by
@@ -645,14 +656,23 @@ def _handle_answer_clarification(session: Any, arguments: dict[str, object]) -> 
 
 def _handle_submit_task_for_review(session: Any, arguments: dict[str, object]) -> ToolResult:
     from app.delivery.lifecycle import validate_transition
-    from app.delivery.models import Task
+    from app.delivery.models import Task, TaskClaim
 
     task_id = _get_str_arg(arguments, "task_id")
+    agent_id = _get_str_arg(arguments, "agent_id")
     if not task_id:
         raise ValueError("task_id is required")
     task = session.get(Task, task_id)
     if task is None:
         raise ValueError(f"task '{task_id}' not found")
+    if agent_id:
+        claim = (
+            session.query(TaskClaim)
+            .filter_by(task_id=task_id, agent_id=agent_id, state="active")
+            .first()
+        )
+        if claim is None:
+            raise ValueError(f"agent '{agent_id}' has no active claim on task '{task_id}'")
     validate_transition(task.status, "ready_for_review")
     task.status = "ready_for_review"
     session.flush()
