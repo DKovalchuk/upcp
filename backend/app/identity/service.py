@@ -57,6 +57,11 @@ class AuthService:
         self._db.add(binding)
         self._db.flush()
 
+        # Seed all default roles and permissions
+        from app.identity.seed import seed_roles
+
+        seed_roles(self._db)
+
         access = self._tokens.create_access_token(user.id)
         refresh = self._tokens.create_refresh_token(user.id, self._db)
 
