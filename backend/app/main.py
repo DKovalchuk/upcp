@@ -19,14 +19,22 @@ from app.shared.correlation import CorrelationMiddleware
 from app.shared.errors import register_error_handlers
 from app.shared.logging import setup_logging
 from app.shared.rate_limit_middleware import RateLimitMiddleware
+from app.shared.tracing import setup_tracing
+from app.shared.tracing_middleware import TracingMiddleware
 
 settings = get_settings()
 
 # Setup structured logging
 setup_logging(settings.log_level)
 
+# Setup distributed tracing
+setup_tracing()
+
 app = FastAPI(title="UPCP Backend", version="0.1.0")
 register_error_handlers(app)
+
+# Tracing middleware — creates spans for each request
+app.add_middleware(TracingMiddleware)
 
 # Correlation middleware — adds request_id to all logs
 app.add_middleware(CorrelationMiddleware)

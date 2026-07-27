@@ -25,6 +25,20 @@ services:
       timeout: 3s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:36379:6379"
+    volumes:
+      - ./data/redis-stage:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
   app:
     image: upcp-backend:stage
     restart: unless-stopped
@@ -33,6 +47,7 @@ services:
              uvicorn app.main:app --host 0.0.0.0 --port 8080"
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-upcp}:${POSTGRES_PASSWORD:-upcp_local_change_me}@db:5432/${POSTGRES_DB:-upcp}
+      REDIS_URL: redis://redis:6379/0
       UPCP_ENV: stage
       UPCP_LOG_LEVEL: INFO
       UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-stage_change_me}
@@ -41,6 +56,8 @@ services:
       - "127.0.0.1:38081:8080"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
