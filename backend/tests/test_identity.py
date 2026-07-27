@@ -1,11 +1,19 @@
-"""Tests for identity models: User, Organization, Membership.
+"""Tests for identity models: User, Organization, Membership, LoginAudit.
 
 TDD: This file contains failing tests that define the expected behavior.
 Implement models to make them pass.
 """
 
 import pytest
-from app.identity.models import Membership, Organization, User
+from app.identity.models import LoginAudit, Membership, Organization, User
+from app.identity.schemas import (
+    OrganizationCreate,
+    OrganizationRead,
+    UserCreate,
+    UserRead,
+    UserReadAdmin,
+)
+from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -30,6 +38,11 @@ class TestUserModel:
         assert user.display_name == "Alice"
         assert user.is_active is True
         assert user.is_superuser is False
+        assert user.email_verified is False
+        assert user.failed_login_attempts == 0
+        assert user.locked_until is None
+        assert user.last_login_at is None
+        assert user.password_changed_at is None
         assert user.created_at is not None
         assert user.updated_at is not None
 
@@ -94,6 +107,29 @@ class TestUserModel:
         db_session.flush()
         assert user.is_superuser is False
 
+    def test_user_email_verified_default_false(self, db_session: Session) -> None:
+        user = User(
+            email="unverified@example.com",
+            password_hash="hash",
+            display_name="Unverified",
+        )
+        db_session.add(user)
+        db_session.flush()
+        assert user.email_verified is False
+
+    def test_user_security_fields_defaults(self, db_session: Session) -> None:
+        user = User(
+            email="security@example.com",
+            password_hash="hash",
+            display_name="Security",
+        )
+        db_session.add(user)
+        db_session.flush()
+        assert user.failed_login_attempts == 0
+        assert user.locked_until is None
+        assert user.last_login_at is None
+        assert user.password_changed_at is None
+
     def test_user_query_by_email(self, db_session: Session) -> None:
         user = User(
             email="findme@example.com",
@@ -136,6 +172,7 @@ class TestOrganizationModel:
         assert org.slug == "acme-corp"
         assert org.is_default is False
         assert org.created_at is not None
+        assert org.updated_at is not None
 
     def test_organization_slug_unique(self, db_session: Session) -> None:
         org1 = Organization(name="Org 1", slug="same-slug")
@@ -159,12 +196,14 @@ class TestOrganizationModel:
         db_session.flush()
         assert org.is_default is False
 
-    def test_organization_timestamp_is_utc(self, db_session: Session) -> None:
+    def test_organization_timestamps_are_utc(self, db_session: Session) -> None:
         org = Organization(name="Time Org", slug="time-org")
         db_session.add(org)
         db_session.flush()
         assert org.created_at is not None
         assert org.created_at.tzinfo is not None
+        assert org.updated_at is not None
+        assert org.updated_at.tzinfo is not None
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +251,21 @@ class TestMembershipModel:
         with pytest.raises(IntegrityError):
             db_session.flush()
 
+    def test_membership_role_check_constraint(self, db_session: Session) -> None:
+        user = User(
+            email="badrole@example.com",
+            password_hash="hash",
+            display_name="Bad Role",
+        )
+        org = Organization(name="Bad Role Org", slug="bad-role-org")
+        db_session.add_all([user, org])
+        db_session.flush()
+
+        membership = Membership(user_id=user.id, org_id=org.id, role="superadmin")
+        db_session.add(membership)
+        with pytest.raises(IntegrityError):
+            db_session.flush()
+
     def test_membership_role_values(self, db_session: Session) -> None:
         org = Organization(name="Roles Org", slug="roles-org")
         db_session.add(org)
@@ -250,3 +304,186 @@ class TestMembershipModel:
 
         remaining = db_session.query(Membership).filter_by(org_id=org.id).all()
         assert len(remaining) == 0
+
+
+# ---------------------------------------------------------------------------
+# LoginAudit model
+# ---------------------------------------------------------------------------
+
+
+class TestLoginAuditModel:
+    def test_login_audit_creation(self, db_session: Session) -> None:
+        user = User(
+            email="audit@example.com",
+            password_hash="hash",
+            display_name="Audit",
+        )
+        db_session.add(user)
+        db_session.flush()
+
+        audit = LoginAudit(
+            user_id=user.id,
+            email=user.email,
+            action="login_success",
+            ip_address="192.168.1.1",
+            user_agent="Mozilla/5.0",
+        )
+        db_session.add(audit)
+        db_session.flush()
+
+        assert audit.id is not None
+        assert audit.user_id == user.id
+        assert audit.email == "audit@example.com"
+        assert audit.action == "login_success"
+        assert audit.ip_address == "192.168.1.1"
+        assert audit.user_agent == "Mozilla/5.0"
+        assert audit.created_at is not None
+
+    def test_login_audit_nullable_user_id(self, db_session: Session) -> None:
+        """Failed login may not have a user_id (user not found)."""
+        audit = LoginAudit(
+            user_id=None,
+            email="unknown@example.com",
+            action="login_failed",
+            ip_address="10.0.0.1",
+        )
+        db_session.add(audit)
+        db_session.flush()
+
+        assert audit.user_id is None
+        assert audit.action == "login_failed"
+
+    def test_login_audit_action_check_constraint(self, db_session: Session) -> None:
+        audit = LoginAudit(
+            email="bad@example.com",
+            action="invalid_action",
+        )
+        db_session.add(audit)
+        with pytest.raises(IntegrityError):
+            db_session.flush()
+
+    def test_login_audit_valid_actions(self, db_session: Session) -> None:
+        valid_actions = (
+            "login_success",
+            "login_failed",
+            "logout",
+            "password_change",
+            "token_created",
+            "token_revoked",
+            "account_locked",
+            "account_unlocked",
+        )
+        for action in valid_actions:
+            audit = LoginAudit(
+                email=f"{action}@example.com",
+                action=action,
+            )
+            db_session.add(audit)
+            db_session.flush()
+            assert audit.action == action
+
+    def test_login_audit_user_id_nullable(self, db_session: Session) -> None:
+        """user_id is nullable — SET NULL on delete is configured in FK."""
+        audit = LoginAudit(
+            user_id=None,
+            email="orphan@example.com",
+            action="login_success",
+        )
+        db_session.add(audit)
+        db_session.flush()
+        assert audit.user_id is None
+
+
+# ---------------------------------------------------------------------------
+# Pydantic schemas
+# ---------------------------------------------------------------------------
+
+
+class TestUserSchemas:
+    def test_user_create_valid(self) -> None:
+        user = UserCreate(
+            email="test@example.com",
+            password="securepass123",
+            display_name="Test",
+        )
+        assert user.email == "test@example.com"
+        assert user.password == "securepass123"
+
+    def test_user_create_password_too_short(self) -> None:
+        with pytest.raises(ValidationError):
+            UserCreate(
+                email="test@example.com",
+                password="short",
+                display_name="Test",
+            )
+
+    def test_user_create_password_too_long(self) -> None:
+        with pytest.raises(ValidationError):
+            UserCreate(
+                email="test@example.com",
+                password="x" * 129,
+                display_name="Test",
+            )
+
+    def test_user_create_invalid_email(self) -> None:
+        with pytest.raises(ValidationError):
+            UserCreate(
+                email="not-an-email",
+                password="securepass123",
+                display_name="Test",
+            )
+
+    def test_user_read_no_superuser_leak(self) -> None:
+        data = {
+            "id": "1",
+            "email": "test@example.com",
+            "display_name": "Test",
+            "is_active": True,
+            "email_verified": False,
+            "last_login_at": None,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+        user = UserRead.model_validate(data)
+        assert not hasattr(user, "is_superuser")
+
+    def test_user_read_admin_has_superuser(self) -> None:
+        data = {
+            "id": "1",
+            "email": "admin@example.com",
+            "display_name": "Admin",
+            "is_active": True,
+            "is_superuser": True,
+            "email_verified": True,
+            "failed_login_attempts": 0,
+            "locked_until": None,
+            "last_login_at": None,
+            "password_changed_at": None,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+        user = UserReadAdmin.model_validate(data)
+        assert user.is_superuser is True
+        assert user.failed_login_attempts == 0
+
+
+class TestOrganizationSchemas:
+    def test_organization_create_valid(self) -> None:
+        org = OrganizationCreate(name="Acme", slug="acme")
+        assert org.slug == "acme"
+
+    def test_organization_create_invalid_slug(self) -> None:
+        with pytest.raises(ValidationError):
+            OrganizationCreate(name="Acme", slug="Acme Corp!")
+
+    def test_organization_read_has_updated_at(self) -> None:
+        data = {
+            "id": "1",
+            "name": "Acme",
+            "slug": "acme",
+            "is_default": False,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+        org = OrganizationRead.model_validate(data)
+        assert org.updated_at is not None
