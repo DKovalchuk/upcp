@@ -1,6 +1,8 @@
 """Auth middleware — protects all /api/v1/ routes except public ones."""
 
+import hashlib
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -23,8 +25,12 @@ PUBLIC_PATHS = frozenset(
 )
 
 
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
 class AuthMiddleware(BaseHTTPMiddleware):
-    """Check JWT on all /api/v1/ routes except public ones."""
+    """Check JWT or agent token on all /api/v1/ routes except public ones."""
 
     def __init__(self, app: ASGIApp, token_service: TokenService | None = None) -> None:
         super().__init__(app)
@@ -35,33 +41,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         path = request.url.path
 
-        # Skip auth for public paths
         if path in PUBLIC_PATHS:
             return await call_next(request)
 
-        # Skip auth for non-API routes
         if not path.startswith("/api/v1/"):
             return await call_next(request)
 
-        # Skip auth for MCP endpoint
         if path.startswith("/mcp"):
             return await call_next(request)
 
-        # Extract token from Authorization header
         auth_header = request.headers.get("authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Missing authentication token"},
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        token = auth_header[7:]  # Remove "Bearer " prefix
-
-        # Also check X-Agent-Token header
         agent_token = request.headers.get("x-agent-token")
 
-        if not token and not agent_token:
+        if not auth_header.startswith("Bearer ") and not agent_token:
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Missing authentication token"},
@@ -69,10 +61,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
             )
 
         # Verify JWT token
-        if token:
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
             try:
                 payload = self._token_service.verify_access_token(token)
-                # Attach user info to request state
                 request.state.user_id = payload["sub"]
                 request.state.auth_type = "user"
             except ValueError:
@@ -81,12 +73,50 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     content={"detail": "Invalid or expired token"},
                     headers={"WWW-Authenticate": "Bearer"},
                 )
+            return await call_next(request)
 
-        # TODO: Verify agent token (TASK-0068)
+        # Verify agent token
         if agent_token:
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Invalid agent token"},
-            )
+            from app.identity.agents import Agent, AgentToken
+            from app.shared.database import SessionLocal
+
+            db = SessionLocal()
+            try:
+                token_hash = _hash_token(agent_token)
+                record = db.query(AgentToken).filter_by(token_hash=token_hash).first()
+
+                if record is None or record.revoked_at is not None:
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": "Invalid agent token"},
+                    )
+
+                if record.expires_at is not None and record.expires_at < datetime.now(UTC):
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": "Agent token has expired"},
+                    )
+
+                agent = db.query(Agent).filter_by(id=record.agent_id).first()
+                if agent is None or not agent.is_active:
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": "Agent not found or inactive"},
+                    )
+
+                record.last_used_at = datetime.now(UTC)
+                db.commit()
+
+                request.state.agent_id = agent.id
+                request.state.agent_name = agent.name
+                request.state.auth_type = "agent"
+            except Exception:
+                db.rollback()
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Invalid agent token"},
+                )
+            finally:
+                db.close()
 
         return await call_next(request)

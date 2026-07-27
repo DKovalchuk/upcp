@@ -15,4 +15,4 @@ class CurrentUser:
 class CurrentAgent:
     agent_id: str
     name: str
-    scopes: list[str] | None = None
+    scopes: dict[str, object] | None = None
