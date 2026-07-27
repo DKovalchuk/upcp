@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.reporting.attention import AttentionDashboardService
 from app.reporting.dashboard import DashboardService
+from app.reporting.portfolio import PortfolioService
 from app.reporting.schemas import (
     AuditEventSummary,
     DashboardStatsResponse,
@@ -46,3 +47,12 @@ def get_project_health(
     """Get project health score with breakdown."""
     svc = AttentionDashboardService(session)
     return svc.get_project_health(project_id)
+
+
+@router.get("/portfolio/overview")
+def get_portfolio_overview(
+    session: Session = Depends(get_session),
+) -> dict[str, object]:  # noqa: B008
+    """Get portfolio-level overview with project summaries."""
+    svc = PortfolioService(session)
+    return svc.get_overview()

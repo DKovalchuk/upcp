@@ -17,6 +17,12 @@ import type {
 } from '@/types/quality';
 import type { Report, ReportCreate } from '@/types/report';
 import type { AuditEvent, AuditEventCreate } from '@/types/audit';
+import type {
+  AttentionDashboard,
+  Notification,
+  PortfolioOverview,
+  ProjectHealth,
+} from '@/types/dashboard';
 import type { HealthResponse, PaginatedResponse, DashboardStatsResponse, QualityStatsResponse } from '@/types/api';
 import type { GitProvider, GitProviderCreate, GitBranch, GitCommit, GitLink } from '@/types/git';
 
@@ -633,6 +639,55 @@ export async function submitForReview(
 ): Promise<ReviewRound> {
   return apiRequest<ReviewRound>(
     `${API_BASE}/tasks/${taskId}/submit-review`,
+    { method: 'POST' }
+  );
+}
+
+// ── Attention Dashboard ──
+
+export async function fetchAttentionDashboard(): Promise<AttentionDashboard> {
+  return apiRequest<AttentionDashboard>(`${API_BASE}/dashboard/attention`);
+}
+
+export async function fetchProjectHealth(
+  projectId: string
+): Promise<ProjectHealth> {
+  return apiRequest<ProjectHealth>(`${API_BASE}/projects/${projectId}/health`);
+}
+
+export async function fetchPortfolioOverview(): Promise<PortfolioOverview> {
+  return apiRequest<PortfolioOverview>(`${API_BASE}/portfolio/overview`);
+}
+
+// ── Notifications ──
+
+export async function fetchNotifications(
+  unreadOnly = false
+): Promise<{ items: Notification[] }> {
+  const params = unreadOnly ? '?unread_only=true' : '';
+  return apiRequest<{ items: Notification[] }>(
+    `${API_BASE}/notifications${params}`
+  );
+}
+
+export async function fetchUnreadCount(): Promise<{ count: number }> {
+  return apiRequest<{ count: number }>(
+    `${API_BASE}/notifications/unread-count`
+  );
+}
+
+export async function markNotificationRead(
+  notificationId: string
+): Promise<{ id: string; is_read: boolean }> {
+  return apiRequest<{ id: string; is_read: boolean }>(
+    `${API_BASE}/notifications/${notificationId}/read`,
+    { method: 'POST' }
+  );
+}
+
+export async function markAllNotificationsRead(): Promise<{ count: number }> {
+  return apiRequest<{ count: number }>(
+    `${API_BASE}/notifications/read-all`,
     { method: 'POST' }
   );
 }
