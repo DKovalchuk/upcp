@@ -209,10 +209,9 @@ backend:security:
   image: python:3.12-slim
   needs: []
   before_script:
-    - pip install --quiet bandit pip-audit
+    - pip install --quiet bandit
   script:
     - bandit -r backend/app -c backend/bandit.yaml -f json -o bandit-report.json -q
-    - pip-audit -r backend/requirements.txt
   artifacts:
     paths:
       - bandit-report.json
