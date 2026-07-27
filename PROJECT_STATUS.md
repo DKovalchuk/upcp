@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
-Updated: 2026-07-25
-Milestone: M6+ (UI Polish + Audit)
-Current Task: Comprehensive audit (in progress)
-Next Task: Notifications system (TASK-0062)
+Updated: 2026-07-27
+Milestone: M7-M11 Planning Complete
+Current Task: UPCP v2 planning and documentation (completed)
+Next Task: M7 Identity, Access & Agent Foundation implementation
 Blockers: none
 
 ## Comprehensive Audit (2026-07-25)
@@ -146,6 +146,44 @@ TASK-0057 completed: Board/Kanban view for Delivery page.
 ### Future Backlog (from SPEC-0013 §6)
 - Notifications system
 - Auth/RBAC UI
+
+## UPCP v2 Planning (2026-07-27)
+
+Full v2 planning completed. Documentation, UPCP population, and design.
+
+### What was created
+
+- **Kickoff doc**: `docs/planning/upcp-v2-kickoff.md`
+- **Planning report**: `docs/planning/upcp-v2-planning-report.md`
+- **PRD docs**: 4 files in `docs/prd/`
+- **Architecture docs**: 11 files in `docs/architecture/`
+- **Security docs**: 7 files in `docs/security/`
+- **Agent docs**: 7 files in `docs/agent/`
+- **UX docs**: 8 files in `docs/ux/`
+- **Ops docs**: 7 files in `docs/ops/`
+- **Testing docs**: 4 files in `docs/testing/`
+- **ADRs**: DEC-0015 through DEC-0026 in `docs/decisions.md`
+
+### UPCP populated
+
+- Project: UPCP v2
+- Components: 13
+- Modules: 81
+- Features: 26
+- Tasks: ~50 with full metadata (milestone, priority, size, dependencies)
+
+### Milestones defined
+
+- **M7**: Identity, Access & Agent Foundation (Critical)
+- **M8**: Runtime Foundation (Critical/High)
+- **M9**: Agent Workflow MVP (High)
+- **M10**: Evidence & Review Engine (High)
+- **M11**: Human Control UX, Project Drill-down & Portfolio Insights (Medium)
+
+### Next implementation
+
+Start M7+M8 in parallel. First task: Add User model and migration.
+See `docs/planning/upcp-v2-planning-report.md` §18 for full task list.
 
 ## Important Notes
 
