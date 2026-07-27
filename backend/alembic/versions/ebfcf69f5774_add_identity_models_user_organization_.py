@@ -113,9 +113,65 @@ def upgrade() -> None:
     op.create_index("ix_refresh_token_user_id", "refresh_token", ["user_id"])
     op.create_index("ix_refresh_token_token_hash", "refresh_token", ["token_hash"], unique=True)
 
+    # --- iam_role ---
+    op.create_table(
+        "iam_role",
+        sa.Column("id", sa.String(length=36), nullable=False),
+        sa.Column("name", sa.String(length=100), nullable=False),
+        sa.Column("scope", sa.String(length=20), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("name"),
+        sa.CheckConstraint("scope IN ('global', 'org', 'project')", name="ck_iam_role_scope"),
+    )
+
+    # --- iam_permission ---
+    op.create_table(
+        "iam_permission",
+        sa.Column("id", sa.String(length=36), nullable=False),
+        sa.Column("action", sa.String(length=50), nullable=False),
+        sa.Column("resource", sa.String(length=50), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("action", "resource"),
+    )
+
+    # --- iam_role_permission ---
+    op.create_table(
+        "iam_role_permission",
+        sa.Column("role_id", sa.String(length=36), nullable=False),
+        sa.Column("permission_id", sa.String(length=36), nullable=False),
+        sa.ForeignKeyConstraint(["role_id"], ["iam_role.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["permission_id"], ["iam_permission.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("role_id", "permission_id"),
+    )
+
+    # --- iam_role_binding ---
+    op.create_table(
+        "iam_role_binding",
+        sa.Column("id", sa.String(length=36), nullable=False),
+        sa.Column("user_id", sa.String(length=36), nullable=False),
+        sa.Column("role_id", sa.String(length=36), nullable=False),
+        sa.Column("org_id", sa.String(length=36), nullable=True),
+        sa.Column("project_id", sa.String(length=36), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["user_id"], ["user_account.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["role_id"], ["iam_role.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["org_id"], ["organization.id"], ondelete="CASCADE"),
+        sa.UniqueConstraint("user_id", "role_id", "org_id"),
+    )
+    op.create_index("ix_iam_role_binding_user_id", "iam_role_binding", ["user_id"])
+    op.create_index("ix_iam_role_binding_role_id", "iam_role_binding", ["role_id"])
+    op.create_index("ix_iam_role_binding_org_id", "iam_role_binding", ["org_id"])
+
 
 def downgrade() -> None:
     """Downgrade schema."""
+    op.drop_table("iam_role_binding")
+    op.drop_table("iam_role_permission")
+    op.drop_table("iam_permission")
+    op.drop_table("iam_role")
     op.drop_table("refresh_token")
     op.drop_table("login_audit")
     op.drop_table("membership")
