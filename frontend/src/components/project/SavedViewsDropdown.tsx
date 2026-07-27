@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useSavedViews } from '@/hooks/use-saved-views';
-import type { SavedView } from '@/hooks/use-saved-views';
 
 interface SavedViewsDropdownProps {
   currentFilters: Record<string, string>;
@@ -44,11 +43,9 @@ export function SavedViewsDropdown({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <Bookmark className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Views</span>
-          </Button>
+        <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+          <Bookmark className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Views</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel className="text-xs">Saved Views</DropdownMenuLabel>
