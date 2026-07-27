@@ -8,6 +8,9 @@ from sqlalchemy import engine_from_config, pool
 # Add backend/ to sys.path so app.shared is importable.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Import all models so Alembic autogenerate can detect them.
+import app.identity.models  # noqa: E402, F401
+import app.identity.rbac  # noqa: E402, F401
 from app.shared.config import get_settings  # noqa: E402
 from app.shared.database import Base  # noqa: E402
 
