@@ -26,3 +26,15 @@ YYYY-MM-DD | DEC-xxxx | decision | reason
 2026-07-24 | DEC-0012 | Frontend types must match backend response schema exactly | Audit shows mismatches (feature_id missing, audit fields differ). Types are the API contract.
 2026-07-24 | DEC-0013 | Priority is integer (0-3) not string (P0-P3) | Backend stores integer. Frontend maps to display labels/colors. Constants file handles mapping.
 2026-07-24 | DEC-0014 | Use TanStack Table for all list views | Consistent sorting, filtering, pagination across all tables. Replaces ad-hoc table markup.
+2026-07-27 | DEC-0015 | Redis as required runtime dependency | Rate limiting, idempotency, locks, heartbeats, session cache. Docker service mandatory.
+2026-07-27 | DEC-0016 | Multi-org ready architecture | Organization model from day one. Default org for standalone. Feature flags for SaaS features.
+2026-07-07 | DEC-0017 | JWT access tokens + rotating refresh tokens | Access: 15min. Refresh: 7d, stored in DB, rotated on use. Stateless validation for access tokens.
+2026-07-27 | DEC-0018 | Agent tokens as first-class credentials | Hashed storage, shown once on creation, manual revocation, scope-based. X-Agent-Token header.
+2026-07-27 | DEC-0019 | RBAC with global/org/project scopes | Owner > Admin > Member > Viewer for humans. Agent Reader/Contributor/Builder/Reviewer for agents.
+2026-07-27 | DEC-0020 | Evidence-based Done | Task cannot be done without required evidence, DoD coverage, no blocking clarifications.
+2026-07-27 | DEC-0021 | Agent-assisted review, human final authority by default | Agent can review and recommend. Human approves by default. Agent auto-close only if explicitly allowed.
+2026-07-27 | DEC-0022 | OpenTelemetry + Prometheus + Grafana + Loki + Tempo | Standard observability stack. OTel Collector as router. Prometheus for metrics.
+2026-07-27 | DEC-0023 | Secret provider abstraction | Env, File, Docker providers. Vault/KMS/cloud as future. Encrypted fields in DB. Never log/return secrets.
+2026-07-27 | DEC-0024 | Read-only Git integration remains default | No push, no branch creation, no PR opening. Read-only by design.
+2026-07-27 | DEC-0025 | Context pack versioning and tiers | Minimal/standard/deep/debug tiers. Versioned snapshots with content hash and token estimate.
+2026-07-27 | DEC-0026 | Full project drill-down UX | Portfolio → Project → Component → Module → Feature → Task. Breadcrumbs, deep links, URL state.
