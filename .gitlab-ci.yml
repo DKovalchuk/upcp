@@ -211,7 +211,7 @@ backend:security:
   before_script:
     - pip install --quiet bandit pip-audit
   script:
-    - bandit -r backend/app -f json -o bandit-report.json -q
+    - bandit -r backend/app -c backend/bandit.yaml -f json -o bandit-report.json -q
     - pip-audit -r backend/requirements.txt
   artifacts:
     paths:
