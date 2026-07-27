@@ -98,9 +98,25 @@ def upgrade() -> None:
     op.create_index("ix_login_audit_action", "login_audit", ["action"])
     op.create_index("ix_login_audit_created_at", "login_audit", ["created_at"])
 
+    # --- refresh_token ---
+    op.create_table(
+        "refresh_token",
+        sa.Column("id", sa.String(length=36), nullable=False),
+        sa.Column("user_id", sa.String(length=36), nullable=False),
+        sa.Column("token_hash", sa.String(length=64), nullable=False),
+        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["user_id"], ["user_account.id"], ondelete="CASCADE"),
+    )
+    op.create_index("ix_refresh_token_user_id", "refresh_token", ["user_id"])
+    op.create_index("ix_refresh_token_token_hash", "refresh_token", ["token_hash"], unique=True)
+
 
 def downgrade() -> None:
     """Downgrade schema."""
+    op.drop_table("refresh_token")
     op.drop_table("login_audit")
     op.drop_table("membership")
     op.drop_table("user_account")

@@ -108,3 +108,22 @@ class LoginAudit(Base):
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     metadata_: Mapped[dict[str, object] | None] = mapped_column("metadata", JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_token"
+    __table_args__ = (
+        Index("ix_refresh_token_user_id", "user_id"),
+        Index("ix_refresh_token_token_hash", "token_hash", unique=True),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("user_account.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
