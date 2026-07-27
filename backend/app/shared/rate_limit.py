@@ -1,6 +1,7 @@
 """Rate limiter — Redis sliding window with per-route limits."""
 
 from datetime import UTC, datetime
+from typing import Any
 
 from app.shared.redis import get_redis_client
 
@@ -38,7 +39,7 @@ def check_rate_limit(
     max_req = max_requests or limits[0]
     window = window_seconds or limits[1]
 
-    client = get_redis_client()
+    client: Any = get_redis_client()
     key = _get_client_key(identifier, route)
     now = datetime.now(UTC).timestamp()
 
