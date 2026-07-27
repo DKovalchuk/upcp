@@ -11,6 +11,7 @@ from app.api.v1.quality import router as quality_router
 from app.api.v1.reporting import router as reporting_router
 from app.api.v1.search import router as search_router
 from app.api.v1.structure import router as structure_router
+from app.identity.middleware import AuthMiddleware
 from app.mcp.server import create_mcp_router
 from app.shared.config import get_settings
 from app.shared.errors import register_error_handlers
@@ -19,6 +20,10 @@ settings = get_settings()
 
 app = FastAPI(title="UPCP Backend", version="0.1.0")
 register_error_handlers(app)
+
+# Auth middleware — protects all /api/v1/ routes except public ones
+if settings.env != "test":
+    app.add_middleware(AuthMiddleware)
 
 # CORS
 app.add_middleware(
