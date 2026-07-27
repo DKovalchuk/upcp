@@ -1,6 +1,7 @@
 import { createRouter, createRoute, createRootRoute } from '@tanstack/react-router';
 import { AppShell } from '@/components/layouts/AppShell';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import React, { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -29,6 +30,14 @@ const NotFoundPage = React.lazy(() =>
   import('@/components/NotFoundPage').then((module) => ({ default: module.NotFoundPage }))
 );
 
+const LoginPage = React.lazy(() =>
+  import('@/components/auth/LoginPage').then((module) => ({ default: module.LoginPage }))
+);
+
+const SetupPage = React.lazy(() =>
+  import('@/components/auth/SetupPage').then((module) => ({ default: module.SetupPage }))
+);
+
 function RouteLoadingFallback() {
   return (
     <div className="space-y-4">
@@ -48,74 +57,153 @@ function LazyRoute({ Component }: { Component: React.ComponentType }) {
   );
 }
 
+// Auth guard - redirects to /login if not authenticated
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <RouteLoadingFallback />;
+  }
+
+  if (!isAuthenticated) {
+    window.location.href = '/login';
+    return <RouteLoadingFallback />;
+  }
+
+  return <>{children}</>;
+}
+
+// Root route with AuthProvider
 const rootRoute = createRootRoute({
-  component: AppShell,
+  component: () => (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
+  ),
 });
 
+// Auth routes (no guard)
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  component: () => <LazyRoute Component={LoginPage} />,
+});
+
+const setupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/setup',
+  component: () => <LazyRoute Component={SetupPage} />,
+});
+
+// Protected routes (with guard)
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <LazyRoute Component={Dashboard} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={Dashboard} />
+    </AuthGuard>
+  ),
 });
 
 const projectsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/projects',
-  component: () => <LazyRoute Component={ProjectList} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectList} />
+    </AuthGuard>
+  ),
 });
 
 const projectDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/projects/$projectId',
-  component: () => <LazyRoute Component={ProjectDetail} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
 });
 
 const projectStructureRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/projects/$projectId/structure',
-  component: () => <LazyRoute Component={ProjectDetail} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
 });
 
 const projectDeliveryRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/projects/$projectId/delivery',
-  component: () => <LazyRoute Component={ProjectDetail} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
 });
 
 const projectQualityRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/projects/$projectId/quality',
-  component: () => <LazyRoute Component={ProjectDetail} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
 });
 
 const projectAuditRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/projects/$projectId/audit',
-  component: () => <LazyRoute Component={ProjectDetail} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
 });
 
 const projectGitRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/projects/$projectId/git',
-  component: () => <LazyRoute Component={ProjectDetail} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
 });
 
 const projectSettingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/projects/$projectId/settings',
-  component: () => <LazyRoute Component={ProjectDetail} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
 });
 
 const reportsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/reports',
-  component: () => <LazyRoute Component={ReportsPage} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ReportsPage} />
+    </AuthGuard>
+  ),
 });
 
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
-  component: () => <LazyRoute Component={NotFoundPage} />,
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={NotFoundPage} />
+    </AuthGuard>
+  ),
 });
 
 const healthRoute = createRoute({
@@ -131,6 +219,8 @@ const notFoundRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+  loginRoute,
+  setupRoute,
   indexRoute,
   projectsRoute,
   projectDetailRoute,
