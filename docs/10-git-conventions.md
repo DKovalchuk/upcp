@@ -1,5 +1,30 @@
 # Git Conventions
 
+## Branching strategy
+
+All work is done on **feature branches** derived from `develop`.
+
+```text
+main          ← production-ready releases only
+  └── develop ← integration branch, merge target for all features
+        ├── feature/TASK-0001-scaffold-health
+        ├── feature/TASK-0002-next-task
+        └── fix/TASK-0012-some-bug
+```
+
+Flow:
+
+1. Create a feature branch from `develop`.
+2. Make meaningful, atomic commits.
+3. When the feature is complete and tests pass, merge back into `develop` with `--no-ff`.
+4. Delete the feature branch after merge.
+
+Rules:
+
+- **Never commit directly to `main` or `develop`.**
+- Every commit must be meaningful — one logical change per commit.
+- Feature branches use `--no-ff` merge to preserve history.
+
 ## Branch naming
 
 ```text

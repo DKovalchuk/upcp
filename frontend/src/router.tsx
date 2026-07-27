@@ -1,0 +1,245 @@
+import { createRouter, createRoute, createRootRoute } from '@tanstack/react-router';
+import { AppShell } from '@/components/layouts/AppShell';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import React, { Suspense } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy-loaded route components
+const Dashboard = React.lazy(() =>
+  import('@/components/Dashboard').then((module) => ({ default: module.Dashboard }))
+);
+
+const ProjectList = React.lazy(() =>
+  import('@/components/ProjectList').then((module) => ({ default: module.ProjectList }))
+);
+
+const ProjectDetail = React.lazy(() =>
+  import('@/components/project/ProjectDetail').then((module) => ({ default: module.ProjectDetail }))
+);
+
+const HealthPage = React.lazy(() =>
+  import('@/components/HealthPage').then((module) => ({ default: module.HealthPage }))
+);
+
+const ReportsPage = React.lazy(() =>
+  import('@/components/project/ReportsPage').then((module) => ({ default: module.ReportsPage }))
+);
+
+const NotFoundPage = React.lazy(() =>
+  import('@/components/NotFoundPage').then((module) => ({ default: module.NotFoundPage }))
+);
+
+const LoginPage = React.lazy(() =>
+  import('@/components/auth/LoginPage').then((module) => ({ default: module.LoginPage }))
+);
+
+const SetupPage = React.lazy(() =>
+  import('@/components/auth/SetupPage').then((module) => ({ default: module.SetupPage }))
+);
+
+function RouteLoadingFallback() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-[200px]" />
+      <Skeleton className="h-[400px] w-full" />
+    </div>
+  );
+}
+
+function LazyRoute({ Component }: { Component: React.ComponentType }) {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Component />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+// Auth guard - redirects to /login if not authenticated
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <RouteLoadingFallback />;
+  }
+
+  if (!isAuthenticated) {
+    window.location.href = '/login';
+    return <RouteLoadingFallback />;
+  }
+
+  return <>{children}</>;
+}
+
+// Root route with AuthProvider
+const rootRoute = createRootRoute({
+  component: () => (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
+  ),
+});
+
+// Auth routes (no guard)
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  component: () => <LazyRoute Component={LoginPage} />,
+});
+
+const setupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/setup',
+  component: () => <LazyRoute Component={SetupPage} />,
+});
+
+// Protected routes (with guard)
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={Dashboard} />
+    </AuthGuard>
+  ),
+});
+
+const projectsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectList} />
+    </AuthGuard>
+  ),
+});
+
+const projectDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
+});
+
+const projectStructureRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/structure',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
+});
+
+const projectDeliveryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/delivery',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
+});
+
+const projectQualityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/quality',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
+});
+
+const projectAuditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/audit',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
+});
+
+const projectGitRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/git',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
+});
+
+const projectSettingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/projects/$projectId/settings',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ProjectDetail} />
+    </AuthGuard>
+  ),
+});
+
+const reportsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reports',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={ReportsPage} />
+    </AuthGuard>
+  ),
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={NotFoundPage} />
+    </AuthGuard>
+  ),
+});
+
+const healthRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/health',
+  component: () => <LazyRoute Component={HealthPage} />,
+});
+
+const notFoundRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '*',
+  component: () => <LazyRoute Component={NotFoundPage} />,
+});
+
+const routeTree = rootRoute.addChildren([
+  loginRoute,
+  setupRoute,
+  indexRoute,
+  projectsRoute,
+  projectDetailRoute,
+  projectStructureRoute,
+  projectDeliveryRoute,
+  projectQualityRoute,
+  projectAuditRoute,
+  projectGitRoute,
+  projectSettingsRoute,
+  reportsRoute,
+  settingsRoute,
+  healthRoute,
+  notFoundRoute,
+]);
+
+export const router = createRouter({ routeTree });
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
+}

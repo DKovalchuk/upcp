@@ -1,0 +1,360 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   UPCP Design Tokens — Professional Engineering Tool
+   ============================================================ */
+
+:root {
+  /* ── Brand Colors ── */
+  --color-primary: #2563eb;
+  --color-secondary: #64748b;
+  --color-accent: #f59e0b;
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+
+  /* ── Status Colors ── */
+  --status-backlog: #94a3b8;
+  --status-ready: #3b82f6;
+  --status-in-progress: #2563eb;
+  --status-blocked: #ef4444;
+  --status-done: #10b981;
+  --status-cancelled: #6b7280;
+  --status-needs-clarification: #f59e0b;
+  --status-ready-for-review: #8b5cf6;
+  --status-changes-requested: #f97316;
+
+  /* ── Priority Colors ── */
+  --priority-critical: #dc2626;
+  --priority-high: #ea580c;
+  --priority-medium: #d97706;
+  --priority-low: #65a30d;
+  --priority-none: #94a3b8;
+
+  /* ── Semantic Colors ── */
+  --semantic-success: #10b981;
+  --semantic-warning: #f59e0b;
+  --semantic-error: #ef4444;
+  --semantic-info: #3b82f6;
+
+  /* ── Agent vs Human ── */
+  --agent-color: #8b5cf6;
+  --human-color: #2563eb;
+  --system-color: #64748b;
+
+  /* ── Spacing (4px grid) ── */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
+
+  /* ── Typography ── */
+  --font-sans: 'Geist Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Geist Mono', monospace;
+  --font-heading: 'Geist Variable', 'Inter', system-ui, sans-serif;
+
+  /* ── Animation ── */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-instant: 50ms;
+  --duration-fast: 100ms;
+  --duration-default: 150ms;
+  --duration-slow: 200ms;
+  --duration-slower: 300ms;
+
+  /* ── Radius ── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* ── shadcn/ui theme mapping ── */
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-text);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-text);
+  --primary: var(--color-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-secondary);
+  --secondary-foreground: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-accent);
+  --accent-foreground: #1e293b;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: var(--color-primary);
+  --radius: 0.5rem;
+
+  /* ── Sidebar ── */
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--color-text);
+  --sidebar-primary: var(--color-primary);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: var(--color-text);
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: var(--color-primary);
+}
+
+.dark {
+  --color-primary: #60a5fa;
+  --color-secondary: #94a3b8;
+  --color-accent: #fbbf24;
+  --color-bg: #0a0a0f;
+  --color-surface: #18181f;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+
+  --status-backlog: #64748b;
+  --status-ready: #60a5fa;
+  --status-in-progress: #60a5fa;
+  --status-blocked: #f87171;
+  --status-done: #34d399;
+  --status-cancelled: #6b7280;
+  --status-needs-clarification: #fbbf24;
+  --status-ready-for-review: #a78bfa;
+  --status-changes-requested: #fb923c;
+
+  --priority-critical: #f87171;
+  --priority-high: #fb923c;
+  --priority-medium: #fbbf24;
+  --priority-low: #a3e635;
+  --priority-none: #64748b;
+
+  --semantic-success: #34d399;
+  --semantic-warning: #fbbf24;
+  --semantic-error: #f87171;
+  --semantic-info: #60a5fa;
+
+  --agent-color: #a78bfa;
+  --human-color: #60a5fa;
+  --system-color: #94a3b8;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+
+  --background: #0a0a0f;
+  --foreground: #f1f5f9;
+  --card: #18181f;
+  --card-foreground: #f1f5f9;
+  --popover: #18181f;
+  --popover-foreground: #f1f5f9;
+  --primary: #60a5fa;
+  --primary-foreground: #0a0a0f;
+  --secondary: #1e293b;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1e2230;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #f1f5f9;
+  --destructive: #f87171;
+  --destructive-foreground: #0a0a0f;
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #60a5fa;
+
+  --sidebar: #0f0f16;
+  --sidebar-foreground: #f1f5f9;
+  --sidebar-primary: #60a5fa;
+  --sidebar-primary-foreground: #0a0a0f;
+  --sidebar-accent: #1e293b;
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: #60a5fa;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ── Focus indicators ── */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Base Tailwind theme ── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* ── Theme inline ── */
+@theme inline {
+  --font-heading: var(--font-heading);
+  --font-sans: 'Geist Variable', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5, oklch(0.269 0 0));
+  --color-chart-4: var(--chart-4, oklch(0.371 0 0));
+  --color-chart-3: var(--chart-3, oklch(0.439 0 0));
+  --color-chart-2: var(--chart-2, oklch(0.556 0 0));
+  --color-chart-1: var(--chart-1, oklch(0.87 0 0));
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+/* ── Status badge utility classes ── */
+.status-backlog { color: var(--status-backlog); }
+.status-ready { color: var(--status-ready); }
+.status-in-progress { color: var(--status-in-progress); }
+.status-blocked { color: var(--status-blocked); }
+.status-done { color: var(--status-done); }
+.status-cancelled { color: var(--status-cancelled); }
+.status-needs-clarification { color: var(--status-needs-clarification); }
+.status-ready-for-review { color: var(--status-ready-for-review); }
+.status-changes-requested { color: var(--status-changes-requested); }
+
+/* ── Agent pulse animation ── */
+@keyframes heartbeat-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+@keyframes badge-pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes stagger-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-heartbeat-pulse {
+  animation: heartbeat-pulse 2s ease-in-out infinite;
+}
+
+.animate-badge-pop {
+  animation: badge-pop var(--duration-slow) var(--ease-spring) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right var(--duration-slower) var(--ease-out) forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up var(--duration-slow) var(--ease-out) forwards;
+}
+
+.animate-stagger > * {
+  animation: stagger-fade-in var(--duration-slow) var(--ease-out) forwards;
+  opacity: 0;
+}
+
+.animate-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-stagger > *:nth-child(2) { animation-delay: 30ms; }
+.animate-stagger > *:nth-child(3) { animation-delay: 60ms; }
+.animate-stagger > *:nth-child(4) { animation-delay: 90ms; }
+.animate-stagger > *:nth-child(5) { animation-delay: 120ms; }
+.animate-stagger > *:nth-child(6) { animation-delay: 150ms; }
+.animate-stagger > *:nth-child(7) { animation-delay: 180ms; }
+.animate-stagger > *:nth-child(8) { animation-delay: 210ms; }
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 3px;
+  opacity: 0.3;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  opacity: 0.5;
+}

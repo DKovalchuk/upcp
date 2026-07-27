@@ -1,0 +1,86 @@
+# Stage (pre-prod) environment
+# Uses locally built images (no container registry).
+# CI build jobs create upcp-backend:dev and upcp-frontend:dev,
+# deploy job tags them as :stage and runs this compose file.
+#
+# For local development with hot-reload, use docker-compose.yml instead.
+
+name: upcp-stage
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-upcp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upcp_local_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-upcp}
+    ports:
+      - "127.0.0.1:35433:5432"
+    volumes:
+      - ./data/postgres-stage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U upcp -d upcp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:36380:6379"
+    volumes:
+      - ./data/redis-stage:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  app:
+    image: registry.gitlab.local/dmitry.kovalchuk/upcp/backend:stage
+    restart: unless-stopped
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8080"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-upcp}:${POSTGRES_PASSWORD:-upcp_local_change_me}@db:5432/${POSTGRES_DB:-upcp}
+      REDIS_URL: redis://redis:6379/0
+      UPCP_ENV: stage
+      UPCP_LOG_LEVEL: INFO
+      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-stage_change_me}
+      UPCP_DEBUG: "false"
+    ports:
+      - "127.0.0.1:38081:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  frontend:
+    image: registry.gitlab.local/dmitry.kovalchuk/upcp/frontend:stage
+    restart: unless-stopped
+    expose:
+      - "35173"
+    depends_on:
+      - app
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3080:80"
+    volumes:
+      - ./nginx.stage.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+      - frontend

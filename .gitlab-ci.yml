@@ -1,0 +1,312 @@
+# ════════════════════════════════════════════════════════════════
+# UPCP CI/CD Pipeline
+# ════════════════════════════════════════════════════════════════
+#
+# Flow:
+#   feature/* → MR → develop   (lint + unit test)
+#   develop   → MR → main      (lint + all tests + build)
+#   main      → deploy:stage    (manual confirmation)
+#
+# Stage environment is pre-prod: services run there continuously
+# and are used by the team (including via MCP) for project management.
+#
+# Optimizations:
+#   - DAG with needs: for maximum parallelism
+#   - Docker BuildKit with registry cache
+#   - pytest-xdist for parallel test execution
+#   - Cache pull-push on main, pull-only on branches
+#
+# ════════════════════════════════════════════════════════════════
+
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+# ── Workflow rules (prevent duplicate pipelines) ───────────────
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+default:
+  tags:
+    - laptop
+  interruptible: true
+
+# ── Global variables ──────────────────────────────────────────
+variables:
+  GIT_DEPTH: "1"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
+  DOCKER_BUILDKIT: "1"
+
+# ── Retry policy ──────────────────────────────────────────────
+.retry-on-system-failure:
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+
+# ════════════════════════════════════════════════════════════════
+# TEMPLATES
+# ════════════════════════════════════════════════════════════════
+
+.python-base:
+  image: python:3.12-slim
+  cache:
+    key:
+      files:
+        - backend/requirements.txt
+      prefix: backend-pip
+    paths:
+      - .cache/pip
+    fallback_keys:
+      - backend-pip
+    # pull-push (default): cache is uploaded after the job
+    # so subsequent runs with the same requirements.txt skip downloads
+  before_script:
+    - pip install --quiet -r backend/requirements.txt
+
+.frontend-base:
+  image: node:20-alpine
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+      prefix: frontend-npm
+    paths:
+      - .cache/npm
+    fallback_keys:
+      - frontend-npm
+    # npm ci always deletes node_modules, so only cache the download dir
+  before_script:
+    - cd frontend
+    - npm ci --prefer-offline --no-audit --no-fund
+
+# Uses host Docker daemon — runner must mount Docker socket:
+#   [[runners.docker]]
+#     volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
+# No container registry — images are built and used locally on the host.
+.docker-build-base:
+  stage: build
+  image: docker:24
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
+
+# ════════════════════════════════════════════════════════════════
+# LINT — fast feedback, parallel
+# ════════════════════════════════════════════════════════════════
+
+backend:lint:
+  stage: lint
+  extends:
+    - .python-base
+    - .retry-on-system-failure
+  needs: []
+  script:
+    - ruff check backend
+    - ruff format --check backend
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+backend:typecheck:
+  stage: lint
+  extends:
+    - .python-base
+    - .retry-on-system-failure
+  needs: []
+  script:
+    - mypy backend/app
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+frontend:lint:
+  stage: lint
+  extends:
+    - .frontend-base
+    - .retry-on-system-failure
+  needs: []
+  script:
+    - npm run lint
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ════════════════════════════════════════════════════════════════
+# TEST — parallel with lint (DAG)
+# ════════════════════════════════════════════════════════════════
+
+backend:test:
+  stage: test
+  extends:
+    - .python-base
+    - .retry-on-system-failure
+  needs: []
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_USER: upcp_ci
+    POSTGRES_PASSWORD: upcp_ci
+    POSTGRES_DB: upcp_ci
+    DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
+    UPCP_ENV: ci
+    UPCP_SECRET_KEY: ci-test-only
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
+    - pip install --quiet -r backend/requirements.txt pytest-xdist
+  script:
+    - python -m pytest backend/tests -q --tb=short -x -n auto
+        --cov=app --cov-report=term-missing --cov-report=xml:backend/coverage.xml
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage.xml
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+frontend:test:
+  stage: test
+  extends:
+    - .frontend-base
+    - .retry-on-system-failure
+  needs: []
+  script:
+    - npm run test -- --reporter=junit --outputFile=test-results.xml
+  artifacts:
+    reports:
+      junit: frontend/test-results.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: frontend/coverage/cobertura-coverage.xml
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ════════════════════════════════════════════════════════════════
+# TEST — security (develop + main, advisory)
+# ════════════════════════════════════════════════════════════════
+
+backend:security:
+  stage: test
+  extends:
+    - .retry-on-system-failure
+  image: python:3.12-slim
+  needs: []
+  before_script:
+    - pip install --quiet bandit
+  script:
+    - bandit -r backend/app -c backend/bandit.yaml -f json -o bandit-report.json -q
+  artifacts:
+    paths:
+      - bandit-report.json
+    expire_in: 7 days
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ════════════════════════════════════════════════════════════════
+# BUILD — Docker images with BuildKit (develop + main only)
+# ════════════════════════════════════════════════════════════════
+
+build:backend:
+  extends: .docker-build-base
+  needs:
+    - backend:test
+  script:
+    - docker build
+        --cache-from upcp-backend:dev
+        --tag upcp-backend:$CI_COMMIT_SHORT_SHA
+        --tag upcp-backend:dev
+        .
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+build:frontend:
+  extends: .docker-build-base
+  needs:
+    - frontend:test
+  script:
+    - docker build
+        --cache-from upcp-frontend:dev
+        --tag upcp-frontend:$CI_COMMIT_SHORT_SHA
+        --tag upcp-frontend:dev
+        frontend/
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ════════════════════════════════════════════════════════════════
+# DEPLOY — stage (pre-prod), main only, manual
+# ════════════════════════════════════════════════════════════════
+#
+# Stage runs continuously — services are used by the team and
+# MCP for project management. Deploy restarts with new images.
+#
+# Uses host Docker daemon — images are built locally by build jobs
+# and used directly. No container registry required.
+# Runner config.toml must mount the Docker socket:
+#   [[runners.docker]]
+#     volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
+
+deploy:stage:
+  stage: deploy
+  image: docker:24
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
+  environment:
+    name: stage
+    url: http://localhost:3080
+  script:
+    # Tag locally built images for stage
+    - docker tag upcp-backend:dev upcp-backend:stage
+    - docker tag upcp-frontend:dev upcp-frontend:stage
+    # Deploy with docker compose
+    - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
+    # Wait for health check
+    - echo "Waiting for app health check..."
+    - for i in $(seq 1 30); do
+        wget -qO- http://localhost:38081/health && break || sleep 2;
+      done
+    - echo "Stage deployment complete."
+  needs:
+    - build:backend
+    - build:frontend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: false
+
+# Stop stage environment (manual, for cleanup)
+stop:stage:
+  stage: deploy
+  image: docker:24
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
+  environment:
+    name: stage
+    action: stop
+  script:
+    - docker compose -f docker-compose.stage.yml down -v
+  when: manual
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

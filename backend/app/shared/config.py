@@ -1,0 +1,36 @@
+from functools import lru_cache
+
+from pydantic import Field
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """App configuration loaded from env vars / .env."""
+
+    app_name: str = "UPCP Backend"
+    env: str = "local"
+    debug: bool = False
+    log_level: str = "INFO"
+    secret_key: str = "change_me_local_only"
+    database_url: str = Field(
+        default="postgresql+psycopg://upcp:upcp_local_change_me@localhost:5432/upcp",
+        alias="DATABASE_URL",
+    )
+    redis_url: str = Field(
+        default="redis://localhost:6379/0",
+        alias="REDIS_URL",
+    )
+
+    # LLM (optional)
+    llm_enabled: bool = False
+    llm_provider: str = "local"
+    llm_api_key: str = ""
+    llm_model: str = ""
+    llm_api_url: str = ""
+
+    model_config = {"env_prefix": "UPCP_", "extra": "ignore"}
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()

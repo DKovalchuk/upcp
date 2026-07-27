@@ -34,6 +34,13 @@ Thumbs.db
 *.log
 logs/
 
+# Coverage
+.coverage
+htmlcov/
+
+# Docker data
+data/
+
 # Qwen
 .qwen/
 .qwen-orchestrator/
@@ -43,3 +50,12 @@ data/
 backups/
 *.sqlite
 *.sqlite3
+
+.playwright-mcp
+
+# Test screenshots (root only)
+/*.png
+/*.jpg
+/*.jpeg
+frontend/coverage/
+frontend/test-results/

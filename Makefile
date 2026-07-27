@@ -2,7 +2,7 @@ VENV := .venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 
-.PHONY: help install test lint typecheck format up down logs clean
+.PHONY: help install test lint typecheck coverage format up down logs clean
 
 help:
 	@echo 'Available commands:'
@@ -10,6 +10,7 @@ help:
 	@echo '  make test       - run pytest'
 	@echo '  make lint       - run ruff'
 	@echo '  make typecheck  - run mypy'
+	@echo '  make coverage   - run tests with coverage (>= 80%)'
 	@echo '  make format     - format code with ruff'
 	@echo '  make up         - docker compose up'
 	@echo '  make down       - docker compose down'
@@ -30,6 +31,9 @@ lint: install
 
 typecheck: install
 	$(VENV)/bin/mypy backend/app
+
+coverage: install
+	$(VENV)/bin/pytest backend/tests --cov=app --cov-report=term-missing --cov-report=html --cov-fail-under=0.8 -q
 
 format: install
 	$(VENV)/bin/ruff format backend
