@@ -161,6 +161,99 @@ def get_tools() -> list[Tool]:
                 required=["task_id"],
             ),
         ),
+        # --- Workflow tools ---
+        Tool(
+            name="claim_task",
+            description="Claim a ready task for an agent",
+            input_schema=ToolInput(
+                properties={
+                    "task_id": {"type": "string"},
+                    "agent_id": {"type": "string"},
+                    "context_snapshot": {"type": "string"},
+                },
+                required=["task_id", "agent_id"],
+            ),
+        ),
+        Tool(
+            name="release_task",
+            description="Release an agent's claim on a task",
+            input_schema=ToolInput(
+                properties={
+                    "task_id": {"type": "string"},
+                    "agent_id": {"type": "string"},
+                },
+                required=["task_id", "agent_id"],
+            ),
+        ),
+        Tool(
+            name="heartbeat_task",
+            description="Send a heartbeat on a claimed task",
+            input_schema=ToolInput(
+                properties={
+                    "task_id": {"type": "string"},
+                    "agent_id": {"type": "string"},
+                    "progress_percent": {"type": "integer"},
+                    "current_step": {"type": "string"},
+                    "next_step": {"type": "string"},
+                    "blockers": {"type": "string"},
+                    "eta": {"type": "string"},
+                },
+                required=["task_id", "agent_id", "progress_percent", "current_step", "next_step"],
+            ),
+        ),
+        Tool(
+            name="request_clarification",
+            description="Request clarification on a task",
+            input_schema=ToolInput(
+                properties={
+                    "task_id": {"type": "string"},
+                    "agent_id": {"type": "string"},
+                    "question": {"type": "string"},
+                    "context": {"type": "string"},
+                    "blocking": {"type": "boolean"},
+                },
+                required=["task_id", "agent_id", "question"],
+            ),
+        ),
+        Tool(
+            name="answer_clarification",
+            description="Answer a clarification request",
+            input_schema=ToolInput(
+                properties={
+                    "clarification_id": {"type": "string"},
+                    "answer": {"type": "string"},
+                    "answered_by": {"type": "string"},
+                },
+                required=["clarification_id", "answer", "answered_by"],
+            ),
+        ),
+        Tool(
+            name="submit_task_for_review",
+            description="Submit a task for review",
+            input_schema=ToolInput(
+                properties={
+                    "task_id": {"type": "string"},
+                    "agent_id": {"type": "string"},
+                },
+                required=["task_id", "agent_id"],
+            ),
+        ),
+        Tool(
+            name="get_agent_inbox",
+            description="Get agent inbox events",
+            input_schema=ToolInput(
+                properties={
+                    "agent_id": {"type": "string"},
+                    "since": {"type": "string"},
+                },
+                required=["agent_id"],
+            ),
+        ),
+        Tool(
+            name="get_agent_playbook",
+            description="Get the agent playbook content",
+            input_schema=ToolInput(properties={}),
+        ),
     ]
 
 
@@ -179,7 +272,7 @@ def _get_int_arg(arguments: dict[str, object], key: str, default: int) -> int:
         return default
     if isinstance(val, bool):
         return 1 if val else 0
-    if isinstance(val, (int, float)):
+    if isinstance(val, int | float):
         return int(val)
     s = str(val).strip()
     if not s:
@@ -440,6 +533,175 @@ def _handle_task_update(session: Any, arguments: dict[str, object]) -> ToolResul
     return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
 
 
+# ── Workflow handlers ──
+
+
+def _handle_claim_task(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from app.delivery.workflow import WorkflowService
+
+    task_id = _get_str_arg(arguments, "task_id")
+    agent_id = _get_str_arg(arguments, "agent_id")
+    if not task_id or not agent_id:
+        raise ValueError("task_id and agent_id are required")
+    svc = WorkflowService(session)
+    claim = svc.claim(
+        task_id,
+        agent_id=agent_id,
+        context_snapshot=_get_str_arg(arguments, "context_snapshot") or None,
+    )
+    result = {
+        "id": claim.id,
+        "task_id": claim.task_id,
+        "agent_id": claim.agent_id,
+        "state": claim.state,
+        "claimed_at": claim.claimed_at.isoformat() if claim.claimed_at else None,
+    }
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_release_task(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from app.delivery.workflow import WorkflowService
+
+    task_id = _get_str_arg(arguments, "task_id")
+    agent_id = _get_str_arg(arguments, "agent_id")
+    if not task_id or not agent_id:
+        raise ValueError("task_id and agent_id are required")
+    svc = WorkflowService(session)
+    svc.release(task_id, agent_id=agent_id)
+    return ToolResult(content=[{"type": "text", "text": json.dumps({"ok": True})}])
+
+
+def _handle_heartbeat_task(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from app.delivery.workflow import WorkflowService
+
+    task_id = _get_str_arg(arguments, "task_id")
+    agent_id = _get_str_arg(arguments, "agent_id")
+    if not task_id or not agent_id:
+        raise ValueError("task_id and agent_id are required")
+    svc = WorkflowService(session)
+    svc.heartbeat(
+        task_id,
+        agent_id=agent_id,
+        progress_percent=_get_int_arg(arguments, "progress_percent", 0),
+        current_step=_get_str_arg(arguments, "current_step"),
+        next_step=_get_str_arg(arguments, "next_step"),
+        blockers=_get_str_arg(arguments, "blockers") or None,
+        eta=_get_str_arg(arguments, "eta") or None,
+    )
+    return ToolResult(content=[{"type": "text", "text": json.dumps({"ok": True})}])
+
+
+def _handle_request_clarification(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from app.delivery.models import ClarificationRequest, Task
+    from app.shared.text import new_id
+
+    task_id = _get_str_arg(arguments, "task_id")
+    agent_id = _get_str_arg(arguments, "agent_id")
+    question = _get_str_arg(arguments, "question")
+    if not task_id or not agent_id or not question:
+        raise ValueError("task_id, agent_id, and question are required")
+    task = session.get(Task, task_id)
+    if task is None:
+        raise ValueError(f"task '{task_id}' not found")
+    blocking = arguments.get("blocking", False) is True
+    cr = ClarificationRequest(
+        id=new_id(),
+        task_id=task_id,
+        author_type="agent",
+        author_id=agent_id,
+        question=question,
+        context=_get_str_arg(arguments, "context") or None,
+        blocking=blocking,
+    )
+    session.add(cr)
+    if blocking:
+        from app.delivery.lifecycle import validate_transition
+
+        validate_transition(task.status, "needs_clarification")
+        task.status = "needs_clarification"
+    session.flush()
+    result = {
+        "id": cr.id,
+        "task_id": cr.task_id,
+        "state": cr.state,
+        "question": cr.question,
+        "blocking": cr.blocking,
+    }
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_answer_clarification(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from datetime import UTC, datetime
+
+    from app.delivery.models import ClarificationRequest
+
+    clar_id = _get_str_arg(arguments, "clarification_id")
+    answer = _get_str_arg(arguments, "answer")
+    answered_by = _get_str_arg(arguments, "answered_by")
+    if not clar_id or not answer or not answered_by:
+        raise ValueError("clarification_id, answer, and answered_by are required")
+    cr = session.query(ClarificationRequest).filter_by(id=clar_id).first()
+    if cr is None:
+        raise ValueError(f"clarification '{clar_id}' not found")
+    if cr.state != "open":
+        raise ValueError(f"clarification is '{cr.state}', can only answer 'open' ones")
+    cr.state = "answered"
+    cr.answer = answer
+    cr.answered_by = answered_by
+    cr.answered_at = datetime.now(UTC)
+    session.flush()
+    result = {"id": cr.id, "state": cr.state, "answer": cr.answer}
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_submit_task_for_review(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from app.delivery.lifecycle import validate_transition
+    from app.delivery.models import Task, TaskClaim
+
+    task_id = _get_str_arg(arguments, "task_id")
+    agent_id = _get_str_arg(arguments, "agent_id")
+    if not task_id:
+        raise ValueError("task_id is required")
+    task = session.get(Task, task_id)
+    if task is None:
+        raise ValueError(f"task '{task_id}' not found")
+    if agent_id:
+        claim = (
+            session.query(TaskClaim)
+            .filter_by(task_id=task_id, agent_id=agent_id, state="active")
+            .first()
+        )
+        if claim is None:
+            raise ValueError(f"agent '{agent_id}' has no active claim on task '{task_id}'")
+    validate_transition(task.status, "ready_for_review")
+    task.status = "ready_for_review"
+    session.flush()
+    result = {"id": task.id, "status": task.status}
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_get_agent_inbox(session: Any, arguments: dict[str, object]) -> ToolResult:
+    # MVP: return empty inbox
+    return ToolResult(content=[{"type": "text", "text": json.dumps({"events": []})}])
+
+
+_PLAYBOOK = """# Agent Playbook
+
+## Task Workflow
+1. Claim a ready task
+2. Send heartbeats every 30-60s
+3. Ask questions if blocked
+4. Submit for review when done
+
+## Status Flow
+backlog → ready → claimed → in_progress → done
+"""
+
+
+def _handle_get_agent_playbook(session: Any, arguments: dict[str, object]) -> ToolResult:
+    return ToolResult(content=[{"type": "text", "text": json.dumps({"content": _PLAYBOOK})}])
+
+
 # Dispatch table mapping tool names to handler functions
 HandlerFn = Callable[[Any, dict[str, object]], ToolResult]
 TOOL_HANDLERS: dict[str, HandlerFn] = {
@@ -456,6 +718,15 @@ TOOL_HANDLERS: dict[str, HandlerFn] = {
     "task_create": _handle_task_create,
     "feature_update": _handle_feature_update,
     "task_update": _handle_task_update,
+    # Workflow tools
+    "claim_task": _handle_claim_task,
+    "release_task": _handle_release_task,
+    "heartbeat_task": _handle_heartbeat_task,
+    "request_clarification": _handle_request_clarification,
+    "answer_clarification": _handle_answer_clarification,
+    "submit_task_for_review": _handle_submit_task_for_review,
+    "get_agent_inbox": _handle_get_agent_inbox,
+    "get_agent_playbook": _handle_get_agent_playbook,
 }
 
 

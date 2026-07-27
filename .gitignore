@@ -58,3 +58,4 @@ backups/
 /*.jpg
 /*.jpeg
 frontend/coverage/
+frontend/test-results/

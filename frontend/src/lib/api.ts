@@ -2,7 +2,7 @@ import type { Project, ProjectCreate, ProjectUpdate } from '@/types/project';
 import type { Component, ComponentCreate, ComponentUpdate } from '@/types/component';
 import type { Module, ModuleCreate, ModuleUpdate } from '@/types/module';
 import type { Feature, FeatureCreate, FeatureUpdate } from '@/types/feature';
-import type { Task, TaskCreate, TaskUpdate } from '@/types/task';
+import type { Task, TaskCreate, TaskUpdate, TaskClaim, AgentMe, AgentEvent } from '@/types/task';
 import type { Subtask, SubtaskCreate, SubtaskUpdate } from '@/types/subtask';
 import type {
   AcceptanceCriterion,
@@ -482,4 +482,67 @@ export async function deleteGitLink(id: string): Promise<void> {
   return apiRequest<void>(`${API_BASE}/git-links/${id}`, {
     method: 'DELETE',
   });
+}
+
+// ── Agent Workflow ──
+
+export async function claimTask(
+  taskId: string,
+  contextSnapshot?: string
+): Promise<TaskClaim> {
+  return apiRequest<TaskClaim>(`${API_BASE}/tasks/${taskId}/claim`, {
+    method: 'POST',
+    body: JSON.stringify({ context_snapshot: contextSnapshot }),
+  });
+}
+
+export async function releaseTask(taskId: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`${API_BASE}/tasks/${taskId}/release`, {
+    method: 'POST',
+  });
+}
+
+export async function sendHeartbeat(
+  taskId: string,
+  data: {
+    progress_percent: number;
+    current_step: string;
+    next_step: string;
+    blockers?: string;
+    eta?: string;
+  }
+): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`${API_BASE}/tasks/${taskId}/heartbeat`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProgress(
+  taskId: string,
+  progressPercent: number
+): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`${API_BASE}/tasks/${taskId}/progress`, {
+    method: 'POST',
+    body: JSON.stringify({ progress_percent: progressPercent }),
+  });
+}
+
+// ── Agent Self-Service ──
+
+export async function getAgentMe(): Promise<AgentMe> {
+  return apiRequest<AgentMe>(`${API_BASE}/agent/me`);
+}
+
+export async function getAgentInbox(
+  since?: string
+): Promise<{ events: AgentEvent[] }> {
+  const params = since ? `?since=${encodeURIComponent(since)}` : '';
+  return apiRequest<{ events: AgentEvent[] }>(
+    `${API_BASE}/agent/inbox${params}`
+  );
+}
+
+export async function getAgentPlaybook(): Promise<{ content: string }> {
+  return apiRequest<{ content: string }>(`${API_BASE}/agent/playbook`);
 }

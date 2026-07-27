@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
+from app.api.v1.agent_self import router as agent_self_router
 from app.api.v1.audit import router as audit_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.delivery import router as delivery_router
@@ -11,6 +12,7 @@ from app.api.v1.quality import router as quality_router
 from app.api.v1.reporting import router as reporting_router
 from app.api.v1.search import router as search_router
 from app.api.v1.structure import router as structure_router
+from app.api.v1.task_workflow import router as workflow_router
 from app.identity.agent_endpoints import router as agent_router
 from app.identity.endpoints import router as auth_router
 from app.identity.middleware import AuthMiddleware
@@ -89,6 +91,7 @@ async def security_headers(request: Request, call_next: object) -> Response:
 # API routers
 app.include_router(projects_router, prefix="/api/v1")
 app.include_router(structure_router, prefix="/api/v1")
+app.include_router(workflow_router, prefix="/api/v1")
 app.include_router(delivery_router, prefix="/api/v1")
 app.include_router(quality_router, prefix="/api/v1")
 app.include_router(gitread_router, prefix="/api/v1")
@@ -96,6 +99,7 @@ app.include_router(reporting_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(audit_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
+app.include_router(agent_self_router, prefix="/api/v1")
 app.include_router(agent_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/auth")
 
