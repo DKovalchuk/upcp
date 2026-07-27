@@ -19,6 +19,10 @@ import type { GitProvider, GitProviderCreate, GitBranch, GitCommit, GitLink } fr
 
 const API_BASE = '/api/v1';
 
+function getToken(): string | null {
+  return localStorage.getItem('upcp_access_token');
+}
+
 function paginationParams(params?: { offset?: number; limit?: number }): string {
   if (!params) return '';
   const parts: string[] = [];
@@ -31,15 +35,28 @@ async function apiRequest<T>(
   url: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options.headers as Record<string, string>,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('upcp_access_token');
+      localStorage.removeItem('upcp_refresh_token');
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
     const error = await response.json().catch(() => ({
       error: response.statusText,
       detail: 'Unknown error',
