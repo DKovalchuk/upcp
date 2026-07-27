@@ -254,6 +254,54 @@ def get_tools() -> list[Tool]:
             description="Get the agent playbook content",
             input_schema=ToolInput(properties={}),
         ),
+        # Evidence & Review tools
+        Tool(
+            name="list_evidence",
+            description="List evidence for a task",
+            input_schema=ToolInput(
+                properties={"task_id": {"type": "string"}},
+                required=["task_id"],
+            ),
+        ),
+        Tool(
+            name="attach_evidence",
+            description="Attach evidence to a task",
+            input_schema=ToolInput(
+                properties={
+                    "task_id": {"type": "string"},
+                    "type": {"type": "string"},
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "url": {"type": "string"},
+                    "content_snippet": {"type": "string"},
+                    "dod_item_id": {"type": "string"},
+                    "created_by_type": {"type": "string"},
+                    "created_by_id": {"type": "string"},
+                },
+                required=["task_id", "type", "title", "created_by_type", "created_by_id"],
+            ),
+        ),
+        Tool(
+            name="list_review_rounds",
+            description="List review rounds for a task",
+            input_schema=ToolInput(
+                properties={"task_id": {"type": "string"}},
+                required=["task_id"],
+            ),
+        ),
+        Tool(
+            name="submit_review_verdict",
+            description="Submit a review verdict for a review round",
+            input_schema=ToolInput(
+                properties={
+                    "round_id": {"type": "string"},
+                    "verdict": {"type": "string"},
+                    "confidence": {"type": "integer"},
+                    "summary": {"type": "string"},
+                },
+                required=["round_id", "verdict", "confidence", "summary"],
+            ),
+        ),
     ]
 
 
@@ -702,6 +750,102 @@ def _handle_get_agent_playbook(session: Any, arguments: dict[str, object]) -> To
     return ToolResult(content=[{"type": "text", "text": json.dumps({"content": _PLAYBOOK})}])
 
 
+def _handle_list_evidence(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from app.quality.service import EvidenceService
+
+    task_id = _get_str_arg(arguments, "task_id")
+    if not task_id:
+        raise ValueError("task_id is required")
+    svc = EvidenceService(session)
+    items = svc.list_by_task(task_id)
+    result = {
+        "items": [
+            {
+                "id": e.id,
+                "task_id": e.task_id,
+                "type": e.type,
+                "title": e.title,
+                "verification_state": e.verification_state,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in items
+        ]
+    }
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_attach_evidence(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from app.quality.service import EvidenceService
+
+    task_id = _get_str_arg(arguments, "task_id")
+    ev_type = _get_str_arg(arguments, "type")
+    title = _get_str_arg(arguments, "title")
+    created_by_type = _get_str_arg(arguments, "created_by_type")
+    created_by_id = _get_str_arg(arguments, "created_by_id")
+    if not all([task_id, ev_type, title, created_by_type, created_by_id]):
+        raise ValueError("task_id, type, title, created_by_type, created_by_id are required")
+    svc = EvidenceService(session)
+    e = svc.create(
+        task_id=task_id,
+        type=ev_type,
+        title=title,
+        description=_get_str_arg(arguments, "description") or None,
+        url=_get_str_arg(arguments, "url") or None,
+        content_snippet=_get_str_arg(arguments, "content_snippet") or None,
+        dod_item_id=_get_str_arg(arguments, "dod_item_id") or None,
+        created_by_type=created_by_type,
+        created_by_id=created_by_id,
+    )
+    result = {
+        "id": e.id,
+        "task_id": e.task_id,
+        "type": e.type,
+        "verification_state": e.verification_state,
+    }
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_list_review_rounds(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from app.quality.service import ReviewRoundService
+
+    task_id = _get_str_arg(arguments, "task_id")
+    if not task_id:
+        raise ValueError("task_id is required")
+    svc = ReviewRoundService(session)
+    items = svc.list_by_task(task_id)
+    result = {
+        "items": [
+            {
+                "id": rr.id,
+                "task_id": rr.task_id,
+                "state": rr.state,
+                "verdict": rr.verdict,
+                "confidence": rr.confidence,
+                "summary": rr.summary,
+                "created_at": rr.created_at.isoformat() if rr.created_at else None,
+            }
+            for rr in items
+        ]
+    }
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
+def _handle_submit_review_verdict(session: Any, arguments: dict[str, object]) -> ToolResult:
+    from app.quality.service import ReviewRoundService
+
+    round_id = _get_str_arg(arguments, "round_id")
+    verdict = _get_str_arg(arguments, "verdict")
+    summary = _get_str_arg(arguments, "summary")
+    confidence_raw = arguments.get("confidence")
+    if not all([round_id, verdict, summary]):
+        raise ValueError("round_id, verdict, summary are required")
+    confidence = int(str(confidence_raw)) if confidence_raw is not None else 50
+    svc = ReviewRoundService(session)
+    rr = svc.submit_verdict(round_id, verdict=verdict, confidence=confidence, summary=summary)
+    result = {"id": rr.id, "state": rr.state, "verdict": rr.verdict}
+    return ToolResult(content=[{"type": "text", "text": json.dumps(result, indent=2)}])
+
+
 # Dispatch table mapping tool names to handler functions
 HandlerFn = Callable[[Any, dict[str, object]], ToolResult]
 TOOL_HANDLERS: dict[str, HandlerFn] = {
@@ -727,6 +871,11 @@ TOOL_HANDLERS: dict[str, HandlerFn] = {
     "submit_task_for_review": _handle_submit_task_for_review,
     "get_agent_inbox": _handle_get_agent_inbox,
     "get_agent_playbook": _handle_get_agent_playbook,
+    # Evidence & Review tools
+    "list_evidence": _handle_list_evidence,
+    "attach_evidence": _handle_attach_evidence,
+    "list_review_rounds": _handle_list_review_rounds,
+    "submit_review_verdict": _handle_submit_review_verdict,
 }
 
 

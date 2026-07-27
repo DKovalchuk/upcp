@@ -1,9 +1,17 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-27
-Milestone: M9 — Agent Workflow MVP (In Progress)
-Current Task: M9 complete → next: M10 Evidence & Review Engine
+Milestone: M10 — Evidence & Review Engine (In Progress)
+Current Task: TASK-0077–0081 done → next: TASK-0082 Evidence & Review Frontend
 Blockers: none
+
+## M10 Progress
+
+- [x] TASK-0077: Evidence + ReviewRound + ReviewFinding models + migration
+- [x] TASK-0078: Evidence service + API endpoints
+- [x] TASK-0079: Review service + API endpoints
+- [x] TASK-0080: Submit-for-review gate
+- [x] TASK-0081: MCP tools for evidence & review
 
 ## M9 Progress (Complete)
 
