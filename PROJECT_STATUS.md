@@ -1,21 +1,30 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-27
-Milestone: M7 — Identity, Access & Agent Foundation
-Current Task: TASK-0062 User Model (done) → next: TASK-0063 Organization bootstrap
+Milestone: M8 — Runtime Foundation (Complete)
+Current Task: M8 complete → next: M9 Agent Workflow MVP
 Blockers: none
 
-## M7 Progress
+## M7 Progress (Complete)
 
-- [x] SPEC-0014 Identity & Access Foundation (in-progress)
-- [x] TASK-0062 User Model + Organization + Membership models + migration
-- [ ] TASK-0063: Organization bootstrap (first-run setup)
-- [ ] TASK-0064: JWT token service
-- [ ] TASK-0065: Auth middleware
-- [ ] TASK-0066: RBAC models + permissions
-- [ ] TASK-0067: Auth endpoints (setup, login, logout, refresh, me)
-- [ ] TASK-0068: Agent model + tokens
-- [ ] TASK-0069: Apply auth to all existing endpoints
+- [x] TASK-0062: User/Org/Membership/LoginAudit models
+- [x] TASK-0063: JWT Token Service
+- [x] TASK-0064: Auth Middleware
+- [x] TASK-0065: RBAC Models
+- [x] TASK-0066: Auth Endpoints
+- [x] TASK-0067: Auth Middleware for All Routes
+- [x] TASK-0068: Agent Model + Tokens
+- [x] TASK-0069: Seed Default Roles
+
+## M8 Progress (Complete)
+
+- [x] Redis integration (docker-compose, client, health check)
+- [x] Structured JSON logging + correlation IDs
+- [x] Sliding window rate limiter (per-route limits)
+- [x] SecretProvider abstraction (env/file/composite)
+- [x] Git adapter hardening + input validation
+- [x] Security headers (CSP, HSTS, X-Frame-Options)
+- [x] CORS configuration
 
 ## Comprehensive Audit (2026-07-25)
 
