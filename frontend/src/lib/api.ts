@@ -11,6 +11,9 @@ import type {
   DoDItem,
   DoDItemCreate,
   DoDItemUpdate,
+  Evidence,
+  EvidenceCreate,
+  ReviewRound,
 } from '@/types/quality';
 import type { Report, ReportCreate } from '@/types/report';
 import type { AuditEvent, AuditEventCreate } from '@/types/audit';
@@ -545,4 +548,91 @@ export async function getAgentInbox(
 
 export async function getAgentPlaybook(): Promise<{ content: string }> {
   return apiRequest<{ content: string }>(`${API_BASE}/agent/playbook`);
+}
+
+// ── Evidence ──
+
+export async function fetchEvidence(
+  taskId: string
+): Promise<{ items: Evidence[] }> {
+  return apiRequest<{ items: Evidence[] }>(
+    `${API_BASE}/tasks/${taskId}/evidence`
+  );
+}
+
+export async function createEvidence(
+  taskId: string,
+  data: EvidenceCreate
+): Promise<Evidence> {
+  return apiRequest<Evidence>(`${API_BASE}/tasks/${taskId}/evidence`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function verifyEvidence(
+  evidenceId: string
+): Promise<Evidence> {
+  return apiRequest<Evidence>(
+    `${API_BASE}/evidence/${evidenceId}/agent-verify`,
+    { method: 'POST' }
+  );
+}
+
+export async function acceptEvidence(
+  evidenceId: string
+): Promise<Evidence> {
+  return apiRequest<Evidence>(
+    `${API_BASE}/evidence/${evidenceId}/human-accept`,
+    { method: 'POST' }
+  );
+}
+
+export async function rejectEvidence(
+  evidenceId: string,
+  reason?: string
+): Promise<Evidence> {
+  return apiRequest<Evidence>(`${API_BASE}/evidence/${evidenceId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+// ── Review Rounds ──
+
+export async function fetchReviewRounds(
+  taskId: string
+): Promise<{ items: ReviewRound[] }> {
+  return apiRequest<{ items: ReviewRound[] }>(
+    `${API_BASE}/tasks/${taskId}/review-rounds`
+  );
+}
+
+export async function createReviewRound(
+  taskId: string,
+  data: { reviewer_type?: string; reviewer_id?: string }
+): Promise<ReviewRound> {
+  return apiRequest<ReviewRound>(
+    `${API_BASE}/tasks/${taskId}/review-rounds`,
+    { method: 'POST', body: JSON.stringify(data) }
+  );
+}
+
+export async function submitReviewVerdict(
+  roundId: string,
+  data: { verdict: string; confidence: number; summary: string }
+): Promise<ReviewRound> {
+  return apiRequest<ReviewRound>(
+    `${API_BASE}/review-rounds/${roundId}/verdict`,
+    { method: 'POST', body: JSON.stringify(data) }
+  );
+}
+
+export async function submitForReview(
+  taskId: string
+): Promise<ReviewRound> {
+  return apiRequest<ReviewRound>(
+    `${API_BASE}/tasks/${taskId}/submit-review`,
+    { method: 'POST' }
+  );
 }
