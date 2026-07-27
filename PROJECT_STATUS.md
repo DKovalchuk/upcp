@@ -1,18 +1,35 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-27
-Milestone: M11 — Human Control UX (In Progress)
-Current Task: TASK-0083–0087 done → next: TASK-0088 Project Drill-down UX
+Milestone: M11 — Human Control UX (Complete)
+Current Task: M11 complete
 Blockers: none
 
-## M11 Progress
+## M11 Progress (Complete)
 
 - [x] TASK-0083: Attention Dashboard API
 - [x] TASK-0084: Attention Dashboard Frontend
 - [x] TASK-0085: Notification Model & API
 - [x] TASK-0086: Notification Frontend
 - [x] TASK-0087: Project Health & Portfolio API
-- [ ] TASK-0088: Project Drill-down UX
+- [x] TASK-0088: Project Drill-down UX
+
+### M11 Summary
+
+**Backend:**
+- AttentionDashboardService: 9 sections (needs_review, open_questions, blocked_tasks, stale_claims, failed_dod, rejected_tasks, agent_verdicts_waiting, low_health_projects, recent_activity)
+- Project health score calculation (weighted formula)
+- PortfolioService: aggregate stats across all projects
+- Notification model + migration 0016
+- NotificationService: create, list, mark_read, mark_all_read, unread_count
+- API: /dashboard/attention, /projects/{id}/health, /portfolio/overview, /notifications CRUD
+
+**Frontend:**
+- Attention Dashboard: 7 sections with real data from API, auto-refresh 30s
+- Notification Bell: unread count badge, dropdown with mark-as-read
+- Saved Views: localStorage-backed filter persistence
+- Keyboard Navigation: j/k, Enter, Esc, [/]
+- TypeScript compiles, 140+ tests passing
 
 ## M10 Progress (Complete)
 
