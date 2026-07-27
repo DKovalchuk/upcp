@@ -6,7 +6,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DataTablePaginationProps {
   offset: number;
@@ -29,9 +30,10 @@ export function DataTablePagination({
   const to = Math.min(offset + limit, total);
 
   return (
-    <div className="flex items-center justify-between px-2">
+    <div className="flex items-center justify-between px-2 py-2">
       <div className="text-sm text-muted-foreground">
-        Showing {from}–{to} of {total} results
+        Showing <span className="font-medium text-foreground">{from}–{to}</span> of{' '}
+        <span className="font-medium text-foreground">{total}</span> results
       </div>
       <div className="flex items-center gap-2">
         <Select
@@ -42,7 +44,7 @@ export function DataTablePagination({
             <SelectValue />
           </SelectTrigger>
           <SelectContent side="top">
-            {[10, 20, 50].map((size) => (
+            {[10, 20, 50, 100].map((size) => (
               <SelectItem key={size} value={String(size)}>
                 {size}
               </SelectItem>
@@ -51,15 +53,19 @@ export function DataTablePagination({
         </Select>
 
         <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onPageChange(Math.max(0, offset - limit))}
-            disabled={currentPage <= 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger render={<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onPageChange(0)} disabled={currentPage <= 1} />}>
+              <ChevronsLeft className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>First page</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger render={<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onPageChange(Math.max(0, offset - limit))} disabled={currentPage <= 1} />}>
+              <ChevronLeft className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>Previous page</TooltipContent>
+          </Tooltip>
 
           {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
             let page: number;
@@ -86,17 +92,19 @@ export function DataTablePagination({
             );
           })}
 
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() =>
-              onPageChange(Math.min((totalPages - 1) * limit, offset + limit))
-            }
-            disabled={currentPage >= totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger render={<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onPageChange(Math.min((totalPages - 1) * limit, offset + limit))} disabled={currentPage >= totalPages} />}>
+              <ChevronRight className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>Next page</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger render={<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onPageChange((totalPages - 1) * limit)} disabled={currentPage >= totalPages} />}>
+              <ChevronsRight className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>Last page</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </div>

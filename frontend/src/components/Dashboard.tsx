@@ -12,28 +12,47 @@ import {
   GitBranch,
   ShieldCheck,
 } from 'lucide-react';
+import {
+  NeedsReviewSection,
+  OpenClarificationsSection,
+  BlockedTasksSection,
+  StaleAgentsSection,
+  FailedQualityGatesSection,
+} from '@/components/dashboard/AttentionCards';
+import { LiveActivityFeed } from '@/components/dashboard/LiveActivityFeed';
+import { AgentActivitySummary } from '@/components/dashboard/AgentActivitySummary';
+
+const STAT_CARD_STYLES = {
+  default: 'border-l-4 border-l-primary',
+  warning: 'border-l-4 border-l-amber-500 bg-amber-500/5 dark:bg-amber-500/5',
+  error: 'border-l-4 border-l-red-500 bg-red-500/5 dark:bg-red-500/5',
+  info: 'border-l-4 border-l-blue-500 bg-blue-500/5 dark:bg-blue-500/5',
+  success: 'border-l-4 border-l-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/5',
+} as const;
 
 function StatCard({
   label,
   value,
   icon: Icon,
   color,
+  variant = 'default',
 }: {
   label: string;
   value: number | string;
   icon: React.ElementType;
   color: string;
+  variant?: keyof typeof STAT_CARD_STYLES;
 }) {
   return (
-    <Card>
+    <Card className={`transition-all hover:shadow-md ${STAT_CARD_STYLES[variant]}`}>
       <CardContent className="flex items-center gap-4 p-4">
         <div
           className={`flex h-10 w-10 items-center justify-center rounded-lg ${color}`}
         >
           <Icon className="h-5 w-5" />
         </div>
-        <div>
-          <p className="text-2xl font-bold">{value}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-2xl font-bold tracking-tight">{value}</p>
           <p className="text-sm text-muted-foreground">{label}</p>
         </div>
       </CardContent>
@@ -66,115 +85,102 @@ export function Dashboard() {
   const tc = stats?.task_counts_by_status;
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="space-y-6 animate-fade-in-up">
+      {/* ── Stats Row ── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 animate-stagger">
         <StatCard
           label="Projects"
           value={stats?.project_count ?? 0}
           icon={FolderKanban}
           color="bg-primary/10 text-primary"
+          variant="default"
         />
         <StatCard
           label="Tasks In Progress"
           value={tc?.in_progress ?? 0}
           icon={GitBranch}
-          color="bg-blue-500/10 text-blue-600"
+          color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          variant="info"
         />
         <StatCard
           label="Tasks Done"
           value={tc?.done ?? 0}
           icon={ShieldCheck}
-          color="bg-emerald-500/10 text-emerald-600"
+          color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          variant="success"
         />
         <StatCard
           label="Recent Activity"
           value={stats?.recent_activity?.length ?? 0}
           icon={Activity}
-          color="bg-amber-500/10 text-amber-600"
+          color="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          variant="warning"
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Projects</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!stats?.recent_projects?.length ? (
-                <p className="text-sm text-muted-foreground">
-                  No recent projects.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {stats.recent_projects.map((project) => (
-                    <Link
-                      key={project.id}
-                      to="/projects/$projectId"
-                      params={{ projectId: project.id }}
-                      className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{project.name}</p>
-                        {project.description && (
-                          <p className="truncate text-sm text-muted-foreground">
-                            {project.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="ml-4 flex items-center gap-3">
-                        <StatusBadge status={project.status} />
-                        <span className="whitespace-nowrap text-xs text-muted-foreground">
-                          {formatRelativeTime(project.updated_at)}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity Feed</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!stats?.recent_activity?.length ? (
-                <p className="text-sm text-muted-foreground">
-                  No recent activity.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {stats.recent_activity.map((event) => (
-                    <div
-                      key={event.id}
-                      className="flex items-start gap-3"
-                    >
-                      <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm">
-                          <span className="font-medium">
-                            {event.event_type}
-                          </span>{' '}
-                          <span className="text-muted-foreground">
-                            {event.entity_type}
-                          </span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatRelativeTime(event.timestamp)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+      {/* ── Attention Dashboard ── */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Needs Attention
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <NeedsReviewSection />
+          <OpenClarificationsSection />
+          <BlockedTasksSection />
+          <StaleAgentsSection />
+          <FailedQualityGatesSection />
         </div>
       </div>
+
+      {/* ── Activity & Agents ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <LiveActivityFeed />
+        </div>
+        <div>
+          <AgentActivitySummary />
+        </div>
+      </div>
+
+      {/* ── Recent Projects ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Projects</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!stats?.recent_projects?.length ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No recent projects.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {stats.recent_projects.map((project) => (
+                <Link
+                  key={project.id}
+                  to="/projects/$projectId"
+                  params={{ projectId: project.id }}
+                  className="flex items-center justify-between rounded-lg border border-border p-3 transition-all hover:bg-muted/50 hover:ring-1 hover:ring-ring/20 group"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium group-hover:text-primary transition-colors">{project.name}</p>
+                    {project.description && (
+                      <p className="truncate text-sm text-muted-foreground">
+                        {project.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="ml-4 flex items-center gap-3">
+                    <StatusBadge status={project.status} />
+                    <span className="whitespace-nowrap text-xs text-muted-foreground">
+                      {formatRelativeTime(project.updated_at)}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

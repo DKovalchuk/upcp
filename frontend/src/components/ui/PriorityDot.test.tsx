@@ -26,10 +26,10 @@ describe('PriorityDot', () => {
     expect(dot?.className).toContain('bg-orange-500');
   });
 
-  it('applies yellow color for priority 2 (Medium)', () => {
+  it('applies amber color for priority 2 (Medium)', () => {
     renderWithProvider(<PriorityDot priority={2} />);
     const dot = document.querySelector('.rounded-full');
-    expect(dot?.className).toContain('bg-yellow-500');
+    expect(dot?.className).toContain('bg-amber-500');
   });
 
   it('applies green color for priority 3 (Low)', () => {

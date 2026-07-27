@@ -22,6 +22,8 @@ import {
   Settings,
   FileText,
   Search,
+  BarChart3,
+  Clock,
 } from 'lucide-react';
 import { searchGlobal } from '@/lib/api';
 
@@ -35,6 +37,7 @@ interface Command {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   shortcut?: string;
+  category: string;
   action: () => void;
 }
 
@@ -43,6 +46,20 @@ const ENTITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   feature: GitBranch,
   task: FileText,
 };
+
+function getRecentItems(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem('upcp:recent-commands') || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentItem(id: string) {
+  const recent = getRecentItems().filter((r) => r !== id);
+  recent.unshift(id);
+  localStorage.setItem('upcp:recent-commands', JSON.stringify(recent.slice(0, 5)));
+}
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate();
@@ -69,70 +86,36 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     onOpenChange(false);
   };
 
+  const executeCommand = (cmd: Command) => {
+    saveRecentItem(cmd.id);
+    cmd.action();
+  };
+
   const globalCommands: Command[] = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      shortcut: 'G D',
-      action: () => go('/'),
-    },
-    {
-      id: 'projects',
-      label: 'Projects',
-      icon: FolderKanban,
-      shortcut: 'G P',
-      action: () => go('/projects'),
-    },
-    {
-      id: 'health',
-      label: 'Health',
-      icon: Activity,
-      shortcut: 'G H',
-      action: () => go('/health'),
-    },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, shortcut: 'G D', category: 'Navigation', action: () => go('/') },
+    { id: 'projects', label: 'Projects', icon: FolderKanban, shortcut: 'G P', category: 'Navigation', action: () => go('/projects') },
+    { id: 'reports', label: 'Reports', icon: BarChart3, shortcut: 'G R', category: 'Navigation', action: () => go('/reports') },
+    { id: 'health', label: 'Health', icon: Activity, shortcut: 'G H', category: 'Navigation', action: () => go('/health') },
+    { id: 'settings', label: 'Settings', icon: Settings, shortcut: 'G S', category: 'Navigation', action: () => go('/settings') },
   ];
 
   const projectCommands: Command[] = projectId
     ? [
-        {
-          id: 'overview',
-          label: 'Overview',
-          icon: Boxes,
-          action: () => go(`/projects/${projectId}`),
-        },
-        {
-          id: 'structure',
-          label: 'Structure',
-          icon: Boxes,
-          action: () => go(`/projects/${projectId}/structure`),
-        },
-        {
-          id: 'delivery',
-          label: 'Delivery',
-          icon: GitBranch,
-          action: () => go(`/projects/${projectId}/delivery`),
-        },
-        {
-          id: 'quality',
-          label: 'Quality',
-          icon: ShieldCheck,
-          action: () => go(`/projects/${projectId}/quality`),
-        },
-        {
-          id: 'audit',
-          label: 'Audit',
-          icon: ScrollText,
-          action: () => go(`/projects/${projectId}/audit`),
-        },
-        {
-          id: 'settings',
-          label: 'Project Settings',
-          icon: Settings,
-          action: () => go(`/projects/${projectId}/settings`),
-        },
+        { id: 'overview', label: 'Overview', icon: Boxes, category: 'Project', action: () => go(`/projects/${projectId}`) },
+        { id: 'structure', label: 'Structure', icon: Boxes, category: 'Project', action: () => go(`/projects/${projectId}/structure`) },
+        { id: 'delivery', label: 'Delivery', icon: GitBranch, category: 'Project', action: () => go(`/projects/${projectId}/delivery`) },
+        { id: 'quality', label: 'Quality', icon: ShieldCheck, category: 'Project', action: () => go(`/projects/${projectId}/quality`) },
+        { id: 'audit', label: 'Audit', icon: ScrollText, category: 'Project', action: () => go(`/projects/${projectId}/audit`) },
+        { id: 'git', label: 'Git Integration', icon: GitBranch, category: 'Project', action: () => go(`/projects/${projectId}/git`) },
+        { id: 'project-settings', label: 'Project Settings', icon: Settings, category: 'Project', action: () => go(`/projects/${projectId}/settings`) },
       ]
     : [];
+
+  const recentIds = getRecentItems();
+  const allCommands = [...globalCommands, ...projectCommands];
+  const recentCommands = recentIds
+    .map((id) => allCommands.find((c) => c.id === id))
+    .filter(Boolean) as Command[];
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -151,12 +134,31 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
 
+        {recentCommands.length > 0 && !searchQuery && (
+          <>
+            <CommandGroup heading="Recent">
+              {recentCommands.map((cmd) => (
+                <CommandItem
+                  key={`recent-${cmd.id}`}
+                  value={`recent:${cmd.label}`}
+                  onSelect={() => executeCommand(cmd)}
+                >
+                  <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                  {cmd.label}
+                  {cmd.shortcut && <CommandShortcut>{cmd.shortcut}</CommandShortcut>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
+
         <CommandGroup heading="Navigation">
           {globalCommands.map((cmd) => (
             <CommandItem
               key={cmd.id}
               value={cmd.label}
-              onSelect={cmd.action}
+              onSelect={() => executeCommand(cmd)}
             >
               <cmd.icon className="mr-2 h-4 w-4" />
               {cmd.label}
@@ -173,7 +175,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 <CommandItem
                   key={cmd.id}
                   value={cmd.label}
-                  onSelect={cmd.action}
+                  onSelect={() => executeCommand(cmd)}
                 >
                   <cmd.icon className="mr-2 h-4 w-4" />
                   {cmd.label}
@@ -193,7 +195,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   <CommandItem
                     key={`${result.entity_type}-${result.id}`}
                     value={`search:${result.entity_type}:${result.title}`}
-                    onSelect={() => go(result.url)}
+                    onSelect={() => {
+                      saveRecentItem(`search:${result.entity_type}:${result.id}`);
+                      go(result.url);
+                    }}
                   >
                     <Icon className="mr-2 h-4 w-4" />
                     <div className="min-w-0 flex-1">

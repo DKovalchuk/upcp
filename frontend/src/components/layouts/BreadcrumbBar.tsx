@@ -49,7 +49,7 @@ export function BreadcrumbBar() {
   const breadcrumbs = buildBreadcrumbs(pathname);
 
   return (
-    <nav className="flex items-center gap-1 px-4 py-2 text-sm text-muted-foreground lg:px-6">
+    <nav className="flex items-center gap-1 px-4 py-2 text-sm text-muted-foreground lg:px-6" aria-label="Breadcrumb">
       <Link to="/" className="flex items-center gap-1 hover:text-foreground">
         <Home className="h-4 w-4" />
         <span>Home</span>

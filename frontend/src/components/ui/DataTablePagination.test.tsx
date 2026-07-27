@@ -13,7 +13,8 @@ describe('DataTablePagination', () => {
         onPageSizeChange={() => {}}
       />
     );
-    expect(screen.getByText('Showing 1–20 of 100 results')).toBeInTheDocument();
+    expect(screen.getByText(/Showing/)).toBeInTheDocument();
+    expect(screen.getByText('1–20')).toBeInTheDocument();
   });
 
   it('shows correct range for page 2', () => {
@@ -26,7 +27,7 @@ describe('DataTablePagination', () => {
         onPageSizeChange={() => {}}
       />
     );
-    expect(screen.getByText('Showing 21–40 of 100 results')).toBeInTheDocument();
+    expect(screen.getByText('21–40')).toBeInTheDocument();
   });
 
   it('shows 0 results when total is 0', () => {
@@ -39,7 +40,7 @@ describe('DataTablePagination', () => {
         onPageSizeChange={() => {}}
       />
     );
-    expect(screen.getByText('Showing 0–0 of 0 results')).toBeInTheDocument();
+    expect(screen.getByText('0–0')).toBeInTheDocument();
   });
 
   it('disables previous button on first page', () => {
@@ -67,7 +68,7 @@ describe('DataTablePagination', () => {
       />
     );
     const buttons = screen.getAllByRole('button');
-    const nextButton = buttons[buttons.length - 1];
+    const nextButton = buttons[buttons.length - 2]; // second to last (last is "last page")
     expect(nextButton).toBeDisabled();
   });
 
@@ -82,8 +83,10 @@ describe('DataTablePagination', () => {
         onPageSizeChange={() => {}}
       />
     );
+    // Buttons: first, prev, 1, 2, 3, 4, 5, next, last
+    // next is index 7
     const buttons = screen.getAllByRole('button');
-    const nextButton = buttons[buttons.length - 1];
+    const nextButton = buttons[7];
     fireEvent.click(nextButton);
     expect(onPageChange).toHaveBeenCalledWith(20);
   });
@@ -99,7 +102,6 @@ describe('DataTablePagination', () => {
         onPageSizeChange={() => {}}
       />
     );
-    // Click page 2 button
     const page2Button = screen.getByRole('button', { name: '2' });
     fireEvent.click(page2Button);
     expect(onPageChange).toHaveBeenCalledWith(20);

@@ -137,8 +137,8 @@ describe('ProjectDetail', () => {
     } as any);
 
     renderProjectDetail();
-    // Status badge appears in header
-    const badges = screen.getAllByText('active');
+    // Status badge appears in header (capitalized)
+    const badges = screen.getAllByText('Active');
     expect(badges.length).toBeGreaterThanOrEqual(1);
   });
 

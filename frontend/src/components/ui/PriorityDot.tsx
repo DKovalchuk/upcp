@@ -7,6 +7,8 @@ import {
 
 interface PriorityDotProps {
   priority: number;
+  showLabel?: boolean;
+  size?: 'sm' | 'default';
 }
 
 function getClosestPriority(priority: number): number {
@@ -16,20 +18,24 @@ function getClosestPriority(priority: number): number {
   return 3;
 }
 
-export function PriorityDot({ priority }: PriorityDotProps) {
+export function PriorityDot({ priority, showLabel = false, size = 'default' }: PriorityDotProps) {
   const mapped = getClosestPriority(priority);
-  const color = PRIORITY_COLORS[mapped] ?? PRIORITY_COLORS[3];
+  const colors = PRIORITY_COLORS[mapped] ?? PRIORITY_COLORS[3];
   const label = PRIORITY_LABELS[mapped] ?? `P${priority}`;
+  const dotSize = size === 'sm' ? 'h-2 w-2' : 'h-2.5 w-2.5';
 
   return (
     <Tooltip>
-      <TooltipTrigger>
+      <TooltipTrigger render={<span className="inline-flex items-center gap-1.5" />}>
         <span
           role="img"
           aria-label={`Priority: ${label}`}
-          className={`inline-block h-2.5 w-2.5 rounded-full ${color}`}
+          className={`inline-block ${dotSize} rounded-full ${colors.dot}`}
           tabIndex={0}
         />
+        {showLabel && (
+          <span className={`text-xs ${colors.text}`}>{label}</span>
+        )}
       </TooltipTrigger>
       <TooltipContent>
         <p>{label}</p>
