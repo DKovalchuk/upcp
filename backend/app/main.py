@@ -18,6 +18,7 @@ from app.shared.config import get_settings
 from app.shared.correlation import CorrelationMiddleware
 from app.shared.errors import register_error_handlers
 from app.shared.logging import setup_logging
+from app.shared.rate_limit_middleware import RateLimitMiddleware
 
 settings = get_settings()
 
@@ -29,6 +30,10 @@ register_error_handlers(app)
 
 # Correlation middleware — adds request_id to all logs
 app.add_middleware(CorrelationMiddleware)
+
+# Rate limiting middleware — Redis sliding window
+if settings.env != "test":
+    app.add_middleware(RateLimitMiddleware)
 
 # Auth middleware — protects all /api/v1/ routes except public ones
 if settings.env != "test":
