@@ -1,17 +1,34 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-27
-Milestone: M10 — Evidence & Review Engine (In Progress)
-Current Task: TASK-0077–0081 done → next: TASK-0082 Evidence & Review Frontend
+Milestone: M10 — Evidence & Review Engine (Complete)
+Current Task: M10 complete → next: M11 Human Control UX, Project Drill-down & Portfolio Insights
 Blockers: none
 
-## M10 Progress
+## M10 Progress (Complete)
 
 - [x] TASK-0077: Evidence + ReviewRound + ReviewFinding models + migration
 - [x] TASK-0078: Evidence service + API endpoints
 - [x] TASK-0079: Review service + API endpoints
 - [x] TASK-0080: Submit-for-review gate
 - [x] TASK-0081: MCP tools for evidence & review
+- [x] TASK-0082: Evidence & review frontend (types + API functions)
+
+### M10 Summary
+
+**Backend:**
+- Models: Evidence, ReviewRound, ReviewFinding with state machines
+- DoDItem.required_evidence_type for evidence-gated quality
+- Migration: 0015_create_evidence_review
+- Services: EvidenceService, ReviewRoundService, ReviewGateService
+- API: Evidence CRUD, review rounds, submit-for-review gate
+- MCP: 4 new tools (list_evidence, attach_evidence, list_review_rounds, submit_review_verdict)
+- Tests: 50 new, 537 total passing
+
+**Frontend:**
+- Types: Evidence, ReviewRound, ReviewFinding TypeScript interfaces
+- API functions: evidence CRUD, review round operations
+- TypeScript compiles, 140 tests passing
 
 ## M9 Progress (Complete)
 
