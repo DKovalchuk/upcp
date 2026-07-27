@@ -1,10 +1,21 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-27
-Milestone: M7-M11 Planning Complete
-Current Task: UPCP v2 planning and documentation (completed)
-Next Task: M7 Identity, Access & Agent Foundation implementation
+Milestone: M7 — Identity, Access & Agent Foundation
+Current Task: TASK-0062 User Model (done) → next: TASK-0063 Organization bootstrap
 Blockers: none
+
+## M7 Progress
+
+- [x] SPEC-0014 Identity & Access Foundation (in-progress)
+- [x] TASK-0062 User Model + Organization + Membership models + migration
+- [ ] TASK-0063: Organization bootstrap (first-run setup)
+- [ ] TASK-0064: JWT token service
+- [ ] TASK-0065: Auth middleware
+- [ ] TASK-0066: RBAC models + permissions
+- [ ] TASK-0067: Auth endpoints (setup, login, logout, refresh, me)
+- [ ] TASK-0068: Agent model + tokens
+- [ ] TASK-0069: Apply auth to all existing endpoints
 
 ## Comprehensive Audit (2026-07-25)
 
