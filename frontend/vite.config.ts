@@ -21,6 +21,10 @@ export default defineConfig({
         target: process.env.VITE_API_URL || 'http://127.0.0.1:38080',
         changeOrigin: true,
       },
+      '/auth': {
+        target: process.env.VITE_API_URL || 'http://127.0.0.1:38080',
+        changeOrigin: true,
+      },
       '/mcp': {
         target: process.env.VITE_API_URL || 'http://127.0.0.1:38080',
         changeOrigin: true,
