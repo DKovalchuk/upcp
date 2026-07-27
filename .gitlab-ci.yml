@@ -87,18 +87,15 @@ variables:
     - cd frontend
     - npm ci --prefer-offline --no-audit --no-fund
 
-# Uses host Docker daemon (not DinD) — runner must mount Docker socket:
+# Uses host Docker daemon — runner must mount Docker socket:
 #   [[runners.docker]]
 #     volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
+# No container registry — images are built and used locally on the host.
 .docker-build-base:
   stage: build
   image: docker:24
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-  # Uses --cache-to type=inline: embeds cache metadata in the :dev image
-  # so subsequent builds can --cache-from it without a separate cache image
 
 # ════════════════════════════════════════════════════════════════
 # LINT — fast feedback, parallel
@@ -236,13 +233,10 @@ build:backend:
     - backend:test
   script:
     - docker build
-        --cache-from "$CI_REGISTRY_IMAGE/backend:dev"
-        --cache-to type=inline
-        --tag "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
-        --tag "$CI_REGISTRY_IMAGE/backend:dev"
+        --cache-from upcp-backend:dev
+        --tag upcp-backend:$CI_COMMIT_SHORT_SHA
+        --tag upcp-backend:dev
         .
-    - docker push "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
-    - docker push "$CI_REGISTRY_IMAGE/backend:dev"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -253,13 +247,10 @@ build:frontend:
     - frontend:test
   script:
     - docker build
-        --cache-from "$CI_REGISTRY_IMAGE/frontend:dev"
-        --cache-to type=inline
-        --tag "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
-        --tag "$CI_REGISTRY_IMAGE/frontend:dev"
+        --cache-from upcp-frontend:dev
+        --tag upcp-frontend:$CI_COMMIT_SHORT_SHA
+        --tag upcp-frontend:dev
         frontend/
-    - docker push "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
-    - docker push "$CI_REGISTRY_IMAGE/frontend:dev"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -271,43 +262,25 @@ build:frontend:
 # Stage runs continuously — services are used by the team and
 # MCP for project management. Deploy restarts with new images.
 #
-# IMPORTANT: Uses host Docker daemon (not DinD) so compose services
-# start on the host where they're accessible at localhost:3080.
+# Uses host Docker daemon — images are built locally by build jobs
+# and used directly. No container registry required.
 # Runner config.toml must mount the Docker socket:
-#   [[runners]]
-#     executor = "docker"
-#     [runners.docker]
-#       volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
-#
-# Flow:
-#   1. Pull dev images just built by CI
-#   2. Tag as :stage
-#   3. Push :stage to registry (for docker-compose.stage.yml)
-#   4. docker compose pull — fetch stage images locally
-#   5. docker compose up -d — restart services with new images
+#   [[runners.docker]]
+#     volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
 
 deploy:stage:
   stage: deploy
   image: docker:24
-  # No services: uses host Docker daemon via mounted socket
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
   environment:
     name: stage
     url: http://localhost:3080
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
-    # Pull and tag images for stage
-    - docker pull "$CI_REGISTRY_IMAGE/backend:dev"
-    - docker tag  "$CI_REGISTRY_IMAGE/backend:dev" "$CI_REGISTRY_IMAGE/backend:stage"
-    - docker push "$CI_REGISTRY_IMAGE/backend:stage"
-    - docker pull "$CI_REGISTRY_IMAGE/frontend:dev"
-    - docker tag  "$CI_REGISTRY_IMAGE/frontend:dev" "$CI_REGISTRY_IMAGE/frontend:stage"
-    - docker push "$CI_REGISTRY_IMAGE/frontend:stage"
+    # Tag locally built images for stage
+    - docker tag upcp-backend:dev upcp-backend:stage
+    - docker tag upcp-frontend:dev upcp-frontend:stage
     # Deploy with docker compose
-    # --force-recreate ensures containers use the freshly pulled images
-    - docker compose -f docker-compose.stage.yml pull
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     # Wait for health check
     - echo "Waiting for app health check..."
