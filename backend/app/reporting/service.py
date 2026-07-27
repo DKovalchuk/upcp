@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.delivery.models import Task
 from app.projects.models import Project
-from app.reporting.models import Report
+from app.reporting.models import Notification, Report
+from app.shared.errors import NotFound
 
 
 class ReportingService:
@@ -124,3 +125,65 @@ class ReportingService:
         report.summary = summary
         self._session.flush()
         return report
+
+
+class NotificationService:
+    """Notification CRUD and badge count."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def create(
+        self,
+        *,
+        user_id: str,
+        type: str,
+        title: str,
+        message: str,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+    ) -> Notification:
+        n = Notification(
+            user_id=user_id,
+            type=type,
+            title=title,
+            message=message,
+            entity_type=entity_type,
+            entity_id=entity_id,
+        )
+        self._session.add(n)
+        self._session.flush()
+        return n
+
+    def list_by_user(
+        self, user_id: str, *, unread_only: bool = False, limit: int = 50
+    ) -> list[Notification]:
+        q = self._session.query(Notification).filter_by(user_id=user_id)
+        if unread_only:
+            q = q.filter_by(is_read=False)
+        return q.order_by(Notification.created_at.desc()).limit(limit).all()
+
+    def mark_read(self, notification_id: str) -> Notification:
+        n = self._session.get(Notification, notification_id)
+        if not n:
+            raise NotFound(f"notification '{notification_id}' not found")
+        n.is_read = True
+        self._session.flush()
+        return n
+
+    def mark_all_read(self, user_id: str) -> int:
+        count = (
+            self._session.query(Notification)
+            .filter_by(user_id=user_id, is_read=False)
+            .update({"is_read": True})
+        )
+        self._session.flush()
+        return count
+
+    def unread_count(self, user_id: str) -> int:
+        result = (
+            self._session.query(func.count(Notification.id))
+            .filter_by(user_id=user_id, is_read=False)
+            .scalar()
+        )
+        return int(result) if result is not None else 0
