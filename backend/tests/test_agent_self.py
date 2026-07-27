@@ -99,6 +99,88 @@ class TestAgentMe:
         assert "name" in data
         assert "inbox_count" in data
 
+    def test_inbox_count_zero_when_no_claims(self, client):
+        """inbox_count = 0 when agent has no active claims or clarifications."""
+        resp = client.get("/api/v1/agent/me", headers=_hdr())
+        assert resp.json()["inbox_count"] == 0
+
+    def test_inbox_count_with_active_claim(self, client):
+        """inbox_count increments when agent claims a task."""
+        c = _TestSession()
+        from app.delivery.models import Feature, Task, TaskClaim
+        from app.identity.agents import Agent
+        from app.projects.models import Project
+        from app.shared.text import new_id
+
+        p = c.query(Project).filter(Project.slug.like("p-%")).first()
+        f = c.query(Feature).filter_by(project_id=p.id).first()
+        t = c.query(Task).filter_by(feature_id=f.id).first()
+        agent = c.query(Agent).filter(Agent.name.like("A-%")).first()
+
+        claim = TaskClaim(id=new_id(), task_id=t.id, agent_id=agent.id, state="active")
+        c.add(claim)
+        c.commit()
+        c.close()
+
+        resp = client.get("/api/v1/agent/me", headers=_hdr())
+        assert resp.json()["inbox_count"] == 1
+
+    def test_inbox_count_with_clarification(self, client):
+        """inbox_count increments when agent has open clarification."""
+        c = _TestSession()
+        from app.delivery.models import ClarificationRequest, Feature, Task
+        from app.identity.agents import Agent
+        from app.projects.models import Project
+
+        p = c.query(Project).filter(Project.slug.like("p-%")).first()
+        f = c.query(Feature).filter_by(project_id=p.id).first()
+        t = c.query(Task).filter_by(feature_id=f.id).first()
+        agent = c.query(Agent).filter(Agent.name.like("A-%")).first()
+
+        cr = ClarificationRequest(
+            task_id=t.id,
+            author_type="agent",
+            author_id=agent.id,
+            question="What?",
+            state="open",
+        )
+        c.add(cr)
+        c.commit()
+        c.close()
+
+        # Check inbox_count = 1 (clarification only, no claim)
+        resp = client.get("/api/v1/agent/me", headers=_hdr())
+        assert resp.json()["inbox_count"] == 1
+
+    def test_inbox_count_excludes_answered_clarifications(self, client):
+        """inbox_count does not count answered clarifications."""
+        c = _TestSession()
+        from app.delivery.models import ClarificationRequest, Feature, Task
+        from app.identity.agents import Agent
+        from app.projects.models import Project
+
+        p = c.query(Project).filter(Project.slug.like("p-%")).first()
+        f = c.query(Feature).filter_by(project_id=p.id).first()
+        t = c.query(Task).filter_by(feature_id=f.id).first()
+        agent = c.query(Agent).filter(Agent.name.like("A-%")).first()
+
+        cr = ClarificationRequest(
+            task_id=t.id,
+            author_type="agent",
+            author_id=agent.id,
+            question="What?",
+            state="answered",
+            answer="JSON.",
+            answered_by="user-001",
+        )
+        c.add(cr)
+        c.commit()
+        c.close()
+
+        # Check inbox_count = 0 (answered, not open)
+        resp = client.get("/api/v1/agent/me", headers=_hdr())
+        assert resp.json()["inbox_count"] == 0
+
     def test_agent_me_no_token(self, client):
         resp = client.get("/api/v1/agent/me")
         assert resp.status_code == 401
