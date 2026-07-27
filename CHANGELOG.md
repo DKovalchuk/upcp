@@ -2,6 +2,48 @@
 
 All notable changes to UPCP will be documented in this file.
 
+## [1.0.0] - 2026-07-27
+
+### Added
+- M7: User, Organization, Membership, Session models + migrations
+- M7: JWT token service with access/refresh tokens
+- M7: Auth middleware for all endpoints
+- M7: Role, Permission, RoleBinding models + seed roles
+- M7: Auth endpoints (setup, login, logout, refresh, me, password change)
+- M7: Agent model + agent token authentication
+- M8: Redis integration (docker-compose, client, health check)
+- M8: Structured JSON logging with correlation IDs
+- M8: Sliding window rate limiter (per-route limits)
+- M8: SecretProvider abstraction (env/file/composite)
+- M8: Git adapter hardening + input validation
+- M8: Security headers (CSP, HSTS, X-Frame-Options, Referrer-Policy)
+- M8: CORS configuration
+- M9: TaskClaim + Heartbeat models + migrations
+- M9: ClarificationRequest model + migration
+- M9: Task lifecycle state machine (10 states)
+- M9: Task dependencies with DFS cycle detection
+- M9: Agent workflow endpoints (claim, release, heartbeat, progress)
+- M9: Agent inbox + playbook endpoints
+- M9: 8 MCP workflow tools
+- M10: Evidence, ReviewRound, ReviewFinding models + migration
+- M10: DoDItem.required_evidence_type for evidence-gated quality
+- M10: EvidenceService (create, list, verify, accept, reject)
+- M10: ReviewRoundService (create, start, add_finding, submit_verdict)
+- M10: ReviewGateService (submit-for-review quality gate)
+- M10: Evidence & review API endpoints
+- M10: 4 MCP evidence/review tools
+- M11: AttentionDashboardService (9 sections)
+- M11: Project health score calculation
+- M11: PortfolioService (aggregate stats)
+- M11: Notification model + migration 0016
+- M11: NotificationService (CRUD + unread count)
+- M11: Dashboard attention API + health + portfolio endpoints
+- M11: Notification API endpoints
+- M11: Attention Dashboard frontend (7 sections, auto-refresh)
+- M11: Notification Bell (unread count, dropdown, mark-as-read)
+- M11: Saved Views (localStorage-backed filter persistence)
+- M11: Keyboard Navigation (j/k, Enter, Esc, [/])
+
 ## [Unreleased]
 
 ### Added
