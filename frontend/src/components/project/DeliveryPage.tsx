@@ -9,6 +9,7 @@ import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
 import { featureFields, taskFields } from '@/components/forms/entity-fields';
 import { TaskDetailSheet } from './TaskDetailSheet';
 import { BoardView } from './BoardView';
+import { SavedViewsDropdown } from './SavedViewsDropdown';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityDot } from '@/components/ui/PriorityDot';
 import { Button } from '@/components/ui/button';
@@ -127,6 +128,12 @@ export function DeliveryPage() {
             onSearch={setSearch}
           />
         </div>
+        <SavedViewsDropdown
+          currentFilters={{ search }}
+          onApplyView={(filters) => {
+            if (filters.search) setSearch(filters.search);
+          }}
+        />
       </div>
 
       {!features?.length ? (
