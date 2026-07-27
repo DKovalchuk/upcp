@@ -15,12 +15,20 @@ from app.identity.agent_endpoints import router as agent_router
 from app.identity.middleware import AuthMiddleware
 from app.mcp.server import create_mcp_router
 from app.shared.config import get_settings
+from app.shared.correlation import CorrelationMiddleware
 from app.shared.errors import register_error_handlers
+from app.shared.logging import setup_logging
 
 settings = get_settings()
 
+# Setup structured logging
+setup_logging(settings.log_level)
+
 app = FastAPI(title="UPCP Backend", version="0.1.0")
 register_error_handlers(app)
+
+# Correlation middleware — adds request_id to all logs
+app.add_middleware(CorrelationMiddleware)
 
 # Auth middleware — protects all /api/v1/ routes except public ones
 if settings.env != "test":
