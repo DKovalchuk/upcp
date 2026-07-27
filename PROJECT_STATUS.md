@@ -1,9 +1,35 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-27
-Milestone: M8 — Runtime Foundation (Complete)
-Current Task: M8 complete → next: M9 Agent Workflow MVP
+Milestone: M9 — Agent Workflow MVP (In Progress)
+Current Task: M9 complete → next: M10 Evidence & Review Engine
 Blockers: none
+
+## M9 Progress (Complete)
+
+- [x] TASK-0070: TaskClaim + Heartbeat Models
+- [x] TASK-0071: ClarificationRequest Model
+- [x] TASK-0072: Task Lifecycle State Machine
+- [x] TASK-0073: Task Dependencies
+- [x] TASK-0074: Agent Workflow Endpoints (claim, release, heartbeat, progress)
+- [x] TASK-0075: Agent Inbox + Playbook (me, inbox, playbook endpoints)
+- [x] TASK-0076: MCP Workflow Tools (8 tools: claim, release, heartbeat, clarification, review, inbox, playbook)
+
+### M9 Summary
+
+**Backend:**
+- Models: TaskClaim, Heartbeat, ClarificationRequest, TaskDependency
+- Lifecycle: state machine with 10 states, valid transitions enforced
+- Dependencies: DFS cycle detection, no-self-dep check constraint
+- API: 4 workflow endpoints + 3 agent self-service endpoints
+- MCP: 8 new workflow tools
+- Migrations: 0012 (claim/heartbeat), 0013 (clarification), 0014 (dependencies)
+- Tests: 479 passing (was 396)
+
+**Frontend:**
+- Types: TaskClaim, Heartbeat, ClarificationRequest, AgentMe, AgentEvent
+- API functions: claimTask, releaseTask, sendHeartbeat, updateProgress, getAgentMe, getAgentInbox, getAgentPlaybook
+- TypeScript compiles, 140 tests passing
 
 ## M7 Progress (Complete)
 
