@@ -12,6 +12,7 @@ from app.api.v1.reporting import router as reporting_router
 from app.api.v1.search import router as search_router
 from app.api.v1.structure import router as structure_router
 from app.identity.agent_endpoints import router as agent_router
+from app.identity.endpoints import router as auth_router
 from app.identity.middleware import AuthMiddleware
 from app.mcp.server import create_mcp_router
 from app.shared.config import get_settings
@@ -84,6 +85,7 @@ app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(audit_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(agent_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/auth")
 
 # MCP server
 app.include_router(create_mcp_router(), prefix="/mcp")

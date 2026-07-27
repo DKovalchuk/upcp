@@ -40,7 +40,7 @@ services:
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
 
   app:
-    image: upcp-backend:stage
+    image: registry.gitlab.local/dmitry.kovalchuk/upcp/backend:stage
     restart: unless-stopped
     command: >
       sh -c "alembic upgrade head &&
@@ -67,7 +67,7 @@ services:
       start_period: 15s
 
   frontend:
-    image: upcp-frontend:stage
+    image: registry.gitlab.local/dmitry.kovalchuk/upcp/frontend:stage
     restart: unless-stopped
     expose:
       - "35173"
