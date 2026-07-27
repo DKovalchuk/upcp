@@ -62,7 +62,7 @@ async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && !window.location.pathname.startsWith('/login')) {
       safeStorage.removeItem('upcp_access_token');
       safeStorage.removeItem('upcp_refresh_token');
       window.location.href = '/login';
