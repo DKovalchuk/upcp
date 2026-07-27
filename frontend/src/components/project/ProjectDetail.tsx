@@ -41,7 +41,7 @@ const TAB_ROUTES: Record<string, string> = {
   quality: 'quality',
   audit: 'audit',
   git: 'git',
-  settings: 'settings',
+  reports: 'reports',
 };
 
 export function ProjectDetail() {
@@ -105,7 +105,13 @@ export function ProjectDetail() {
         </div>
       </div>
 
-      <Tabs value={activeTab}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value: string) => {
+          const basePath = `/projects/${projectId}`;
+          navigate({ to: value === 'overview' ? basePath : `${basePath}/${value}` });
+        }}
+      >
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="structure">Structure</TabsTrigger>
@@ -113,7 +119,7 @@ export function ProjectDetail() {
           <TabsTrigger value="quality">Quality</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
           <TabsTrigger value="git">Git</TabsTrigger>
-          <TabsTrigger value="settings">Reports</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -174,7 +180,7 @@ export function ProjectDetail() {
           <GitIntegrationPage />
         </TabsContent>
 
-        <TabsContent value="settings" className="mt-6">
+        <TabsContent value="reports" className="mt-6">
           <ReportsPage />
         </TabsContent>
       </Tabs>

@@ -3,6 +3,13 @@ import { useAuditEvents } from '@/hooks/use-audit';
 import { useProjectId } from '@/hooks/use-project-id';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -48,29 +55,29 @@ export function AuditPage() {
       </div>
 
       <div className="flex items-center gap-3">
-        <select
-          value={eventType}
-          onChange={(e) => setEventType(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">All event types</option>
-          <option value="created">Created</option>
-          <option value="updated">Updated</option>
-          <option value="deleted">Deleted</option>
-        </select>
-        <select
-          value={entityType}
-          onChange={(e) => setEntityType(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">All entity types</option>
-          <option value="project">Project</option>
-          <option value="component">Component</option>
-          <option value="module">Module</option>
-          <option value="feature">Feature</option>
-          <option value="task">Task</option>
-          <option value="subtask">Subtask</option>
-        </select>
+        <Select value={eventType} onValueChange={(v) => setEventType(v ?? '')}>
+          <SelectTrigger className="h-9 w-[160px]">
+            <SelectValue placeholder="All event types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="created">Created</SelectItem>
+            <SelectItem value="updated">Updated</SelectItem>
+            <SelectItem value="deleted">Deleted</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={entityType} onValueChange={(v) => setEntityType(v ?? '')}>
+          <SelectTrigger className="h-9 w-[160px]">
+            <SelectValue placeholder="All entity types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="project">Project</SelectItem>
+            <SelectItem value="component">Component</SelectItem>
+            <SelectItem value="module">Module</SelectItem>
+            <SelectItem value="feature">Feature</SelectItem>
+            <SelectItem value="task">Task</SelectItem>
+            <SelectItem value="subtask">Subtask</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {!events.length ? (

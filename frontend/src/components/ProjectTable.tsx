@@ -41,6 +41,14 @@ export function ProjectTable({ projects }: ProjectTableProps) {
               key={project.id}
               className="cursor-pointer hover:bg-muted/50"
               onClick={() => navigate({ to: '/projects/$projectId', params: { projectId: project.id } })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate({ to: '/projects/$projectId', params: { projectId: project.id } });
+                }
+              }}
+              tabIndex={0}
+              role="button"
             >
               <TableCell className="font-medium">{project.name}</TableCell>
               <TableCell>
