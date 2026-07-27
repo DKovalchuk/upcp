@@ -143,6 +143,72 @@ class TestClarificationTool:
         assert data["question"] == "What format?"
 
 
+class TestSubmitForReview:
+    def test_submit_own_task(self, session, seed):
+        """Agent can submit their own claimed task for review."""
+        _call("claim_task", {"task_id": seed["task_id"], "agent_id": "a1"}, session)
+        # Move to in_progress first (in_progress → ready_for_review is valid)
+        t = session.get(Task, seed["task_id"])
+        t.status = "in_progress"
+        session.flush()
+
+        data = _call(
+            "submit_task_for_review",
+            {
+                "task_id": seed["task_id"],
+                "agent_id": "a1",
+            },
+            session,
+        )
+        assert data["status"] == "ready_for_review"
+
+    def test_submit_other_agents_task_rejected(self, session, seed):
+        """Agent cannot submit task claimed by another agent."""
+        _call("claim_task", {"task_id": seed["task_id"], "agent_id": "a1"}, session)
+        t = session.get(Task, seed["task_id"])
+        t.status = "in_progress"
+        session.flush()
+
+        import asyncio
+
+        from app.mcp.tools import call_tool as ct
+
+        result = asyncio.run(
+            ct(
+                "submit_task_for_review",
+                {
+                    "task_id": seed["task_id"],
+                    "agent_id": "a2",
+                },
+                session=session,
+            )
+        )
+        assert result.is_error is True
+        assert "no active claim" in result.content[0]["text"]
+
+    def test_submit_unclaimed_task_rejected(self, session, seed):
+        """Cannot submit task with no active claim."""
+        t = session.get(Task, seed["task_id"])
+        t.status = "in_progress"
+        session.flush()
+
+        import asyncio
+
+        from app.mcp.tools import call_tool as ct
+
+        result = asyncio.run(
+            ct(
+                "submit_task_for_review",
+                {
+                    "task_id": seed["task_id"],
+                    "agent_id": "a1",
+                },
+                session=session,
+            )
+        )
+        assert result.is_error is True
+
+
 class TestPlaybookTool:
     def test_get_playbook(self, session):
         data = _call("get_agent_playbook", {}, session)
