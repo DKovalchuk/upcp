@@ -1,5 +1,8 @@
 from collections.abc import Generator
 
+# Import all identity models so Base.metadata knows about them.
+import app.identity.models  # noqa: F401
+import app.identity.rbac  # noqa: F401
 import pytest
 from app.shared.database import Base, get_session
 from app.shared.errors import register_error_handlers
