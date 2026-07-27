@@ -17,10 +17,12 @@ import type { AuditEvent, AuditEventCreate } from '@/types/audit';
 import type { HealthResponse, PaginatedResponse, DashboardStatsResponse, QualityStatsResponse } from '@/types/api';
 import type { GitProvider, GitProviderCreate, GitBranch, GitCommit, GitLink } from '@/types/git';
 
+import { safeStorage } from '@/lib/storage';
+
 const API_BASE = '/api/v1';
 
 function getToken(): string | null {
-  return localStorage.getItem('upcp_access_token');
+  return safeStorage.getItem('upcp_access_token');
 }
 
 function paginationParams(params?: { offset?: number; limit?: number }): string {
@@ -52,8 +54,8 @@ async function apiRequest<T>(
 
   if (!response.ok) {
     if (response.status === 401) {
-      localStorage.removeItem('upcp_access_token');
-      localStorage.removeItem('upcp_refresh_token');
+      safeStorage.removeItem('upcp_access_token');
+      safeStorage.removeItem('upcp_refresh_token');
       window.location.href = '/login';
       throw new Error('Unauthorized');
     }

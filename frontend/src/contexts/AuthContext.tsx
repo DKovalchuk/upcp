@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authMe, authRefresh, type AuthUser } from '@/lib/auth';
+import { safeStorage } from '@/lib/storage';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -17,7 +18,7 @@ const REFRESH_KEY = 'upcp_refresh_token';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem(TOKEN_KEY));
+  const [token, setToken] = useState<string | null>(safeStorage.getItem(TOKEN_KEY));
   const [isLoading, setIsLoading] = useState(true);
 
   const loadUser = useCallback(async (accessToken: string) => {
@@ -26,23 +27,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData);
     } catch {
       // Token invalid, try refresh
-      const refreshToken = localStorage.getItem(REFRESH_KEY);
+      const refreshToken = safeStorage.getItem(REFRESH_KEY);
       if (refreshToken) {
         try {
           const tokens = await authRefresh(refreshToken);
-          localStorage.setItem(TOKEN_KEY, tokens.access_token);
-          localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
+          safeStorage.setItem(TOKEN_KEY, tokens.access_token);
+          safeStorage.setItem(REFRESH_KEY, tokens.refresh_token);
           setToken(tokens.access_token);
           const userData = await authMe(tokens.access_token);
           setUser(userData);
         } catch {
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(REFRESH_KEY);
+          safeStorage.removeItem(TOKEN_KEY);
+          safeStorage.removeItem(REFRESH_KEY);
           setToken(null);
           setUser(null);
         }
       } else {
-        localStorage.removeItem(TOKEN_KEY);
+        safeStorage.removeItem(TOKEN_KEY);
         setToken(null);
         setUser(null);
       }
@@ -58,14 +59,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token, loadUser]);
 
   const setTokens = useCallback((access: string, refresh: string) => {
-    localStorage.setItem(TOKEN_KEY, access);
-    localStorage.setItem(REFRESH_KEY, refresh);
+    safeStorage.setItem(TOKEN_KEY, access);
+    safeStorage.setItem(REFRESH_KEY, refresh);
     setToken(access);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_KEY);
+    safeStorage.removeItem(TOKEN_KEY);
+    safeStorage.removeItem(REFRESH_KEY);
     setToken(null);
     setUser(null);
   }, []);
