@@ -69,10 +69,17 @@ app.include_router(create_mcp_router(), prefix="/mcp")
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "service": "upcp-backend"}
+def health() -> dict[str, object]:
+    from app.shared.redis import check_redis_health
+
+    redis_status = check_redis_health()
+    return {
+        "status": "ok" if redis_status["status"] == "ok" else "degraded",
+        "service": "upcp-backend",
+        "redis": redis_status["status"],
+    }
 
 
 @app.get("/api/v1/health")
-def api_health() -> dict[str, str]:
-    return {"status": "ok", "service": "upcp-backend"}
+def api_health() -> dict[str, object]:
+    return health()

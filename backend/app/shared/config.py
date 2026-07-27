@@ -16,6 +16,10 @@ class Settings(BaseSettings):
         default="postgresql+psycopg://upcp:upcp_local_change_me@localhost:5432/upcp",
         alias="DATABASE_URL",
     )
+    redis_url: str = Field(
+        default="redis://localhost:6379/0",
+        alias="REDIS_URL",
+    )
 
     # LLM (optional)
     llm_enabled: bool = False
