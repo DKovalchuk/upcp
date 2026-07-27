@@ -1,4 +1,4 @@
-import { Bell, Search, Sun, Moon, Monitor } from 'lucide-react';
+import { Search, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -73,15 +74,7 @@ export function TopBar({ onCommandOpen }: TopBarProps) {
           <TooltipContent>Search (Ctrl+K)</TooltipContent>
         </Tooltip>
         <ThemeToggle />
-        <Tooltip>
-          <TooltipTrigger render={<Button variant="ghost" size="icon" className="relative h-8 w-8" aria-label="Notifications" />}>
-            <Bell className="h-4 w-4" />
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground animate-badge-pop">
-              3
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>Notifications</TooltipContent>
-        </Tooltip>
+        <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger className="rounded-full ml-1">
             <Avatar className="h-7 w-7">
