@@ -1,5 +1,5 @@
 # ════════════════════════════════════════════════════════════════
-# UPCP CI/CD Pipeline (optimized)
+# UPCP CI/CD Pipeline
 # ════════════════════════════════════════════════════════════════
 #
 # Flow:
@@ -7,13 +7,14 @@
 #   develop   → MR → main      (lint + all tests + build)
 #   main      → deploy:stage    (manual confirmation)
 #
+# Stage environment is pre-prod: services run there continuously
+# and are used by the team (including via MCP) for project management.
+#
 # Optimizations:
 #   - DAG with needs: for maximum parallelism
-#   - GIT_DEPTH: 1 for shallow clone
-#   - pull_policy: if-not-present for Docker images
+#   - Docker BuildKit with registry cache
 #   - pytest-xdist for parallel test execution
-#   - Docker BuildKit for faster builds
-#   - Cache policy: pull for branches, push for main
+#   - Cache pull-push on main, pull-only on branches
 #
 # ════════════════════════════════════════════════════════════════
 
@@ -23,24 +24,7 @@ stages:
   - build
   - deploy
 
-default:
-  tags:
-    - laptop
-  interruptible: true
-  retry:
-    max: 1
-    when:
-      - runner_system_failure
-  # variables:
-  #   GIT_STRATEGY: fetch
-  #   GIT_DEPTH: 1
-  #   GIT_CLEAN_FLAGS: -ffdx -e .cache/ -e node_modules/
-
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
-
-# ── Workflow rules ─────────────────────────────────────────────
+# ── Workflow rules (prevent duplicate pipelines) ───────────────
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -48,14 +32,31 @@ workflow:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
 
+default:
+  tags:
+    - laptop
+  interruptible: true
+
+# ── Global variables ──────────────────────────────────────────
+variables:
+  GIT_DEPTH: "1"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
+  DOCKER_BUILDKIT: "1"
+
+# ── Retry policy ──────────────────────────────────────────────
+.retry-on-system-failure:
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+
 # ════════════════════════════════════════════════════════════════
-# LINT — fast feedback, runs immediately (no stage dependency)
+# TEMPLATES
 # ════════════════════════════════════════════════════════════════
 
-.backend-lint-template:
-  stage: lint
+.python-base:
   image: python:3.12-slim
-  needs: []
   cache:
     key:
       files:
@@ -65,29 +66,13 @@ workflow:
       - .cache/pip
     fallback_keys:
       - backend-pip
-    policy: pull
+    # pull-push (default): cache is uploaded after the job
+    # so subsequent runs with the same requirements.txt skip downloads
   before_script:
-    - pip install --quiet ruff mypy
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_COMMIT_BRANCH == "main"
+    - pip install --quiet -r backend/requirements.txt
 
-backend:lint:
-  extends: .backend-lint-template
-  script:
-    - ruff check backend
-    - ruff format --check backend
-
-backend:typecheck:
-  extends: .backend-lint-template
-  script:
-    - mypy backend/app
-
-frontend:lint:
-  stage: lint
+.frontend-base:
   image: node:20-alpine
-  needs: []
   cache:
     key:
       files:
@@ -95,13 +80,63 @@ frontend:lint:
       prefix: frontend-npm
     paths:
       - .cache/npm
-      - frontend/node_modules
     fallback_keys:
       - frontend-npm
-    policy: pull
+    # npm ci always deletes node_modules, so only cache the download dir
   before_script:
     - cd frontend
     - npm ci --prefer-offline --no-audit --no-fund
+
+.docker-build-base:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  # Uses --cache-to type=inline: embeds cache metadata in the :dev image
+  # so subsequent builds can --cache-from it without a separate cache image
+
+# ════════════════════════════════════════════════════════════════
+# LINT — fast feedback, parallel
+# ════════════════════════════════════════════════════════════════
+
+backend:lint:
+  stage: lint
+  extends:
+    - .python-base
+    - .retry-on-system-failure
+  needs: []
+  script:
+    - ruff check backend
+    - ruff format --check backend
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+backend:typecheck:
+  stage: lint
+  extends:
+    - .python-base
+    - .retry-on-system-failure
+  needs: []
+  script:
+    - mypy backend/app
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+frontend:lint:
+  stage: lint
+  extends:
+    - .frontend-base
+    - .retry-on-system-failure
+  needs: []
   script:
     - npm run lint
   rules:
@@ -110,12 +145,14 @@ frontend:lint:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ════════════════════════════════════════════════════════════════
-# TEST — unit tests + coverage, runs in parallel with lint
+# TEST — parallel with lint (DAG)
 # ════════════════════════════════════════════════════════════════
 
-.backend-test-template:
+backend:test:
   stage: test
-  image: python:3.12-slim
+  extends:
+    - .python-base
+    - .retry-on-system-failure
   needs: []
   services:
     - postgres:16
@@ -126,24 +163,12 @@ frontend:lint:
     DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
     UPCP_ENV: ci
     UPCP_SECRET_KEY: ci-test-only
-  cache:
-    key:
-      files:
-        - backend/requirements.txt
-      prefix: backend-pip
-    paths:
-      - .cache/pip
-    fallback_keys:
-      - backend-pip
-    policy: pull
   before_script:
     - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
     - pip install --quiet -r backend/requirements.txt pytest-xdist
-
-backend:test:
-  extends: .backend-test-template
   script:
     - python -m pytest backend/tests -q --tb=short -x -n auto
+        --cov=app --cov-report=term-missing --cov-report=xml:backend/coverage.xml
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
@@ -158,24 +183,12 @@ backend:test:
 
 frontend:test:
   stage: test
-  image: node:20-alpine
+  extends:
+    - .frontend-base
+    - .retry-on-system-failure
   needs: []
-  cache:
-    key:
-      files:
-        - frontend/package-lock.json
-      prefix: frontend-npm
-    paths:
-      - .cache/npm
-      - frontend/node_modules
-    fallback_keys:
-      - frontend-npm
-    policy: pull
-  before_script:
-    - cd frontend
-    - npm ci --prefer-offline --no-audit --no-fund
   script:
-    - npm run test -- --coverage
+    - npm run test -- --reporter=junit --outputFile=test-results.xml
   artifacts:
     reports:
       junit: frontend/test-results.xml
@@ -189,11 +202,13 @@ frontend:test:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ════════════════════════════════════════════════════════════════
-# TEST — security (develop + main only, allow_failure)
+# TEST — security (develop + main, advisory)
 # ════════════════════════════════════════════════════════════════
 
 backend:security:
   stage: test
+  extends:
+    - .retry-on-system-failure
   image: python:3.12-slim
   needs: []
   before_script:
@@ -212,102 +227,114 @@ backend:security:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ════════════════════════════════════════════════════════════════
-# BUILD — Docker images with BuildKit
+# BUILD — Docker images with BuildKit (develop + main only)
 # ════════════════════════════════════════════════════════════════
 
-.build-template:
-  stage: build
-  image: docker:24
-  variables:
-    DOCKER_HOST: "unix:///var/run/docker.sock"
-    DOCKER_BUILDKIT: 1
-    REGISTRY: "gitlab.local:8929"
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$REGISTRY"
-
-build:backend-image:
-  extends: .build-template
+build:backend:
+  extends: .docker-build-base
   needs:
     - backend:test
-    - backend:security
   script:
-    - docker build --cache-from "$REGISTRY/$CI_PROJECT_PATH/backend:dev" -t "$REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA" -t "$REGISTRY/$CI_PROJECT_PATH/backend:dev" .
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA" || true
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:dev" || true
-  allow_failure: true
+    - docker build
+        --cache-from "$CI_REGISTRY_IMAGE/backend:dev"
+        --cache-to type=inline
+        --tag "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
+        --tag "$CI_REGISTRY_IMAGE/backend:dev"
+        .
+    - docker push "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/backend:dev"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
 
-build:frontend-image:
-  extends: .build-template
+build:frontend:
+  extends: .docker-build-base
   needs:
     - frontend:test
   script:
-    - docker build --cache-from "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" -t "$REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA" -t "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" frontend/
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA" || true
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" || true
-  allow_failure: true
+    - docker build
+        --cache-from "$CI_REGISTRY_IMAGE/frontend:dev"
+        --cache-to type=inline
+        --tag "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
+        --tag "$CI_REGISTRY_IMAGE/frontend:dev"
+        frontend/
+    - docker push "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/frontend:dev"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
 
-frontend:build:
-  stage: build
-  image: node:20-alpine
-  needs: []
-  cache:
-    key:
-      files:
-        - frontend/package-lock.json
-      prefix: frontend-npm
-    paths:
-      - .cache/npm
-      - frontend/node_modules
-    fallback_keys:
-      - frontend-npm
-    policy: pull
-  before_script:
-    - cd frontend
-    - npm ci --prefer-offline --no-audit --no-fund
-  script:
-    - npm run build
-  artifacts:
-    paths:
-      - frontend/dist/
-    expire_in: 7 days
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_COMMIT_BRANCH == "main"
-
 # ════════════════════════════════════════════════════════════════
-# DEPLOY — stage environment (main only, manual)
+# DEPLOY — stage (pre-prod), main only, manual
 # ════════════════════════════════════════════════════════════════
+#
+# Stage runs continuously — services are used by the team and
+# MCP for project management. Deploy restarts with new images.
+#
+# IMPORTANT: Uses host Docker daemon (not DinD) so compose services
+# start on the host where they're accessible at localhost:3080.
+# Runner config.toml must mount the Docker socket:
+#   [[runners]]
+#     executor = "docker"
+#     [runners.docker]
+#       volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
+#
+# Flow:
+#   1. Pull dev images just built by CI
+#   2. Tag as :stage
+#   3. Push :stage to registry (for docker-compose.stage.yml)
+#   4. docker compose pull — fetch stage images locally
+#   5. docker compose up -d — restart services with new images
 
 deploy:stage:
   stage: deploy
   image: docker:24
+  # No services: uses host Docker daemon via mounted socket
   variables:
-    DOCKER_HOST: "unix:///var/run/docker.sock"
-    REGISTRY: "gitlab.local:8929"
+    DOCKER_HOST: unix:///var/run/docker.sock
   environment:
     name: stage
     url: http://localhost:3080
   before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$REGISTRY"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
-    - docker pull "$REGISTRY/$CI_PROJECT_PATH/backend:dev"
-    - docker tag "$REGISTRY/$CI_PROJECT_PATH/backend:dev" "$REGISTRY/$CI_PROJECT_PATH/backend:stage"
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/backend:stage" || true
-    - docker pull "$REGISTRY/$CI_PROJECT_PATH/frontend:dev"
-    - docker tag "$REGISTRY/$CI_PROJECT_PATH/frontend:dev" "$REGISTRY/$CI_PROJECT_PATH/frontend:stage"
-    - docker push "$REGISTRY/$CI_PROJECT_PATH/frontend:stage" || true
-    - echo "Stage images ready. Deploy with docker compose -f docker-compose.stage.yml up -d"
+    # Pull and tag images for stage
+    - docker pull "$CI_REGISTRY_IMAGE/backend:dev"
+    - docker tag  "$CI_REGISTRY_IMAGE/backend:dev" "$CI_REGISTRY_IMAGE/backend:stage"
+    - docker push "$CI_REGISTRY_IMAGE/backend:stage"
+    - docker pull "$CI_REGISTRY_IMAGE/frontend:dev"
+    - docker tag  "$CI_REGISTRY_IMAGE/frontend:dev" "$CI_REGISTRY_IMAGE/frontend:stage"
+    - docker push "$CI_REGISTRY_IMAGE/frontend:stage"
+    # Deploy with docker compose
+    # --force-recreate ensures containers use the freshly pulled images
+    - docker compose -f docker-compose.stage.yml pull
+    - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
+    # Wait for health check
+    - echo "Waiting for app health check..."
+    - for i in $(seq 1 30); do
+        wget -qO- http://localhost:38081/health && break || sleep 2;
+      done
+    - echo "Stage deployment complete."
   needs:
-    - build:backend-image
-    - build:frontend-image
+    - build:backend
+    - build:frontend
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
       allow_failure: false
+
+# Stop stage environment (manual, for cleanup)
+stop:stage:
+  stage: deploy
+  image: docker:24
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
+  environment:
+    name: stage
+    action: stop
+  script:
+    - docker compose -f docker-compose.stage.yml down -v
+  when: manual
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

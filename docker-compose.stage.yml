@@ -1,3 +1,13 @@
+# Stage (pre-prod) environment
+# Uses pre-built images from CI registry.
+# CI deploy job pushes :stage images, then runs:
+#   docker compose -f docker-compose.stage.yml pull
+#   docker compose -f docker-compose.stage.yml up -d
+#
+# For local development with hot-reload, use docker-compose.yml instead.
+# To run stage locally with registry images, set CI_REGISTRY_IMAGE in .env:
+#   CI_REGISTRY_IMAGE=gitlab.local:8929/dmitry.kovalchuk/upcp
+
 name: upcp-stage
 
 services:
@@ -19,10 +29,7 @@ services:
       retries: 10
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ${CI_REGISTRY_IMAGE:-registry.gitlab.local/dmitry.kovalchuk/upcp}/backend:stage
+    image: ${CI_REGISTRY_IMAGE}/backend:stage
     restart: unless-stopped
     command: >
       sh -c "alembic upgrade head &&
@@ -46,10 +53,7 @@ services:
       start_period: 15s
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: ${CI_REGISTRY_IMAGE:-registry.gitlab.local/dmitry.kovalchuk/upcp}/frontend:stage
+    image: ${CI_REGISTRY_IMAGE}/frontend:stage
     restart: unless-stopped
     expose:
       - "35173"
