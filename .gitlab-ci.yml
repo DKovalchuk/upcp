@@ -87,14 +87,14 @@ variables:
     - cd frontend
     - npm ci --prefer-offline --no-audit --no-fund
 
+# Uses host Docker daemon (not DinD) — runner must mount Docker socket:
+#   [[runners.docker]]
+#     volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
 .docker-build-base:
   stage: build
   image: docker:24
-  services:
-    - docker:24-dind
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_HOST: unix:///var/run/docker.sock
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   # Uses --cache-to type=inline: embeds cache metadata in the :dev image
