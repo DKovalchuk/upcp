@@ -1,10 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
 import {
   AlertTriangle,
   MessageCircle,
   Clock,
-  ShieldAlert,
   TrendingDown,
   CheckCircle,
   Ban,
@@ -57,17 +55,11 @@ function AttentionSection({
   );
 }
 
-function TaskLink({ item, children }: { item: AttentionItem; children: React.ReactNode }) {
-  if (!item.task_id) return <div className="text-sm">{children}</div>;
+function TaskLink({ children }: { children: React.ReactNode }) {
   return (
-    <Link
-      to="/projects/$projectId"
-      params={{ projectId: '' }}
-      search={{ tab: 'delivery', task: item.task_id as string }}
-      className="block rounded-lg border p-2 text-sm transition-colors hover:bg-muted/50"
-    >
+    <div className="block rounded-lg border p-2 text-sm">
       {children}
-    </Link>
+    </div>
   );
 }
 
@@ -80,7 +72,7 @@ export function NeedsReviewSection({ items }: { items: AttentionItem[] }) {
       count={items.length}
       items={items}
       renderItem={(item) => (
-        <TaskLink item={item}>
+        <TaskLink>
           <p className="font-medium">{(item.task_id as string)?.slice(0, 8)}</p>
           <p className="text-xs text-muted-foreground">
             by {item.requested_by as string}
@@ -100,7 +92,7 @@ export function OpenClarificationsSection({ items }: { items: AttentionItem[] })
       count={items.length}
       items={items}
       renderItem={(item) => (
-        <TaskLink item={item}>
+        <TaskLink>
           <div className="flex items-start gap-2">
             <Ban className="mt-0.5 h-3 w-3 shrink-0 text-red-500" />
             <div className="min-w-0">
@@ -127,7 +119,7 @@ export function BlockedTasksSection({ items }: { items: AttentionItem[] }) {
       count={items.length}
       items={items}
       renderItem={(item) => (
-        <TaskLink item={item}>
+        <TaskLink>
           <p className="font-medium">{item.title as string}</p>
         </TaskLink>
       )}
@@ -144,7 +136,7 @@ export function StaleAgentsSection({ items }: { items: AttentionItem[] }) {
       count={items.length}
       items={items}
       renderItem={(item) => (
-        <TaskLink item={item}>
+        <TaskLink>
           <p className="font-medium">{(item.task_id as string)?.slice(0, 8)}</p>
           <p className="text-xs text-muted-foreground">
             agent: {item.agent_id as string}
@@ -164,7 +156,7 @@ export function FailedQualityGatesSection({ items }: { items: AttentionItem[] })
       count={items.length}
       items={items}
       renderItem={(item) => (
-        <TaskLink item={item}>
+        <TaskLink>
           <p className="font-medium">{(item.task_id as string)?.slice(0, 8)}</p>
           <p className="text-xs text-muted-foreground">
             failed: {(item.failed_items as string[])?.join(', ')}
@@ -184,7 +176,7 @@ export function RejectedTasksSection({ items }: { items: AttentionItem[] }) {
       count={items.length}
       items={items}
       renderItem={(item) => (
-        <TaskLink item={item}>
+        <TaskLink>
           <p className="font-medium">{(item.task_id as string)?.slice(0, 8)}</p>
           <p className="text-xs text-muted-foreground">
             {item.summary as string}
@@ -204,7 +196,7 @@ export function AgentVerdictsSection({ items }: { items: AttentionItem[] }) {
       count={items.length}
       items={items}
       renderItem={(item) => (
-        <TaskLink item={item}>
+        <TaskLink>
           <div className="flex items-center gap-2">
             <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${
               item.verdict === 'approve'
