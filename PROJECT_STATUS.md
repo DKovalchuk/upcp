@@ -2,14 +2,14 @@
 
 Updated: 2026-07-27
 Milestone: M11 — Human Control UX (In Progress)
-Current Task: TASK-0083 Attention Dashboard API
+Current Task: TASK-0083, 0085 done → next: TASK-0084 Attention Dashboard Frontend
 Blockers: none
 
 ## M11 Progress
 
-- [ ] TASK-0083: Attention Dashboard API
+- [x] TASK-0083: Attention Dashboard API
 - [ ] TASK-0084: Attention Dashboard Frontend
-- [ ] TASK-0085: Notification Model & API
+- [x] TASK-0085: Notification Model & API
 - [ ] TASK-0086: Notification Frontend
 - [ ] TASK-0087: Project Health & Portfolio API
 - [ ] TASK-0088: Project Drill-down UX
