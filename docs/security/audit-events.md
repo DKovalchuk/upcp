@@ -1,13 +1,13 @@
-# Аудит-события — UPCP v2
+# Audit Events — UPCP v2
 
-> Область: `security` / `audit` | Версия: 2.0.0
+> Scope: `security` / `audit` | Version: 2.0.0
 
-## 1. Обзор
+## 1. Overview
 
-Все значимые действия в UPCP записываются в неизменяемый аудит-лог.
-Аудит-события используются для расследования инцидентов, compliance и мониторинга.
+All significant actions in UPCP are recorded in an immutable audit log.
+Audit events are used for incident investigation, compliance, and monitoring.
 
-## 2. Формат события
+## 2. Event Format
 
 ```json
 {
@@ -38,47 +38,47 @@
 }
 ```
 
-### 2.1 Обязательные поля
+### 2.1 Required Fields
 
-| Поле          | Описание                                  |
-|--------------|------------------------------------------|
-| `id`         | UUID события                              |
-| `timestamp`  | ISO 8601, UTC                            |
-| `event_type` | Иерархическое имя (dot-separated)        |
-| `severity`   | `info`, `warning`, `critical`            |
-| `actor`      | Кто совершил действие                    |
-| `resource`   | Над чем совершено действие               |
+| Field         | Description                                 |
+|---------------|---------------------------------------------|
+| `id`          | Event UUID                                  |
+| `timestamp`   | ISO 8601, UTC                               |
+| `event_type`  | Hierarchical name (dot-separated)           |
+| `severity`    | `info`, `warning`, `critical`               |
+| `actor`       | Who performed the action                    |
+| `resource`    | What was acted upon                         |
 
 ### 2.2 Severity Levels
 
-| Уровень    | Описание                                        |
-|-----------|------------------------------------------------|
-| `info`    | Штатные операции                                |
-| `warning` | Подозрительные, но допустимые операции          |
-| `critical`| Нарушения безопасности, блокировки              |
+| Level     | Description                                       |
+|-----------|---------------------------------------------------|
+| `info`    | Normal operations                                 |
+| `warning` | Suspicious but acceptable operations              |
+| `critical`| Security violations, lockouts                     |
 
-## 3. События аутентификации
+## 3. Authentication Events
 
-| Event Type                        | Severity  | Описание                              |
-|----------------------------------|-----------|---------------------------------------|
-| `auth.login.success`             | info      | Успешный вход                        |
-| `auth.login.failed`              | warning   | Неудачная попытка входа              |
-| `auth.login.blocked`             | critical  | Вход заблокирован (brute-force)      |
-| `auth.logout`                    | info      | Выход из системы                     |
-| `auth.token.refresh`             | info      | Обновление access token              |
-| `auth.token.created`             | info      | Создание нового refresh token        |
-| `auth.token.revoked`             | info      | Отзыв токена                         |
-| `auth.token.reuse_detected`      | critical  | Обнаружен повторный отзыванный token |
-| `auth.password.changed`          | info      | Смена пароля                         |
-| `auth.password.reset_requested`  | info      | Запрос сброса пароля                 |
-| `auth.password.reset_completed`  | info      | Пароль сброшен                       |
-| `auth.account.locked`            | warning   | Аккаунт заблокирован                 |
-| `auth.account.unlocked`          | info      | Аккаунт разблокирован                |
-| `auth.account.deactivated`       | warning   | Аккаунт деактивирован                |
-| `auth.account.activated`         | info      | Аккаунт активирован                  |
-| `auth.setup.completed`           | info      | First-run setup завершён             |
+| Event Type                        | Severity  | Description                             |
+|----------------------------------|-----------|-----------------------------------------|
+| `auth.login.success`             | info      | Successful login                        |
+| `auth.login.failed`              | warning   | Failed login attempt                    |
+| `auth.login.blocked`             | critical  | Login blocked (brute-force)             |
+| `auth.logout`                    | info      | User logged out                         |
+| `auth.token.refresh`             | info      | Access token refreshed                  |
+| `auth.token.created`             | info      | New refresh token created               |
+| `auth.token.revoked`             | info      | Token revoked                           |
+| `auth.token.reuse_detected`      | critical  | Reuse of a revoked token detected       |
+| `auth.password.changed`          | info      | Password changed                        |
+| `auth.password.reset_requested`  | info      | Password reset requested                |
+| `auth.password.reset_completed`  | info      | Password reset completed                |
+| `auth.account.locked`            | warning   | Account locked                          |
+| `auth.account.unlocked`          | info      | Account unlocked                        |
+| `auth.account.deactivated`       | warning   | Account deactivated                     |
+| `auth.account.activated`         | info      | Account activated                       |
+| `auth.setup.completed`           | info      | First-run setup completed               |
 
-### 3.1 Детали для auth событий
+### 3.1 Details for Auth Events
 
 ```json
 // auth.login.failed
@@ -96,35 +96,35 @@
 }
 ```
 
-## 4. События агентов
+## 4. Agent Events
 
-| Event Type                        | Severity  | Описание                              |
-|----------------------------------|-----------|---------------------------------------|
-| `agent.token.created`            | info      | Создан токен агента                  |
-| `agent.token.revoked`            | info      | Отозван токен агента                 |
-| `agent.token.rotated`            | info      | Ротация токена агента                |
-| `agent.token.expired`            | info      | Токен агента истёк                   |
-| `agent.task.claimed`             | info      | Агент захватил задачу                |
-| `agent.task.released`            | info      | Агент освободил задачу               |
-| `agent.task.submitted`           | info      | Агент отправил результат             |
-| `agent.task.approved`            | info      | Результат одобрен                    |
-| `agent.task.rejected`            | info      | Результат отклонён                   |
-| `agent.task.timeout`             | warning   | Таймаут выполнения задачи            |
-| `agent.heartbeat`                | info      | Heartbeat от агента                  |
-| `agent.heartbeat.stale`          | warning   | Агент не отвечает (>7 мин)           |
-| `agent.clarification.requested`  | info      | Агент запросил уточнение             |
-| `agent.clarification.provided`   | info      | Уточнение предоставлено              |
-| `agent.evidence.submitted`       | info      | Агент загрузил доказательство        |
-| `agent.review.requested`         | info      | Запрошен review                      |
-| `agent.review.completed`         | info      | Review завершён                      |
-| `agent.file.created`             | info      | Агент создал файл                    |
-| `agent.file.modified`            | info      | Агент изменил файл                   |
-| `agent.mcp.tool_called`          | info      | Вызов MCP инструмента                |
-| `agent.mcp.tool_denied`          | warning   | MCP инструмент заблокирован          |
-| `agent.scope.denied`             | warning   | Попытка доступа за рамками scope     |
-| `agent.rate_limit.exceeded`      | warning   | Превышен rate limit                  |
+| Event Type                        | Severity  | Description                             |
+|----------------------------------|-----------|-----------------------------------------|
+| `agent.token.created`            | info      | Agent token created                     |
+| `agent.token.revoked`            | info      | Agent token revoked                     |
+| `agent.token.rotated`            | info      | Agent token rotated                     |
+| `agent.token.expired`            | info      | Agent token expired                     |
+| `agent.task.claimed`             | info      | Agent claimed task                      |
+| `agent.task.released`            | info      | Agent released task                     |
+| `agent.task.submitted`           | info      | Agent submitted result                  |
+| `agent.task.approved`            | info      | Result approved                         |
+| `agent.task.rejected`            | info      | Result rejected                         |
+| `agent.task.timeout`             | warning   | Task execution timeout                  |
+| `agent.heartbeat`                | info      | Agent heartbeat                         |
+| `agent.heartbeat.stale`          | warning   | Agent not responding (>7 min)           |
+| `agent.clarification.requested`  | info      | Agent requested clarification           |
+| `agent.clarification.provided`   | info      | Clarification provided                  |
+| `agent.evidence.submitted`       | info      | Agent uploaded evidence                 |
+| `agent.review.requested`         | info      | Review requested                        |
+| `agent.review.completed`         | info      | Review completed                        |
+| `agent.file.created`             | info      | Agent created file                      |
+| `agent.file.modified`            | info      | Agent modified file                     |
+| `agent.mcp.tool_called`          | info      | MCP tool called                         |
+| `agent.mcp.tool_denied`          | warning   | MCP tool blocked                        |
+| `agent.scope.denied`             | warning   | Out-of-scope access attempt             |
+| `agent.rate_limit.exceeded`      | warning   | Rate limit exceeded                     |
 
-### 4.1 Детали для agent событий
+### 4.1 Details for Agent Events
 
 ```json
 // agent.task.claimed
@@ -144,61 +144,61 @@
 }
 ```
 
-## 5. События администрирования
+## 5. Administration Events
 
-| Event Type                              | Severity  | Описание                          |
-|----------------------------------------|-----------|-----------------------------------|
-| `admin.role.assigned`                  | warning   | Назначена роль                    |
-| `admin.role.revoked`                   | warning   | Отозвана роль                     |
-| `admin.user.created`                   | info      | Создан пользователь               |
-| `admin.user.deactivated`               | warning   | Деактивирован пользователь        |
-| `admin.user.activated`                 | info      | Активирован пользователь          |
-| `admin.project.created`                | info      | Создан проект                     |
-| `admin.project.deleted`                | critical  | Удалён проект                     |
-| `admin.project.settings.changed`       | warning   | Изменены настройки проекта        |
-| `admin.organization.created`           | info      | Создана организация               |
-| `admin.organization.deleted`           | critical  | Удалена организация               |
-| `admin.organization.settings.changed`  | warning   | Изменены настройки организации    |
-| `admin.integration.added`              | warning   | Добавлена интеграция              |
-| `admin.integration.removed`            | warning   | Удалена интеграция                |
-| `admin.secret.rotated`                 | warning   | Ротирован секрет                  |
-| `admin.backup.created`                 | info      | Создан backup                     |
-| `admin.backup.restored`                | critical  | Восстановлен из backup            |
+| Event Type                              | Severity  | Description                         |
+|----------------------------------------|-----------|-------------------------------------|
+| `admin.role.assigned`                  | warning   | Role assigned                       |
+| `admin.role.revoked`                   | warning   | Role revoked                        |
+| `admin.user.created`                   | info      | User created                        |
+| `admin.user.deactivated`               | warning   | User deactivated                    |
+| `admin.user.activated`                 | info      | User activated                      |
+| `admin.project.created`                | info      | Project created                     |
+| `admin.project.deleted`                | critical  | Project deleted                     |
+| `admin.project.settings.changed`       | warning   | Project settings changed            |
+| `admin.organization.created`           | info      | Organization created                |
+| `admin.organization.deleted`           | critical  | Organization deleted                |
+| `admin.organization.settings.changed`  | warning   | Organization settings changed       |
+| `admin.integration.added`              | warning   | Integration added                   |
+| `admin.integration.removed`            | warning   | Integration removed                 |
+| `admin.secret.rotated`                 | warning   | Secret rotated                      |
+| `admin.backup.created`                 | info      | Backup created                      |
+| `admin.backup.restored`                | critical  | Restored from backup                |
 
-## 6. Системные события
+## 6. System Events
 
-| Event Type                        | Severity  | Описание                              |
-|----------------------------------|-----------|---------------------------------------|
-| `system.startup`                  | info      | Приложение запущено                   |
-| `system.shutdown`                 | info      | Приложение остановлено                |
-| `system.config.changed`           | warning   | Изменена конфигурация                 |
-| `system.error.unhandled`          | critical  | Необработанная ошибка                 |
-| `system.rate_limit.abuse`         | critical  | Обнаружено злоупотребление            |
-| `system.ip.blocked`               | critical  | IP заблокирован                       |
+| Event Type                        | Severity  | Description                             |
+|----------------------------------|-----------|-----------------------------------------|
+| `system.startup`                  | info      | Application started                     |
+| `system.shutdown`                 | info      | Application stopped                     |
+| `system.config.changed`           | warning   | Configuration changed                   |
+| `system.error.unhandled`          | critical  | Unhandled error                         |
+| `system.rate_limit.abuse`         | critical  | Abuse detected                          |
+| `system.ip.blocked`               | critical  | IP blocked                              |
 
-## 7. Хранение и ротация
+## 7. Storage and Retention
 
-### 7.1 Хранение
+### 7.1 Storage
 
-- Основное: PostgreSQL таблица `audit_events`
-- Партиционирование: по месяцам (`audit_events_2026_07`)
-- Индексы: `timestamp`, `event_type`, `actor.id`, `resource.id`
+- Primary: PostgreSQL table `audit_events`
+- Partitioning: by month (`audit_events_2026_07`)
+- Indexes: `timestamp`, `event_type`, `actor.id`, `resource.id`
 
-### 7.2 Ротация
+### 7.2 Retention
 
-- Active partition: текущий месяц + следующий
-- Retention: 12 месяцев в горячем хранилище
-- Архив: сжатые партиции в object storage (S3/MinIO)
-- Удаление: по запросу владельца (GDPR compliance)
+- Active partition: current month + next
+- Hot storage retention: 12 months
+- Archive: compressed partitions in object storage (S3/MinIO)
+- Deletion: on owner request (GDPR compliance)
 
-### 7.3 Неизменяемость
+### 7.3 Immutability
 
-- Audit events — append-only (нет UPDATE/DELETE)
-- Права на запись: только audit service account
-- Права на чтение: Admin, Owner
-- Integrity: хеш-цепочка (каждое событие включает хеш предыдущего)
+- Audit events — append-only (no UPDATE/DELETE)
+- Write permissions: audit service account only
+- Read permissions: Admin, Owner
+- Integrity: hash chain (each event includes the hash of the previous one)
 
-## 8. Запрос аудит-лога
+## 8. Querying the Audit Log
 
 ```
 GET /api/v1/audit-events
@@ -211,6 +211,6 @@ GET /api/v1/audit-events
   &cursor=evt_a1b2c3
 ```
 
-- Пагинация: cursor-based
-- Фильтры: event_type, actor_id, resource_id, severity, date range
-- Экспорт: CSV, JSON (до 10,000 записей за запрос)
+- Pagination: cursor-based
+- Filters: event_type, actor_id, resource_id, severity, date range
+- Export: CSV, JSON (up to 10,000 records per request)

@@ -1,19 +1,19 @@
 # Multi-Org Readiness — UPCP v2
 
-## Обзор
+## Overview
 
-UPCP v2 спроектирован как single-org self-hosted приложение с готовностью к мультитенантному SaaS-режиму. Архитектура Organization модели позволяет безболезненно перейти от standalone к multi-org.
+UPCP v2 is designed as a single-org self-hosted application with readiness for multi-tenant SaaS mode. The Organization model architecture allows a painless transition from standalone to multi-org.
 
 ---
 
 ## Organization Model
 
-### Текущая архитектура
+### Current Architecture
 
 ```
 ┌──────────────────────────────────────────┐
 │              Organization                 │
-│  (одна организация при bootstrap)        │
+│  (single organization at bootstrap)       │
 │                                           │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐  │
 │  │  User   │  │ Project │  │  Agent  │  │
@@ -23,7 +23,7 @@ UPCP v2 спроектирован как single-org self-hosted приложе�
 └──────────────────────────────────────────┘
 ```
 
-### Target SaaS архитектура
+### Target SaaS Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -41,7 +41,7 @@ UPCP v2 спроектирован как single-org self-hosted приложе�
 └─────────────────────────────────────────────────┘
 ```
 
-### Текущая модель
+### Current Model
 
 ```python
 class Organization(BaseModel):
@@ -84,7 +84,7 @@ class Organization(BaseModel):
 
 ## Membership
 
-### Модель
+### Model
 
 ```python
 class Membership(BaseModel):
@@ -100,21 +100,21 @@ class Membership(BaseModel):
     updated_at: Mapped[datetime]
 ```
 
-### Роли в организации
+### Organization Roles
 
-| Роль | Описание | Назначается |
-|------|----------|------------|
-| `owner` | Полный контроль | Создатель org (auto) |
-| `admin` | Управление пользователями, проектами, агентами | Owner |
-| `member` | Работа с проектами, задачами | Admin |
-| `viewer` | Только чтение | Admin |
+| Role | Description | Assigned By |
+|------|-------------|-------------|
+| `owner` | Full control | Org creator (auto) |
+| `admin` | Manage users, projects, agents | Owner |
+| `member` | Work with projects, tasks | Admin |
+| `viewer` | Read-only access | Admin |
 
-### Scope изоляция
+### Scope Isolation
 
 ```python
-# Все запросы автоматически фильтруются по organization_id
+# All queries are automatically filtered by organization_id
 class OrgScopedRepository:
-    """Базовый репозиторий с org scope."""
+    """Base repository with org scope."""
 
     def __init__(self, session: AsyncSession, org_id: UUID):
         self.session = session
@@ -128,13 +128,13 @@ class OrgScopedRepository:
 
 ## Default Org Bootstrap
 
-### При первом запуске
+### At First Boot
 
 ```python
 async def bootstrap_organization(db: AsyncSession) -> Organization:
-    """Создаёт default organization при первом запуске."""
+    """Creates default organization at first boot."""
 
-    # Проверяем, есть ли уже организация
+    # Check if an organization already exists
     existing = await db.scalar(select(Organization).limit(1))
     if existing:
         return existing
@@ -155,13 +155,13 @@ async def bootstrap_organization(db: AsyncSession) -> Organization:
     db.add(org)
     await db.flush()
 
-    # Создаём системные роли
+    # Create system roles
     await create_system_roles(db, org.id)
 
     return org
 ```
 
-### Первый пользователь
+### First User
 
 ```python
 async def bootstrap_first_user(
@@ -170,7 +170,7 @@ async def bootstrap_first_user(
     email: str,
     password: str,
 ) -> User:
-    """Первый пользователь автоматически становится owner."""
+    """The first user automatically becomes owner."""
 
     user = User(email=email, display_name="Admin")
     user.password_hash = hash_password(password)
@@ -194,14 +194,14 @@ async def bootstrap_first_user(
 
 ### `public_registration`
 
-**Purpose:** Разрешить регистрацию новых пользователей без приглашения.
+**Purpose:** Allow new user registration without an invitation.
 
 **Default:** `false` (self-hosted)
 
 **When enabled:**
-- `POST /auth/register` принимает запросы без invite token
-- Требует `email_verification` для активации
-- Новый пользователь получает роль `member` в default org
+- `POST /auth/register` accepts requests without an invite token
+- Requires `email_verification` for activation
+- New users receive the `member` role in the default org
 
 ```python
 @router.post("/auth/register")
@@ -214,32 +214,32 @@ async def register(body: RegisterRequest, org: Organization = Depends(get_org)):
 
 ### `email_verification`
 
-**Purpose:** Требовать подтверждение email при регистрации.
+**Purpose:** Require email confirmation upon registration.
 
 **Default:** `false` (self-hosted)
 
 **When enabled:**
-- При регистрации отправляется verification email
-- Пользователь не может войти до подтверждения
-- Verification token живёт 24 часа
+- A verification email is sent upon registration
+- Users cannot log in until confirmed
+- Verification token lives for 24 hours
 
 ```python
 @router.post("/auth/verify-email")
 async def verify_email(body: VerifyEmailRequest):
-    # Проверяем token, активируем пользователя
+    # Verify the token, activate the user
     ...
 ```
 
 ### `invitations`
 
-**Purpose:** Управление приглашениями в организацию.
+**Purpose:** Manage organization invitations.
 
 **Default:** `true`
 
 **When enabled:**
-- Owner/Admin может пригласить по email
-- Invite token живёт 7 дней
-- Приглашение привязано к конкретной роли
+- Owner/Admin can invite by email
+- Invite token lives for 7 days
+- Invitations are tied to a specific role
 
 ```python
 @router.post("/organizations/{org_id}/invitations")
@@ -249,20 +249,20 @@ async def create_invitation(
     user: User = Depends(get_current_user),
     membership: Membership = Depends(require_admin),
 ):
-    # Создаём приглашение, отправляем email
+    # Create invitation, send email
     ...
 ```
 
 ### `oidc_enabled`
 
-**Purpose:** Подключение внешних OIDC-провайдеров (Google, GitLab, Keycloak).
+**Purpose:** Connect external OIDC providers (Google, GitLab, Keycloak).
 
 **Default:** `false`
 
 **When enabled:**
-- Появляется кнопка «Войти через ...» на странице логина
-- OIDC user автоматически создаётся/привязывается
-- JIT provisioning: пользователь создаётся при первом входе
+- A "Sign in with ..." button appears on the login page
+- OIDC users are automatically created/linked
+- JIT provisioning: user is created on first login
 
 ```python
 @router.get("/auth/oidc/{provider}/authorize")
@@ -280,14 +280,14 @@ async def oidc_callback(provider: str, code: str, state: str):
 
 ### `billing_enabled`
 
-**Purpose:** Интеграция с платёжной системой для SaaS.
+**Purpose:** Payment system integration for SaaS.
 
 **Default:** `false`
 
 **When enabled:**
-- Org settings включают billing plan
-- Limits зависят от плана
-- Webhook от платёжной системы обновляет подписку
+- Org settings include a billing plan
+- Limits depend on the plan
+- Webhook from the payment system updates subscriptions
 
 ```python
 # Future implementation
@@ -309,7 +309,7 @@ PLAN_LIMITS = {
 
 ### Phase 1: Multi-Org Foundation (v2.0)
 
-- [x] Organization model с settings
+- [x] Organization model with settings
 - [x] Membership model
 - [x] Org-scoped queries
 - [x] Default org bootstrap
@@ -367,18 +367,18 @@ PLAN_LIMITS = {
 
 ### Enforcement Levels
 
-1. **Repository level:** `_scope_query` фильтр
+1. **Repository level:** `_scope_query` filter
 2. **Service level:** `current_org` dependency injection
-3. **Middleware level:** JWT содержит `org_id`, middleware проверяет
-4. **Database level:** Row-Level Security (optional, для SaaS)
+3. **Middleware level:** JWT contains `org_id`, middleware verifies
+4. **Database level:** Row-Level Security (optional, for SaaS)
 
-### RLS (Row-Level Security) — для SaaS
+### RLS (Row-Level Security) — for SaaS
 
 ```sql
--- Включаем RLS на таблице projects
+-- Enable RLS on the projects table
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
--- Политика: пользователь видит только проекты своей организации
+-- Policy: user sees only projects belonging to their organization
 CREATE POLICY org_isolation ON projects
     USING (organization_id = current_setting('app.current_org_id')::uuid);
 ```

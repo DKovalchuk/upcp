@@ -1,14 +1,14 @@
 # Rate Limiting — UPCP v2
 
-## Обзор
+## Overview
 
-UPCP использует Redis sliding window rate limiter для защиты API от злоупотреблений и обеспечения fair use. Лимиты различаются по классам маршрутов и типам пользователей.
+UPCP uses a Redis sliding window rate limiter to protect the API from abuse and ensure fair use. Limits vary by route class and user type.
 
 ---
 
-## Алгоритм: Sliding Window
+## Algorithm: Sliding Window
 
-### Реализация
+### Implementation
 
 ```python
 import time
@@ -30,13 +30,13 @@ class SlidingWindowRateLimiter:
         window_start = now - window_seconds
 
         pipe = self.redis.pipeline(transaction=True)
-        # Удаляем записи вне окна
+        # Remove records outside the window
         pipe.zremrangebyscore(key, 0, window_start)
-        # Считаем оставшиеся
+        # Count remaining entries
         pipe.zcard(key)
-        # Добавляем текущий запрос
+        # Add the current request
         pipe.zadd(key, {f"{now}": now})
-        # Устанавливаем TTL
+        # Set TTL
         pipe.expire(key, window_seconds + 1)
 
         results = await pipe.execute()
@@ -63,52 +63,52 @@ class SlidingWindowRateLimiter:
         )
 ```
 
-### Почему Sliding Window
+### Why Sliding Window
 
-- **Fixed window** — проблема «границы окна» (burst в конце + начало следующего)
-- **Token bucket** — сложнее контролировать burst
-- **Sliding window** — плавное ограничение, нет проблем с границами
+- **Fixed window** — the "boundary problem" (burst at end + start of next window)
+- **Token bucket** — harder to control burst
+- **Sliding window** — smooth limiting, no boundary issues
 
 ---
 
-## Классы маршрутов
+## Route Classes
 
-### Определение
+### Definition
 
-| Класс | Описание | Примеры маршрутов |
-|-------|----------|-------------------|
-| `auth` | Аутентификация | `/auth/login`, `/auth/register`, `/auth/refresh` |
-| `read` | GET-запросы, чтение | `/projects`, `/tasks`, `/agents` |
-| `write` | POST/PUT/PATCH, запись | `/tasks`, `/evidence`, `/reviews` |
-| `admin` | Административные | `/admin/*`, `/settings` |
+| Class | Description | Route Examples |
+|-------|-------------|---------------|
+| `auth` | Authentication | `/auth/login`, `/auth/register`, `/auth/refresh` |
+| `read` | GET requests, reads | `/projects`, `/tasks`, `/agents` |
+| `write` | POST/PUT/PATCH, writes | `/tasks`, `/evidence`, `/reviews` |
+| `admin` | Administrative | `/admin/*`, `/settings` |
 | `mcp` | MCP tool calls | MCP protocol |
 | `health` | Health checks | `/health`, `/ready` |
 
-### Лимиты
+### Limits
 
-| Класс | Default Limit | Window | Burst Limit | Burst Window |
+| Class | Default Limit | Window | Burst Limit | Burst Window |
 |-------|--------------|--------|-------------|-------------|
-| `auth` | 10 | 60 сек | 5 | 10 сек |
-| `read` | 100 | 60 сек | 30 | 10 сек |
-| `write` | 30 | 60 сек | 10 | 10 сек |
-| `admin` | 20 | 60 сек | 5 | 10 сек |
-| `mcp` | 60 | 60 сек | 20 | 10 сек |
-| `health` | 300 | 60 сек | — | — |
+| `auth` | 10 | 60 sec | 5 | 10 sec |
+| `read` | 100 | 60 sec | 30 | 10 sec |
+| `write` | 30 | 60 sec | 10 | 10 sec |
+| `admin` | 20 | 60 sec | 5 | 10 sec |
+| `mcp` | 60 | 60 sec | 20 | 10 sec |
+| `health` | 300 | 60 sec | — | — |
 
-### Лимиты по типу пользователя
+### Limits by User Type
 
-| Тип | Множитель |
-|-----|----------|
+| Type | Multiplier |
+|------|-----------|
 | Owner (authenticated) | ×1.0 (base) |
-| Agent (token) | ×2.0 (удвоенный лимит) |
+| Agent (token) | ×2.0 (doubled limit) |
 | API Key | ×1.0 |
-| Anonymous | ×0.2 (пятая часть) |
+| Anonymous | ×0.2 (one-fifth) |
 
 ---
 
 ## Rate Limit Keys
 
-### Формат
+### Format
 
 ```
 ratelimit:{class}:{identifier}:{window}
@@ -116,14 +116,14 @@ ratelimit:{class}:{identifier}:{window}
 
 ### Identifier
 
-| Идентификатор | Используется для |
-|---------------|-----------------|
+| Identifier | Used For |
+|------------|----------|
 | `user:{user_id}` | Authenticated users |
 | `agent:{agent_id}` | MCP agents |
 | `api_key:{key_prefix}` | API key clients |
 | `ip:{ip_address}` | Anonymous / fallback |
 
-### Примеры ключей
+### Key Examples
 
 ```
 ratelimit:read:user:01934b1f-...:60
@@ -136,7 +136,7 @@ ratelimit:mcp:agent:01934b2a-...:60
 
 ## HTTP Headers
 
-### При каждом ответе
+### On Every Response
 
 ```http
 X-RateLimit-Limit: 100
@@ -144,13 +144,13 @@ X-RateLimit-Remaining: 87
 X-RateLimit-Reset: 1699999999
 ```
 
-| Header | Описание |
-|--------|----------|
-| `X-RateLimit-Limit` | Максимум запросов в окне |
-| `X-RateLimit-Remaining` | Оставшиеся запросы |
-| `X-RateLimit-Reset` | Unix timestamp когда окно сбрасывается |
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests in the window |
+| `X-RateLimit-Remaining` | Remaining requests |
+| `X-RateLimit-Reset` | Unix timestamp when the window resets |
 
-### При превышении (429)
+### On Exceeding (429)
 
 ```http
 HTTP/1.1 429 Too Many Requests
@@ -187,27 +187,27 @@ Content-Type: application/json
 from starlette.middleware.base import BaseHTTPMiddleware
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Rate limiting middleware для FastAPI."""
+    """Rate limiting middleware for FastAPI."""
 
     def __init__(self, app, limiter: SlidingWindowRateLimiter):
         super().__init__(app)
         self.limiter = limiter
 
     async def dispatch(self, request, call_next):
-        # Определяем класс маршрута
+        # Determine the route class
         route_class = self._get_route_class(request)
 
-        # Пропускаем health checks
+        # Skip health checks
         if route_class == "health":
             return await call_next(request)
 
-        # Определяем идентификатор
+        # Determine the identifier
         identifier = self._get_identifier(request)
 
-        # Получаем лимит
+        # Get limits
         limit, window = self._get_limits(route_class, request)
 
-        # Проверяем
+        # Check
         result = await self.limiter.check_rate_limit(
             key=f"ratelimit:{route_class}:{identifier}:{window}",
             limit=limit,
@@ -216,7 +216,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request) if result.allowed else self._too_many_requests(result)
 
-        # Добавляем заголовки
+        # Add headers
         response.headers["X-RateLimit-Limit"] = str(result.limit)
         response.headers["X-RateLimit-Remaining"] = str(result.remaining)
         response.headers["X-RateLimit-Reset"] = str(result.reset_at)
@@ -248,16 +248,16 @@ def _get_route_class(self, request) -> str:
 ### MCP Integration
 
 ```python
-# Для MCP transport — rate limiting на уровне tool dispatcher
+# For MCP transport — rate limiting at the tool dispatcher level
 class MCPRateLimiter:
-    """Rate limiter для MCP tool calls."""
+    """Rate limiter for MCP tool calls."""
 
     async def check_tool_rate_limit(
         self,
         agent_id: str,
         tool_name: str,
     ) -> RateLimitResult:
-        # Общий лимит агента
+        # General agent limit
         general = await self.limiter.check_rate_limit(
             key=f"ratelimit:mcp:agent:{agent_id}:60",
             limit=60,
@@ -266,7 +266,7 @@ class MCPRateLimiter:
         if not general.allowed:
             return general
 
-        # Per-tool лимит для дорогих операций
+        # Per-tool limit for expensive operations
         if tool_name in ("create_task", "submit_task_for_review"):
             return await self.limiter.check_rate_limit(
                 key=f"ratelimit:mcp_tool:{tool_name}:agent:{agent_id}:60",
@@ -279,7 +279,7 @@ class MCPRateLimiter:
 
 ---
 
-## Конфигурация
+## Configuration
 
 ### Environment Variables
 
@@ -325,8 +325,8 @@ RATE_LIMIT_WHITELIST_IPS=127.0.0.1,10.0.0.0/8
 ### Internal Services
 
 ```python
-# Health checks and internal monitoring не лимитируются
-# Запросы с X-Internal-Service: true header пропускаются
+# Health checks and internal monitoring are not rate-limited
+# Requests with X-Internal-Service: true header are bypassed
 ```
 
 ---
@@ -335,11 +335,11 @@ RATE_LIMIT_WHITELIST_IPS=127.0.0.1,10.0.0.0/8
 
 ### Metrics
 
-| Метрика | Тип | Labels | Описание |
-|---------|-----|--------|----------|
-| `rate_limit_checks_total` | counter | class, allowed | Проверки лимитов |
-| `rate_limit_rejected_total` | counter | class | Отклонённые запросы |
-| `rate_limit_usage_ratio` | histogram | class | Использование (remaining/limit) |
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `rate_limit_checks_total` | counter | class, allowed | Limit checks |
+| `rate_limit_rejected_total` | counter | class | Rejected requests |
+| `rate_limit_usage_ratio` | histogram | class | Usage ratio (remaining/limit) |
 
 ### Alerts
 

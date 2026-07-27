@@ -1,10 +1,10 @@
 # Information Architecture
 
-Структура навигации и страниц UPCP.
+Navigation structure and pages of UPCP.
 
 ---
 
-## 1. Навигационная структура
+## 1. Navigation Structure
 
 ### Top Bar
 
@@ -38,9 +38,9 @@ SYSTEM
   [Collapse sidebar]
 ```
 
-**Иконки (Lucide):**
+**Icons (Lucide):**
 
-| Элемент | Иконка |
+| Element | Icon |
 |---------|--------|
 | Dashboard | `LayoutDashboard` |
 | Projects | `FolderKanban` |
@@ -60,13 +60,13 @@ SYSTEM
 
 ---
 
-## 2. Страницы
+## 2. Pages
 
 ### Dashboard (`/`)
 
-**Вид:** Attention Dashboard — фокус на том, что требует внимания.
+**View:** Attention Dashboard — focused on what requires attention.
 
-**Секции:**
+**Sections:**
 - Needs your review
 - Open agent questions
 - Blocked tasks
@@ -74,95 +74,95 @@ SYSTEM
 - Failed quality gates
 - Recent agent activity
 
-См. [attention-dashboard.md](./attention-dashboard.md).
+See [attention-dashboard.md](./attention-dashboard.md).
 
 ---
 
 ### Portfolio / Project List (`/projects`)
 
-Таблица проектов с поиском, фильтром по статусу, сортировкой.
+Project table with search, status filter, and sorting.
 
-**Колонки:** Name, Status, Components, Tasks, Last Activity.
+**Columns:** Name, Status, Components, Tasks, Last Activity.
 
 ---
 
 ### Project Detail (`/projects/:projectId`)
 
-**Макет:** Tabbed layout с URL-synced tabs.
+**Layout:** Tabbed layout with URL-synced tabs.
 
-| Tab | Route | Содержимое |
-|-----|-------|-----------|
-| Overview | `/projects/:id` | Статус, описание, статистика |
+| Tab | Route | Content |
+|-----|-------|---------|
+| Overview | `/projects/:id` | Status, description, statistics |
 | Structure | `/projects/:id/structure` | Components → Modules |
 | Delivery | `/projects/:id/delivery` | Features → Tasks (list/board) |
-| Quality | `/projects/:id/quality` | AC/DoD статистика, quality gates |
-| Agents | `/projects/:id/agents` | Назначенные агенты, claims |
+| Quality | `/projects/:id/quality` | AC/DoD statistics, quality gates |
+| Agents | `/projects/:id/agents` | Assigned agents, claims |
 | Evidence & Reviews | `/projects/:id/evidence` | Evidence list, review rounds |
 | Git | `/projects/:id/git` | Providers, branches, commits, links |
-| Audit | `/projects/:id/audit` | Timeline с фильтрами |
-| Settings | `/projects/:id/settings` | Настройки проекта |
+| Audit | `/projects/:id/audit` | Timeline with filters |
+| Settings | `/projects/:id/settings` | Project settings |
 
 ---
 
 ### Component Detail
 
-Внутри Structure tab. Раскрывается accordion/card для просмотра модулей.
+Inside the Structure tab. Accordion/card expands to view modules.
 
 ---
 
 ### Module Detail
 
-Внутри Component expand. Таблица модулей с колонками: Name, Status, Features.
+Inside Component expand. Module table with columns: Name, Status, Features.
 
 ---
 
 ### Feature Detail
 
-Внутри Delivery tab. Feature как группа задач с collapsible header.
+Inside the Delivery tab. Feature as a group of tasks with a collapsible header.
 
 ---
 
 ### Task Detail
 
-**Макет:** Sheet (slide-over) по умолчанию. Полная страница по deep link.
+**Layout:** Sheet (slide-over) by default. Full page via deep link.
 
-**Вкладки:** Details, Execution, Clarifications, Evidence, DoD, Subtasks, Reviews, Git, Audit.
+**Tabs:** Details, Execution, Clarifications, Evidence, DoD, Subtasks, Reviews, Git, Audit.
 
-См. [task-detail.md](./task-detail.md).
+See [task-detail.md](./task-detail.md).
 
 ---
 
 ### Agent Center (`/agents`)
 
-Управление агентами. Список + детали.
+Agent management. List + details.
 
-См. [agent-center.md](./agent-center.md).
+See [agent-center.md](./agent-center.md).
 
 ---
 
 ### Notifications (`/notifications`)
 
-История уведомлений с фильтрами.
+Notification history with filters.
 
-См. [notifications.md](./notifications.md).
+See [notifications.md](./notifications.md).
 
 ---
 
 ### Reports (`/reports`)
 
-Глобальный список отчётов. Генерация daily/weekly. Экспорт markdown.
+Global report list. daily/weekly generation. Markdown export.
 
 ---
 
 ### Health (`/health`)
 
-Статус: backend, DB, Redis, MCP. Auto-refresh.
+Status: backend, DB, Redis, MCP. Auto-refresh.
 
 ---
 
 ### Settings (global)
 
-Настройки: профиль, уведомления, тема. `/settings` route.
+Settings: profile, notifications, theme. `/settings` route.
 
 ---
 
@@ -172,44 +172,44 @@ SYSTEM
 Dashboard > Projects > UPCP v2 > Delivery > TASK-0042
 ```
 
-Правила:
-- Каждый элемент — кликабельная ссылка.
-- Последний элемент — текущая страница (не ссылка).
-- На мобильных — показываются последние 3 уровня.
+Rules:
+- Each element is a clickable link.
+- The last element is the current page (not a link).
+- On mobile: last 3 levels are shown.
 
 ---
 
 ## 4. Deep Links
 
-| Ресурс | URL |
+| Resource | URL |
 |--------|-----|
-| Проект | `/projects/:id` |
-| Проект + tab | `/projects/:id?tab=delivery` |
-| Компонент | `/projects/:id/structure?component=:cid` |
-| Задача (sheet) | `/projects/:id/delivery?task=:tid` |
-| Задача (page) | `/projects/:id/tasks/:tid` |
-| Агент | `/agents/:id` |
-| Отчёт | `/reports/:id` |
+| Project | `/projects/:id` |
+| Project + tab | `/projects/:id?tab=delivery` |
+| Component | `/projects/:id/structure?component=:cid` |
+| Task (sheet) | `/projects/:id/delivery?task=:tid` |
+| Task (page) | `/projects/:id/tasks/:tid` |
+| Agent | `/agents/:id` |
+| Report | `/reports/:id` |
 
 ---
 
 ## 5. URL State
 
-Состояние UI синхронизируется с URL:
+UI state is synchronized with the URL:
 
-- `?tab=` — активная вкладка проекта
-- `?task=` — открытый task detail sheet
-- `?component=` — раскрытый компонент
-- `?view=list|board` — режим отображения delivery
-- `?page=&pageSize=` — пагинация
-- `?search=` — поисковый запрос
-- `?status=` — фильтр по статусу
+- `?tab=` — active project tab
+- `?task=` — open task detail sheet
+- `?component=` — expanded component
+- `?view=list|board` — delivery display mode
+- `?page=&pageSize=` — pagination
+- `?search=` — search query
+- `?status=` — status filter
 
 ---
 
 ## 6. Responsive Behavior
 
-| Breakpoint | Sidebar | Контент |
+| Breakpoint | Sidebar | Content |
 |-----------|---------|---------|
 | < 768px | Hidden, overlay | `px-4` |
 | 768–1023px | Collapsed (64px, icons) | `px-6` |

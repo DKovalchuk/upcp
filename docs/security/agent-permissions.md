@@ -1,95 +1,95 @@
-# Модель разрешений агентов — UPCP v2
+# Agent Permissions Model — UPCP v2
 
-> Область: `security` / `agents` | Версия: 2.0.0
+> Scope: `security` / `agents` | Version: 2.0.0
 
-## 1. Обзор
+## 1. Overview
 
-Агенты UPCP — это AI-сущности, которые работают с задачами от имени пользователей.
-Каждый агент имеет свой токен, ограниченные разрешения и обязан проходить аудит.
+UPCP agents are AI entities that work with tasks on behalf of users.
+Each agent has its own token, restricted permissions, and must pass audit.
 
-## 2. Роли агентов
+## 2. Agent Roles
 
-| Роль                   | Назначение                              |
-|-----------------------|-----------------------------------------|
-| `Agent Reader`        | Только чтение данных проекта            |
-| `Agent Contributor`   | Чтение + запись результатов задач       |
-| `Agent Builder`       | Contributor + создание файлов/артефактов |
-| `Agent Reviewer`      | Contributor + approve/reject результатов |
+| Role                   | Purpose                                |
+|------------------------|----------------------------------------|
+| `Agent Reader`         | Read-only access to project data      |
+| `Agent Contributor`    | Read + write task results             |
+| `Agent Builder`        | Contributor + create files/artifacts  |
+| `Agent Reviewer`       | Contributor + approve/reject results  |
 
 ### 2.1 Agent Builder (default)
 
-Роль по умолчанию при создании агента.
-Полноценная работа с задачами: выполнение, создание артефактов, отправка на ревью.
+Default role when creating an agent.
+Full task work: execution, artifact creation, submission for review.
 
-## 3. Матрица разрешений
+## 3. Permission Matrix
 
-### 3.1 Задачи (Tasks)
+### 3.1 Tasks
 
-| Действие                        | Reader | Contributor | Builder | Reviewer |
-|--------------------------------|:------:|:-----------:|:-------:|:--------:|
-| Просмотр задач                 | ✅     | ✅          | ✅      | ✅       |
-| Просмотр деталей задачи        | ✅     | ✅          | ✅      | ✅       |
-| Claim задачи                   | ❌     | ✅          | ✅      | ✅       |
-| Отправка heartbeat             | ❌     | ✅          | ✅      | ✅       |
-| Отправка результата            | ❌     | ✅          | ✅      | ✅       |
-| Запрос уточнений               | ❌     | ✅          | ✅      | ✅       |
-| Запрос ревью                   | ❌     | ✅          | ✅      | ❌       |
-| Approve/Reject результата      | ❌     | ❌          | ❌      | ✅       |
-| Release задачи                 | ❌     | ✅          | ✅      | ✅       |
+| Action                          | Reader | Contributor | Builder | Reviewer |
+|---------------------------------|:------:|:-----------:|:-------:|:--------:|
+| View tasks                      | ✅     | ✅          | ✅      | ✅       |
+| View task details               | ✅     | ✅          | ✅      | ✅       |
+| Claim task                      | ❌     | ✅          | ✅      | ✅       |
+| Send heartbeat                  | ❌     | ✅          | ✅      | ✅       |
+| Submit result                   | ❌     | ✅          | ✅      | ✅       |
+| Request clarification           | ❌     | ✅          | ✅      | ✅       |
+| Request review                  | ❌     | ✅          | ✅      | ❌       |
+| Approve/Reject result           | ❌     | ❌          | ❌      | ✅       |
+| Release task                    | ❌     | ✅          | ✅      | ✅       |
 
-### 3.2 Файлы и артефакты
+### 3.2 Files and Artifacts
 
-| Действие                        | Reader | Contributor | Builder | Reviewer |
-|--------------------------------|:------:|:-----------:|:-------:|:--------:|
-| Чтение файлов проекта          | ✅     | ✅          | ✅      | ✅       |
-| Создание файлов                | ❌     | ❌          | ✅      | ❌       |
-| Изменение файлов               | ❌     | ❌          | ✅      | ❌       |
-| Удаление файлов                | ❌     | ❌          | ❌      | ❌       |
-| Загрузка артефактов            | ❌     | ✅          | ✅      | ✅       |
+| Action                          | Reader | Contributor | Builder | Reviewer |
+|---------------------------------|:------:|:-----------:|:-------:|:--------:|
+| Read project files              | ✅     | ✅          | ✅      | ✅       |
+| Create files                    | ❌     | ❌          | ✅      | ❌       |
+| Modify files                    | ❌     | ❌          | ✅      | ❌       |
+| Delete files                    | ❌     | ❌          | ❌      | ❌       |
+| Upload artifacts                | ❌     | ✅          | ✅      | ✅       |
 
 ### 3.3 MCP
 
-| Действие                        | Reader | Contributor | Builder | Reviewer |
-|--------------------------------|:------:|:-----------:|:-------:|:--------:|
-| MCP: чтение                    | ✅     | ✅          | ✅      | ✅       |
-| MCP: вызов инструментов        | ❌     | ✅          | ✅      | ✅       |
-| MCP: управление серверами      | ❌     | ❌          | ❌      | ❌       |
+| Action                          | Reader | Contributor | Builder | Reviewer |
+|---------------------------------|:------:|:-----------:|:-------:|:--------:|
+| MCP: read                       | ✅     | ✅          | ✅      | ✅       |
+| MCP: call tools                 | ❌     | ✅          | ✅      | ✅       |
+| MCP: manage servers             | ❌     | ❌          | ❌      | ❌       |
 
-### 3.4 Администрирование
+### 3.4 Administration
 
-| Действие                        | Reader | Contributor | Builder | Reviewer |
-|--------------------------------|:------:|:-----------:|:-------:|:--------:|
-| Просмотр аудит-лога (свой)     | ✅     | ✅          | ✅      | ✅       |
-| Просмотр аудит-лога (все)      | ❌     | ❌          | ❌      | ❌       |
-| Управление участниками         | ❌     | ❌          | ❌      | ❌       |
-| Настройки проекта              | ❌     | ❌          | ❌      | ❌       |
+| Action                          | Reader | Contributor | Builder | Reviewer |
+|---------------------------------|:------:|:-----------:|:-------:|:--------:|
+| View audit log (own)            | ✅     | ✅          | ✅      | ✅       |
+| View audit log (all)            | ❌     | ❌          | ❌      | ❌       |
+| Manage members                  | ❌     | ❌          | ❌      | ❌       |
+| Project settings                | ❌     | ❌          | ❌      | ❌       |
 
-## 4. Что агенты МОГУТ делать
+## 4. What Agents CAN Do
 
-- Читать задачи, спецификации, документацию проекта
-- Claimовать доступные задачи в рамках своей роли
-- Отправлять heartbeat каждые 30-60 секунд
-- Создавать файлы и артефакты (Builder+)
-- Отправлять результаты на ревью
-- Запрашивать уточнения у пользователей
-- Вызывать разрешённые MCP инструменты
-- Загружать артефакты (скриншоты, логи, отчёты)
+- Read tasks, specifications, project documentation
+- Claim available tasks within their role scope
+- Send heartbeat every 30–60 seconds
+- Create files and artifacts (Builder+)
+- Submit results for review
+- Request clarifications from users
+- Call permitted MCP tools
+- Upload artifacts (screenshots, logs, reports)
 
-## 5. Что агенты НЕ МОГУТ делать
+## 5. What Agents CANNOT Do
 
-- Изменять RBAC разрешения
-- Управлять другими агентами (кроме Reviewer approve/reject)
-- Получать доступ к secrets/credentials проекта
-- Удалять данные (файлы, задачи, пользователей)
-- Выходить за рамки назначенного проекта
-- Создавать пользователей или управлять auth
-- Получать нецензурированный доступ к аудит-логу всех агентов
-- Отключать rate limiting или аудит
-- Использовать заблокированные MCP инструменты
+- Modify RBAC permissions
+- Manage other agents (except Reviewer approve/reject)
+- Access project secrets/credentials
+- Delete data (files, tasks, users)
+- Access projects beyond their assigned scope
+- Create users or manage auth
+- Access unredacted audit logs of all agents
+- Disable rate limiting or auditing
+- Use blocked MCP tools
 
-## 6. Управление токенами агентов
+## 6. Agent Token Management
 
-### 6.1 Создание токена
+### 6.1 Creating a Token
 
 ```
 POST /api/v1/projects/{project_id}/agent-tokens
@@ -100,69 +100,69 @@ Body: {
 }
 ```
 
-- Токен создаётся один раз, показывается клиенту и сохраняется как хеш
-- Привязан к конкретному проекту (scope restriction)
-- Максимум 20 активных токенов на проект
+- Token is created once, shown to the client and stored as a hash
+- Bound to a specific project (scope restriction)
+- Max 20 active tokens per project
 
-### 6.2 Формат токена
+### 6.2 Token Format
 
 ```
 agp_{project_id}_{random_32}
 ```
 
-- `project_id` — ID проекта для быстрого route determination
-- `random_32` — 32 символа, криптографически стойкий random
+- `project_id` — project ID for fast route determination
+- `random_32` — 32 characters, cryptographically secure random
 
-### 6.3 Отзыв токена
+### 6.3 Revoking a Token
 
 ```
 DELETE /api/v1/projects/{project_id}/agent-tokens/{token_id}
 ```
 
-- Немедленный отзыв
-- Логирует: `agent.token.revoked`
-- Все активные сессии агента с этим токеном прерываются
+- Immediate revocation
+- Logs: `agent.token.revoked`
+- All active agent sessions using this token are terminated
 
-### 6.4 Ротация
+### 6.4 Rotation
 
-- Рекомендуемый TTL: 30 дней
-- При ротации: старый токен отзывается, новый создаётся
-- Автоматическое предупреждение за 7 дней до истечения
+- Recommended TTL: 30 days
+- On rotation: old token revoked, new token created
+- Automatic warning 7 days before expiration
 
-## 7. Ограничения области (Scope Restrictions)
+## 7. Scope Restrictions
 
-- Агент работает **только** в рамках проекта, к которому привязан его токен
-- Cross-project access запрещён на уровне middleware
-- Агент не может изменять scope своего токена
-- При попытке доступа к чужому проекту → `403 Forbidden` + audit event
+- An agent works **only** within the project its token is bound to
+- Cross-project access is forbidden at the middleware level
+- An agent cannot change its token's scope
+- Attempting to access another project → `403 Forbidden` + audit event
 
-## 8. Требования к аудиту
+## 8. Audit Requirements
 
-Каждое действие агента логируется:
+Every agent action is logged:
 
-| Событие                    | Обязательные поля                                    |
-|---------------------------|------------------------------------------------------|
-| `agent.token.created`     | token_id, project_id, role, created_by               |
-| `agent.token.revoked`     | token_id, project_id, revoked_by, reason             |
-| `agent.task.claimed`      | agent_id, task_id, timestamp                         |
-| `agent.task.released`     | agent_id, task_id, reason                            |
-| `agent.task.submitted`    | agent_id, task_id, summary                           |
-| `agent.task.approved`     | agent_id, task_id, reviewer_id                       |
-| `agent.task.rejected`     | agent_id, task_id, reviewer_id, reason               |
-| `agent.heartbeat`         | agent_id, task_id, message (опционально)             |
-| `agent.clarification`     | agent_id, task_id, question                          |
-| `agent.file.created`      | agent_id, task_id, file_path                         |
-| `agent.file.modified`     | agent_id, task_id, file_path                         |
-| `agent.mcp.tool_called`   | agent_id, tool_name, arguments (sanitized)           |
-| `agent.scope.denied`      | agent_id, attempted_scope, actual_scope              |
+| Event                       | Required Fields                                    |
+|-----------------------------|---------------------------------------------------|
+| `agent.token.created`       | token_id, project_id, role, created_by            |
+| `agent.token.revoked`       | token_id, project_id, revoked_by, reason          |
+| `agent.task.claimed`        | agent_id, task_id, timestamp                      |
+| `agent.task.released`       | agent_id, task_id, reason                         |
+| `agent.task.submitted`      | agent_id, task_id, summary                        |
+| `agent.task.approved`       | agent_id, task_id, reviewer_id                    |
+| `agent.task.rejected`       | agent_id, task_id, reviewer_id, reason            |
+| `agent.heartbeat`           | agent_id, task_id, message (optional)             |
+| `agent.clarification`       | agent_id, task_id, question                       |
+| `agent.file.created`        | agent_id, task_id, file_path                      |
+| `agent.file.modified`       | agent_id, task_id, file_path                      |
+| `agent.mcp.tool_called`     | agent_id, tool_name, arguments (sanitized)        |
+| `agent.scope.denied`        | agent_id, attempted_scope, actual_scope           |
 
-## 9. Rate Limiting для агентов
+## 9. Rate Limiting for Agents
 
-| Эндпоинт             | Лимит                |
-|---------------------|---------------------|
-| Общие запросы       | 500 req/min/token    |
-| Heartbeat           | 120 req/min/token    |
-| File uploads        | 50 req/min/token     |
-| MCP tool calls      | 200 req/min/token    |
+| Endpoint              | Limit                |
+|-----------------------|----------------------|
+| General requests      | 500 req/min/token    |
+| Heartbeat             | 120 req/min/token    |
+| File uploads          | 50 req/min/token     |
+| MCP tool calls        | 200 req/min/token    |
 
-При превышении → `429 Too Many Requests` + `agent.rate_limit.exceeded` audit event.
+On exceed → `429 Too Many Requests` + `agent.rate_limit.exceeded` audit event.

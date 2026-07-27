@@ -1,12 +1,12 @@
 # Observability — UPCP v2
 
-## Обзор
+## Overview
 
-UPCP использует полный стек observability: трассировки, метрики и логи через OpenTelemetry SDK с экспортом в Grafana, Loki, Tempo и Prometheus.
+UPCP uses a full observability stack: traces, metrics, and logs via the OpenTelemetry SDK with export to Grafana, Loki, Tempo, and Prometheus.
 
 ---
 
-## Архитектура
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -39,7 +39,7 @@ UPCP использует полный стек observability: трассиро�
                             ▼
                     ┌──────────────┐
                     │   Grafana    │
-                    │  (дашборды)  │
+                    │ (dashboards) │
                     └──────────────┘
 ```
 
@@ -47,9 +47,9 @@ UPCP использует полный стек observability: трассиро�
 
 ## Structured Logging
 
-### Формат
+### Format
 
-Все логи — structured JSON через `structlog`.
+All logs are structured JSON via `structlog`.
 
 ### Required Fields
 
@@ -72,51 +72,51 @@ UPCP использует полный стек observability: трассиро�
 }
 ```
 
-### Поля (обязательные)
+### Fields (required)
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `timestamp` | ISO 8601 | UTC, микросекунды |
+| Field | Type | Description |
+|-------|------|-------------|
+| `timestamp` | ISO 8601 | UTC, microseconds |
 | `level` | string | debug, info, warning, error, critical |
-| `logger` | string | Модуль-источник |
-| `event` | string | Название события (snake_case) |
-| `request_id` | string | UUID запроса (из middleware) |
+| `logger` | string | Source module |
+| `event` | string | Event name (snake_case) |
+| `request_id` | string | Request UUID (from middleware) |
 | `trace_id` | string | OpenTelemetry trace ID |
 | `span_id` | string | OpenTelemetry span ID |
 
-### Поля (контекстные, если применимо)
+### Fields (contextual, when applicable)
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `user_id` | UUID | ID пользователя |
-| `agent_id` | UUID | ID агента |
-| `organization_id` | UUID | ID организации |
-| `entity_type` | string | Тип сущности |
-| `entity_id` | UUID | ID сущности |
-| `duration_ms` | int | Длительность операции |
-| `status_code` | int | HTTP статус код |
-| `error_code` | string | Код ошибки |
-| `http_method` | string | HTTP метод |
-| `http_path` | string | HTTP путь |
+| Field | Type | Description |
+|-------|------|-------------|
+| `user_id` | UUID | User ID |
+| `agent_id` | UUID | Agent ID |
+| `organization_id` | UUID | Organization ID |
+| `entity_type` | string | Entity type |
+| `entity_id` | UUID | Entity ID |
+| `duration_ms` | int | Operation duration |
+| `status_code` | int | HTTP status code |
+| `error_code` | string | Error code |
+| `http_method` | string | HTTP method |
+| `http_path` | string | HTTP path |
 
-### Уровни логирования
+### Logging Levels
 
-| Уровень | Использование |
-|---------|--------------|
-| `debug` | Отладочная информация, SQL-запросы |
-| `info` | Штатные операции (создание, обновление) |
-| `warning` | Деградация, retry, fallback |
-| `error` | Ошибки обработки, нештатные ситуации |
-| `critical` | Фатальные ошибки, потеря данных |
+| Level | Usage |
+|-------|-------|
+| `debug` | Debug information, SQL queries |
+| `info` | Normal operations (create, update) |
+| `warning` | Degradation, retry, fallback |
+| `error` | Processing errors, abnormal situations |
+| `critical` | Fatal errors, data loss |
 
 ### Redaction
 
-Поля, которые НИКОГДА не логируются:
+Fields that are NEVER logged:
 
 - `password`, `password_hash`
 - `token`, `token_hash`, `access_token`, `refresh_token`
 - `secret`, `api_key`, `encryption_key`
-- Тело HTTP-запросов к `/auth/*`
+- HTTP request bodies to `/auth/*`
 
 ---
 
@@ -124,46 +124,46 @@ UPCP использует полный стек observability: трассиро�
 
 ### HTTP Metrics
 
-| Метрика | Тип | Labels | Описание |
-|---------|-----|--------|----------|
-| `http_requests_total` | counter | method, path, status | Всего запросов |
-| `http_request_duration_seconds` | histogram | method, path, status | Длительность запросов |
-| `http_request_size_bytes` | histogram | method, path | Размер запроса |
-| `http_response_size_bytes` | histogram | method, path | Размер ответа |
-| `http_requests_in_flight` | gauge | — | Текущие запросы |
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `http_requests_total` | counter | method, path, status | Total requests |
+| `http_request_duration_seconds` | histogram | method, path, status | Request duration |
+| `http_request_size_bytes` | histogram | method, path | Request size |
+| `http_response_size_bytes` | histogram | method, path | Response size |
+| `http_requests_in_flight` | gauge | — | Current in-flight requests |
 
 ### Database Metrics
 
-| Метрика | Тип | Labels | Описание |
-|---------|-----|--------|----------|
-| `db_query_duration_seconds` | histogram | operation, table | Длительность запросов |
-| `db_connections_active` | gauge | — | Активные соединения |
-| `db_connections_idle` | gauge | — | Простаивающие соединения |
-| `db_query_errors_total` | counter | operation, table, error_type | Ошибки БД |
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `db_query_duration_seconds` | histogram | operation, table | Query duration |
+| `db_connections_active` | gauge | — | Active connections |
+| `db_connections_idle` | gauge | — | Idle connections |
+| `db_query_errors_total` | counter | operation, table, error_type | DB errors |
 
 ### Redis Metrics
 
-| Метрика | Тип | Labels | Описание |
-|---------|-----|--------|----------|
-| `redis_command_duration_seconds` | histogram | command | Длительность команд |
-| `redis_connections_active` | gauge | — | Активные соединения |
-| `redis_cache_hits_total` | counter | cache_key_prefix | Попадания в кэш |
-| `redis_cache_misses_total` | counter | cache_key_prefix | Промахи кэша |
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `redis_command_duration_seconds` | histogram | command | Command duration |
+| `redis_connections_active` | gauge | — | Active connections |
+| `redis_cache_hits_total` | counter | cache_key_prefix | Cache hits |
+| `redis_cache_misses_total` | counter | cache_key_prefix | Cache misses |
 
 ### Business Metrics
 
-| Метрика | Тип | Labels | Описание |
-|---------|-----|--------|----------|
-| `tasks_created_total` | counter | project_id, priority | Создано задач |
-| `tasks_completed_total` | counter | project_id, priority | Завершено задач |
-| `task_cycle_time_seconds` | histogram | priority | Время от claim до done |
-| `claims_active` | gauge | project_id | Активные claims |
-| `claims_expired_total` | counter | project_id | Истёкшие claims |
-| `heartbeats_received_total` | counter | agent_id, project_id | Получено heartbeat |
-| `reviews_completed_total` | counter | verdict, reviewer_type | Завершённые ревью |
-| `review_duration_seconds` | histogram | reviewer_type | Длительность ревью |
-| `agents_active` | gauge | project_id | Активные агенты |
-| `clarifications_open` | gauge | project_id | Открытые clarification |
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `tasks_created_total` | counter | project_id, priority | Tasks created |
+| `tasks_completed_total` | counter | project_id, priority | Tasks completed |
+| `task_cycle_time_seconds` | histogram | priority | Time from claim to done |
+| `claims_active` | gauge | project_id | Active claims |
+| `claims_expired_total` | counter | project_id | Expired claims |
+| `heartbeats_received_total` | counter | agent_id, project_id | Heartbeats received |
+| `reviews_completed_total` | counter | verdict, reviewer_type | Reviews completed |
+| `review_duration_seconds` | histogram | reviewer_type | Review duration |
+| `agents_active` | gauge | project_id | Active agents |
+| `clarifications_open` | gauge | project_id | Open clarifications |
 
 ---
 
@@ -179,7 +179,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 FastAPIInstrumentor.instrument_app(app)
 ```
 
-- Один span на запрос
+- One span per request
 - Attributes: `http.method`, `http.url`, `http.status_code`, `http.request_id`
 
 #### Database (SQLAlchemy)
@@ -190,7 +190,7 @@ from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 SQLAlchemyInstrumentor().instrument(engine=engine)
 ```
 
-- Один span на SQL-запрос
+- One span per SQL query
 - Attributes: `db.system`, `db.statement`, `db.name`
 
 #### Redis
@@ -201,7 +201,7 @@ from opentelemetry.instrumentation.redis import RedisInstrumentor
 RedisInstrumentor().instrument()
 ```
 
-- Один span на Redis-команду
+- One span per Redis command
 - Attributes: `db.system`, `db.statement`
 
 #### Custom Spans
@@ -221,7 +221,7 @@ async def claim_task(task_id, agent_id):
 
 ### MCP Tool Spans
 
-Каждый MCP tool call — отдельный span:
+Each MCP tool call is a separate span:
 
 ```
 Span: mcp.tool.claim_task
@@ -256,8 +256,8 @@ Span: git.sync_commits
 
 ### 1. Service Health
 
-| Panel | Тип | Источник |
-|-------|-----|----------|
+| Panel | Type | Source |
+|-------|------|--------|
 | Request rate (RPS) | Graph | `rate(http_requests_total[5m])` |
 | Error rate | Graph | `rate(http_requests_total{status=~"5.."}[5m])` |
 | Latency p50/p95/p99 | Graph | `histogram_quantile(0.95, http_request_duration_seconds)` |
@@ -268,18 +268,18 @@ Span: git.sync_commits
 
 ### 2. Auth & Security
 
-| Panel | Тип | Источник |
-|-------|-----|----------|
+| Panel | Type | Source |
+|-------|------|--------|
 | Auth failures | Graph | `rate(http_requests_total{status="401"}[5m])` |
 | Permission denied | Graph | `rate(http_requests_total{status="403"}[5m])` |
 | Rate limited | Graph | `rate(http_requests_total{status="429"}[5m])` |
-| Active sessions | Stat | Логи |
-| Login attempts | Graph | Логи (event=auth.*) |
+| Active sessions | Stat | Logs |
+| Login attempts | Graph | Logs (event=auth.*) |
 
 ### 3. Agent Activity
 
-| Panel | Тип | Источник |
-|-------|-----|----------|
+| Panel | Type | Source |
+|-------|------|--------|
 | Active agents | Stat | `agents_active` |
 | Active claims | Gauge | `claims_active` |
 | Heartbeat rate | Graph | `rate(heartbeats_received_total[5m])` |
@@ -289,14 +289,14 @@ Span: git.sync_commits
 
 ### 4. Delivery & Quality
 
-| Panel | Тип | Источник |
-|-------|-----|----------|
+| Panel | Type | Source |
+|-------|------|--------|
 | Tasks by state | Pie | `tasks_created_total` - `tasks_completed_total` |
 | Completion rate | Graph | `rate(tasks_completed_total[1d])` |
 | Review turnaround | Graph | `review_duration_seconds` |
 | Review verdicts | Pie | `reviews_completed_total by verdict` |
 | Open clarifications | Stat | `clarifications_open` |
-| Evidence per task | Histogram | Логи |
+| Evidence per task | Histogram | Logs |
 
 ---
 

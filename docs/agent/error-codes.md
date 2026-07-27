@@ -1,10 +1,10 @@
 # Error Codes
 
-Полный каталог кодов ошибок UPCP API и MCP.
+Complete catalog of UPCP API and MCP error codes.
 
 ---
 
-## Формат ответа
+## Response Format
 
 ```json
 {
@@ -24,117 +24,117 @@ HTTP MCP:
 
 ---
 
-## Аутентификация и авторизация
+## Authentication and Authorization
 
 ### UNAUTHENTICATED
 
 **HTTP:** 401
-**Описание:** Токен агента отсутствует или невалиден.
-**Причины:** Заголовок `X-Agent-Token` не передан, токен истёк, токен не найден в БД.
-**Решение:** Проверьте заголовок. Перевыпустите токен если истёк.
+**Description:** Agent token is missing or invalid.
+**Causes:** `X-Agent-Token` header not sent, token expired, token not found in DB.
+**Resolution:** Check the header. Reissue the token if expired.
 
 ### FORBIDDEN
 
 **HTTP:** 403
-**Описание:** Недостаточно прав для выполнения операции.
-**Причины:** Scope токена не включает требуемую операцию.
-**Решение:** Проверьте scope через `whoami`. Запросите расширение scope у администратора.
+**Description:** Insufficient permissions to perform the operation.
+**Causes:** Token scope does not include the required operation.
+**Resolution:** Check scope via `whoami`. Request scope expansion from an administrator.
 
 ### AGENT_TOKEN_REVOKED
 
 **HTTP:** 401
-**Описание:** Токен отозван администратором.
-**Причины:** Администратор отозвал токен через UI или API.
-**Решение:** Перевыпустите токен через Agent Center.
+**Description:** Token was revoked by an administrator.
+**Causes:** Administrator revoked the token via UI or API.
+**Resolution:** Reissue the token through Agent Center.
 
 ### AGENT_SCOPE_INSUFFICIENT
 
 **HTTP:** 403
-**Описание:** Scope агента не покрывает запрошенную операцию.
-**Причины:** Токен выдан с ограниченным scope.
-**Решение:** Добавьте нужный scope в профиле агента.
+**Description:** Agent scope does not cover the requested operation.
+**Causes:** Token was issued with a restricted scope.
+**Resolution:** Add the required scope in the agent profile.
 
 ### SECRET_ACCESS_DENIED
 
 **HTTP:** 403
-**Описание:** Агент пытается получить доступ к секретам.
-**Причины:** Секреты защищены от доступа агентов.
-**Решение:** Секреты предоставляются через runtime environment, не через API.
+**Description:** Agent is attempting to access secrets.
+**Causes:** Secrets are protected from agent access.
+**Resolution:** Secrets are provided through the runtime environment, not via API.
 
 ---
 
-## Ресурсы
+## Resources
 
 ### NOT_FOUND
 
 **HTTP:** 404
-**Описание:** Запрашиваемый ресурс не найден.
-**Причины:** Неверный ID, ресурс удалён, нет доступа к проекту.
-**Решение:** Проверьте ID. Проверьте assignment агента к проекту.
+**Description:** The requested resource was not found.
+**Causes:** Invalid ID, resource deleted, no access to the project.
+**Resolution:** Check the ID. Verify the agent's project assignment.
 
 ### VALIDATION_ERROR
 
 **HTTP:** 422
-**Описание:** Невалидные входные данные.
-**Причины:** Отсутствует обязательное поле, неверный формат, нарушение ограничений.
-**Решение:** Проверьте поля запроса. См. документацию tool.
+**Description:** Invalid input data.
+**Causes:** Required field missing, invalid format, constraint violation.
+**Resolution:** Check request fields. See tool documentation.
 
 ### CONFLICT
 
 **HTTP:** 409
-**Описание:** Конфликт состояния.
-**Причины:** Дублирование уникального поля, одновременная модификация.
-**Решение:** Проверьте текущее состояние ресурса. Повторите с новым idempotency key.
+**Description:** State conflict.
+**Causes:** Unique field duplication, concurrent modification.
+**Resolution:** Check current resource state. Retry with a new idempotency key.
 
 ---
 
-## Задачи
+## Tasks
 
 ### TASK_NOT_CLAIMABLE
 
 **HTTP:** 422
-**Описание:** Задача не может быть захвачена.
-**Причины:** Статус задачи не `ready` и не `backlog`. Задача в `done`, `archived`, `blocked`.
-**Решение:** Проверьте статус задачи. Запросите `task_get` для актуального состояния.
+**Description:** Task cannot be claimed.
+**Causes:** Task status is not `ready` and not `backlog`. Task is in `done`, `archived`, or `blocked`.
+**Resolution:** Check the task status. Request `task_get` for the current state.
 
 ### TASK_ALREADY_CLAIMED
 
 **HTTP:** 409
-**Описание:** Задача уже захвачена другим агентом.
-**Причины:** Другой агент имеет активный claim.
-**Решение:** Дождитесь истечения claim (TTL 30 мин) или выберите другую задачу.
+**Description:** Task is already claimed by another agent.
+**Causes:** Another agent has an active claim.
+**Resolution:** Wait for the claim to expire (TTL 30 min) or choose a different task.
 
 ### TASK_CLAIM_EXPIRED
 
 **HTTP:** 410
-**Описание:** Claim на задачу истёк.
-**Причины:** Не отправлялся heartbeat в течение TTL.
-**Решение:** Повторите `claim_task`. Начните регулярно отправлять heartbeat.
+**Description:** Claim on the task has expired.
+**Causes:** No heartbeat was sent within the TTL.
+**Resolution:** Re-claim with `claim_task`. Start sending heartbeats regularly.
 
 ### TASK_NOT_READY_FOR_REVIEW
 
 **HTTP:** 422
-**Описание:** Задача не готова к отправке на ревью.
-**Причины:** Не выполнены предварительные требования (DoD, evidence, clarifications).
-**Решение:** Проверьте `task_get` — какие DoD items не passed, есть ли blocking clarifications.
+**Description:** Task is not ready for review submission.
+**Causes:** Prerequisites not met (DoD, evidence, clarifications).
+**Resolution:** Check `task_get` — which DoD items are not passed, whether blocking clarifications exist.
 
 ---
 
-## Evidence и Quality
+## Evidence and Quality
 
 ### EVIDENCE_REQUIRED
 
 **HTTP:** 422
-**Описание:** Необходимо прикрепить evidence перед продолжением.
-**Причины:** Политика проекта требует evidence для данного типа задачи.
-**Решение:** Прикрепите evidence через `attach_evidence`.
+**Description:** Evidence must be attached before proceeding.
+**Causes:** Project policy requires evidence for this task type.
+**Resolution:** Attach evidence via `attach_evidence`.
 
 ### DOD_NOT_SATISFIED
 
 **HTTP:** 422
-**Описание:** Не все Definition of Done items выполнены.
-**Причины:** Один или более DoD items имеют статус `pending` или `failed`.
-**Решение:** Выполните все DoD items. Проверьте статус через `task_get`.
+**Description:** Not all Definition of Done items are completed.
+**Causes:** One or more DoD items have status `pending` or `failed`.
+**Resolution:** Complete all DoD items. Check status via `task_get`.
 
 ---
 
@@ -143,16 +143,16 @@ HTTP MCP:
 ### CLARIFICATION_BLOCKING
 
 **HTTP:** 422
-**Описание:** Есть нерешённые blocking clarifications.
-**Причины:** Агент отправил `blocking: true` clarification и не получил ответа.
-**Решение:** Дождитесь ответа через `get_agent_inbox`. Или release задачу.
+**Description:** Unresolved blocking clarifications exist.
+**Causes:** Agent sent a `blocking: true` clarification and has not received a response.
+**Resolution:** Wait for a response via `get_agent_inbox`. Or release the task.
 
 ### CLARIFICATION_NOT_FOUND
 
 **HTTP:** 404
-**Описание:** Clarification request не найден.
-**Причины:** Неверный ID, clarification уже отвечена или удалена.
-**Решение:** Проверьте ID через `get_agent_inbox`.
+**Description:** Clarification request not found.
+**Causes:** Invalid ID, clarification already answered or deleted.
+**Resolution:** Check the ID via `get_agent_inbox`.
 
 ---
 
@@ -161,22 +161,22 @@ HTTP MCP:
 ### SELF_REVIEW_FORBIDDEN
 
 **HTTP:** 403
-**Описание:** Агент не может ревьюить задачу, которую сам выполнял.
-**Причины:** Попытка создать finding или verdict для задачи, которую агент claimed/выполнял.
-**Решение:** Назначьте другого reviewer-агента или человека.
+**Description:** Agent cannot review a task they performed themselves.
+**Causes:** Attempt to create a finding or verdict for a task the agent claimed/performed.
+**Resolution:** Assign a different reviewer agent or human.
 
 ### REVIEW_POLICY_VIOLATION
 
 **HTTP:** 422
-**Описание:** Нарушена политика ревью.
-**Причины:** Попытка auto-close без явного разрешения. Попытка approve с нерешёнными critical findings.
-**Решение:** Проверьте политику ревью проекта. Устраните critical findings.
+**Description:** Review policy violated.
+**Causes:** Attempt to auto-close without explicit permission. Attempt to approve with unresolved critical findings.
+**Resolution:** Check the project's review policy. Resolve critical findings.
 
 ### REVIEW_ROUND_NOT_FOUND
 
 **HTTP:** 404
-**Описание:** Раунд ревью не найден.
-**Решение:** Проверьте ID. Запросите `list_review_rounds` для задачи.
+**Description:** Review round not found.
+**Resolution:** Check the ID. Request `list_review_rounds` for the task.
 
 ---
 
@@ -185,9 +185,9 @@ HTTP MCP:
 ### IDEMPOTENCY_CONFLICT
 
 **HTTP:** 409
-**Описание:** Запрос с таким idempotency_key уже выполнен с другими параметрами.
-**Причины:** Повторный запрос с тем же ключом, но другими аргументами.
-**Решение:** Используйте новый idempotency key для нового запроса.
+**Description:** A request with this idempotency_key was already executed with different parameters.
+**Causes:** Repeated request with the same key but different arguments.
+**Resolution:** Use a new idempotency key for the new request.
 
 ---
 
@@ -196,9 +196,9 @@ HTTP MCP:
 ### RATE_LIMITED
 
 **HTTP:** 429
-**Описание:** Превышен лимит запросов.
-**Заголовки:** `Retry-After: <seconds>`
-**Решение:** Выполните exponential backoff. Начните с `Retry-After` секунд.
+**Description:** Request limit exceeded.
+**Headers:** `Retry-After: <seconds>`
+**Resolution:** Use exponential backoff. Start with `Retry-After` seconds.
 
 ---
 
@@ -207,34 +207,34 @@ HTTP MCP:
 ### GIT_ADAPTER_ERROR
 
 **HTTP:** 502
-**Описание:** Ошибка при обращении к Git-провайдеру.
-**Причины:** GitLab/GitHub API недоступен, невалидный webhook, токен провайдера истёк.
-**Решение:** Проверьте статус Git-провайдера. Обновите токен.
+**Description:** Error communicating with the Git provider.
+**Causes:** GitLab/GitHub API unavailable, invalid webhook, provider token expired.
+**Resolution:** Check the Git provider status. Update the token.
 
 ---
 
-## Внутренние
+## Internal
 
 ### INTERNAL_ERROR
 
 **HTTP:** 500
-**Описание:** Внутренняя ошибка сервера.
-**Решение:** Повторите через 5 секунд. Максимум 3 попытки. Если не помогло — сообщите администратору.
+**Description:** Internal server error.
+**Resolution:** Retry after 5 seconds. Maximum 3 attempts. If it persists — contact the administrator.
 
 ---
 
 ## Retry Matrix
 
-| Код | Retry? | Backoff | Макс. попытки |
-|-----|--------|---------|---------------|
-| `401 UNAUTHENTICATED` | Нет | — | — |
-| `403 FORBIDDEN` | Нет | — | — |
-| `404 NOT_FOUND` | Нет | — | — |
-| `409 TASK_ALREADY_CLAIMED` | Нет | — | — |
-| `409 CONFLICT` | Нет | — | — |
-| `409 IDEMPOTENCY_CONFLICT` | Нет | — | — |
-| `410 TASK_CLAIM_EXPIRED` | Да (claim) | 0s | 1 |
-| `422 VALIDATION_ERROR` | Нет | — | — |
-| `429 RATE_LIMITED` | Да | exponential | 5 |
-| `500 INTERNAL_ERROR` | Да | 5s | 3 |
-| `502 GIT_ADAPTER_ERROR` | Да | 10s | 3 |
+| Code                            | Retry? | Backoff        | Max Attempts |
+|---------------------------------|--------|----------------|--------------|
+| `401 UNAUTHENTICATED`          | No     | —              | —            |
+| `403 FORBIDDEN`                | No     | —              | —            |
+| `404 NOT_FOUND`                | No     | —              | —            |
+| `409 TASK_ALREADY_CLAIMED`     | No     | —              | —            |
+| `409 CONFLICT`                 | No     | —              | —            |
+| `409 IDEMPOTENCY_CONFLICT`     | No     | —              | —            |
+| `410 TASK_CLAIM_EXPIRED`       | Yes (claim) | 0s        | 1            |
+| `422 VALIDATION_ERROR`         | No     | —              | —            |
+| `429 RATE_LIMITED`             | Yes    | exponential    | 5            |
+| `500 INTERNAL_ERROR`           | Yes    | 5s             | 3            |
+| `502 GIT_ADAPTER_ERROR`        | Yes    | 10s            | 3            |

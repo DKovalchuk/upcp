@@ -1,12 +1,12 @@
-# Модель угроз — UPCP v2 (STRIDE)
+# Threat Model — UPCP v2 (STRIDE)
 
-> Область: `security` | Версия: 2.0.0
+> Scope: `security` | Version: 2.0.0
 
-## 1. Обзор
+## 1. Overview
 
-Модель угроз построена по методологии STRIDE. Каждая угроза: описание, вектор атаки, воздействие, митигация.
+The threat model is built using the STRIDE methodology. Each threat: description, attack vector, impact, mitigation.
 
-## 2. Контекст системы
+## 2. System Context
 
 ```
 Browser/React 19 → FastAPI (Python 3.12) → PostgreSQL
@@ -16,105 +16,105 @@ Browser/React 19 → FastAPI (Python 3.12) → PostgreSQL
                   AI Agents (MCP)
 ```
 
-## 3. Spoofing (Подмена)
+## 3. Spoofing
 
-**S1: Подмена агента через украденный токен**
-- Вектор: утечка agent token из CI/CD, env, логов → имперсонатор выполняет задачи
-- Митигация: SecretProvider, scope restriction (токен привязан к проекту), ротация 30 дней, audit event при каждом использовании
+**S1: Agent impersonation via stolen token**
+- Vector: agent token leaked from CI/CD, env, logs → impersonator performs tasks
+- Mitigation: SecretProvider, scope restriction (token bound to project), 30-day rotation, audit event on every use
 
-**S2: Подмена пользователя через украденную сессию**
-- Вектор: XSS → кража access token, или украденный refresh token
-- Митигация: access token только в памяти (не localStorage), refresh token httpOnly/Secure/SameSite=Strict, CSP headers, token rotation, reuse detection (повторный отзыванный refresh → отзыв всей цепочки)
+**S2: User impersonation via stolen session**
+- Vector: XSS → access token theft, or stolen refresh token
+- Mitigation: access token in memory only (not localStorage), refresh token httpOnly/Secure/SameSite=Strict, CSP headers, token rotation, reuse detection (reused revoked refresh → entire chain revoked)
 
 **S3: Credential stuffing**
-- Вектор: массовые попытки входа с украденными credentials
-- Митигация: rate limit 5 попыток/мин/IP, lockout 15 мин после 5 fail, проверка breached passwords (HaveIBeenPwned, k-anonymity)
+- Vector: mass login attempts with stolen credentials
+- Mitigation: rate limit 5 attempts/min/IP, 15 min lockout after 5 failures, breached password check (HaveIBeenPwned, k-anonymity)
 
-## 4. Tampering (Подделка)
+## 4. Tampering
 
-**T1: Модификация задач/результатов агентами**
-- Вектор: агент с избыточными правами изменяет чужие задачи
-- Митигация: агент работает только с claimed задачами, immutable после submit, hash-цепочка аудит-лога, reviewer approve/reject
+**T1: Task/result modification by agents**
+- Vector: agent with excessive permissions modifies other agents' tasks
+- Mitigation: agent works only with claimed tasks, immutable after submit, audit log hash chain, reviewer approve/reject
 
-**T2: Инъекция через MCP инструменты**
-- Вектор: prompt injection → произвольные MCP вызовы
-- Митигация: allowlist инструментов, валидация/sanitизация аргументов, rate limit 200/мин/токен, audit log с аргументами, изоляция MCP серверов (отдельные контейнеры)
+**T2: Injection via MCP tools**
+- Vector: prompt injection → arbitrary MCP calls
+- Mitigation: tool allowlist, argument validation/sanitization, rate limit 200/min/token, audit log with arguments, MCP server isolation (separate containers)
 
 **T3: SQL injection**
-- Вектор: вредоносный ввод через API
-- Митигация: SQLAlchemy 2 ORM (параметризованные запросы), Pydantic валидация, запрет raw SQL, минимальные привилегии DB user
+- Vector: malicious input via API
+- Mitigation: SQLAlchemy 2 ORM (parameterized queries), Pydantic validation, raw SQL forbidden, minimal DB user privileges
 
-## 5. Repudiation (Отрицание)
+## 5. Repudiation
 
-**R1: Невозможность доказать действие**
-- Вектор: пользователь отрицает действие
-- Митигация: полный audit log (timestamp, actor, IP, user_agent), append-only с hash-цепочкой, retention 12 мес + архив, отдельный service account для записи
+**R1: Inability to prove an action**
+- Vector: user denies having performed an action
+- Mitigation: full audit log (timestamp, actor, IP, user_agent), append-only with hash chain, 12-month retention + archive, separate service account for writes
 
-**R2: Пробелы в аудите**
-- Вектор: действия не попадают в аудит-лог
-- Митигация: тесты покрытия аудит-событий, мониторинг падения event count, регулярное сравнение API endpoints с audit coverage
+**R2: Audit gaps**
+- Vector: actions not recorded in the audit log
+- Mitigation: audit event coverage tests, monitoring of event count drops, regular comparison of API endpoints with audit coverage
 
-## 6. Information Disclosure (Раскрытие информации)
+## 6. Information Disclosure
 
-**I1: Утечка секретов через API**
-- Вектор: ошибки возвращают секреты в ответах
-- Митигация: redaction layer на всех ответах, запрет полей password/token/secret, тесты, error handler без stack trace в production
+**I1: Secret leakage via API**
+- Vector: errors return secrets in responses
+- Mitigation: redaction layer on all responses, password/token/secret fields forbidden, tests, error handler without stack trace in production
 
-**I2: Утечка секретов через логи**
-- Вектор: логи содержат пароли, токены, connection strings
-- Митигация: RedactingLogger с паттерн-матчингом, запрет логирования password/token/secret/key, code review, автоматический скан логов
+**I2: Secret leakage via logs**
+- Vector: logs contain passwords, tokens, connection strings
+- Mitigation: RedactingLogger with pattern matching, password/token/secret/key logging forbidden, code review, automated log scanning
 
-**I3: Cross-project доступ агента**
-- Вектор: агент запрашивает данные вне scope проекта
-- Митигация: scope enforcement на уровне middleware (token.project_id == resource.project_id), audit event при попытке
+**I3: Cross-project agent access**
+- Vector: agent requests data outside project scope
+- Mitigation: scope enforcement at middleware level (token.project_id == resource.project_id), audit event on attempt
 
-**I4: SQL errors с деталями схемы**
-- Вектор: необработанные SQL exceptions в ответах
-- Митигация: global exception handler (generic error), детали только в логах, тесты
+**I4: SQL errors with schema details**
+- Vector: unhandled SQL exceptions in responses
+- Mitigation: global exception handler (generic error), details in logs only, tests
 
 ## 7. Denial of Service
 
 **D1: API abuse / rate limiting bypass**
-- Митигация: rate limiting по IP/user/agent/token (см. `rate-limiting.md`), abuse detection с блокировкой, connection pooling, request timeout 30 сек (API) / 10 сек (auth)
+- Mitigation: rate limiting by IP/user/agent/token (see `rate-limiting.md`), abuse detection with blocking, connection pooling, request timeout 30 sec (API) / 10 sec (auth)
 
-**D2: Resource exhaustion через агентов**
-- Митигация: лимит 10 задач в работе на агента, файлы ≤50 МБ, ≤1000 файлов на проект, timeout задач 30 мин
+**D2: Resource exhaustion via agents**
+- Mitigation: limit of 10 tasks in progress per agent, files ≤50 MB, ≤1000 files per project, 30 min task timeout
 
 **D3: Database overload**
-- Митигация: обязательная пагинация (max 100), query timeout 10 сек, connection pool 5–20, read replicas (future)
+- Mitigation: mandatory pagination (max 100), 10 sec query timeout, connection pool 5–20, read replicas (future)
 
 ## 8. Elevation of Privilege
 
-**E1: RBAC bypass через API**
-- Митигация: проверка прав на каждом эндпоинте (decorator-based), middleware: auth → authz → handler, default deny, тесты каждой роли на каждом эндпоинте
+**E1: RBAC bypass via API**
+- Mitigation: permission check on every endpoint (decorator-based), middleware: auth → authz → handler, default deny, tests for every role on every endpoint
 
-**E2: Ролевая манипуляция**
-- Вектор: пользователь назначает себе более высокую роль
-- Митигация: назначение ролей только с `admin.role.assign`, один Owner на organization, self-role-change запрещён, audit event при смене
+**E2: Role manipulation**
+- Vector: user assigns themselves a higher role
+- Mitigation: role assignment only via `admin.role.assign`, one Owner per organization, self-role-change forbidden, audit event on change
 
 **E3: Agent token escalation**
-- Вектор: агент пытается получить права выше роли
-- Митигация: фиксированная роль после создания токена, scope enforcement, макс. роль агента: Member (никогда Admin/Owner), audit при попытке
+- Vector: agent attempts to obtain permissions above its role
+- Mitigation: fixed role after token creation, scope enforcement, max agent role: Member (never Admin/Owner), audit on attempt
 
-## 9. Матрица рисков
+## 9. Risk Matrix
 
-| ID  | Угроза                     | Вероятность | Воздействие | Риск    | Митигация  |
-|-----|----------------------------|:-----------:|:-----------:|:-------:|:----------:|
-| S1  | Подмена агента             | Средняя     | Высокое     | Высокий | ✅ Done    |
-| S2  | Подмена пользователя       | Низкая      | Критич.     | Высокий | ✅ Done    |
-| S3  | Credential stuffing        | Средняя     | Среднее     | Средний | ✅ Done    |
-| T1  | Модификация задач          | Низкая      | Среднее     | Средний | ✅ Done    |
-| T2  | MCP prompt injection       | Высокая     | Высокое     | Высокий | ⚠️ Partial |
-| T3  | SQL injection              | Низкая      | Критич.     | Высокий | ✅ Done    |
-| R1  | Отрицание действий         | Средняя     | Низкое      | Низкий  | ✅ Done    |
-| R2  | Пробелы в аудите           | Средняя     | Среднее     | Средний | ⚠️ Partial |
-| I1  | Утечка секретов (API)      | Низкая      | Критич.     | Высокий | ✅ Done    |
-| I2  | Утечка секретов (логи)     | Средняя     | Высокое     | Высокий | ✅ Done    |
-| I3  | Cross-project доступ       | Низкая      | Высокое     | Средний | ✅ Done    |
-| I4  | SQL errors                 | Низкая      | Низкое      | Низкий  | ✅ Done    |
-| D1  | API abuse                  | Высокая     | Среднее     | Средний | ✅ Done    |
-| D2  | Resource exhaustion        | Средняя     | Среднее     | Средний | ✅ Done    |
-| D3  | Database overload          | Низкая      | Высокое     | Средний | ⚠️ Partial |
-| E1  | RBAC bypass                | Низкая      | Критич.     | Высокий | ✅ Done    |
-| E2  | Ролевая манипуляция        | Низкая      | Критич.     | Высокий | ✅ Done    |
-| E3  | Agent token escalation     | Низкая      | Высокое     | Средний | ✅ Done    |
+| ID  | Threat                       | Probability | Impact    | Risk    | Mitigation  |
+|-----|------------------------------|:-----------:|:---------:|:-------:|:-----------:|
+| S1  | Agent impersonation          | Medium      | High      | High    | ✅ Done     |
+| S2  | User impersonation           | Low         | Critical  | High    | ✅ Done     |
+| S3  | Credential stuffing          | Medium      | Medium    | Medium  | ✅ Done     |
+| T1  | Task modification            | Low         | Medium    | Medium  | ✅ Done     |
+| T2  | MCP prompt injection         | High        | High      | High    | ⚠️ Partial  |
+| T3  | SQL injection                | Low         | Critical  | High    | ✅ Done     |
+| R1  | Action repudiation           | Medium      | Low       | Low     | ✅ Done     |
+| R2  | Audit gaps                   | Medium      | Medium    | Medium  | ⚠️ Partial  |
+| I1  | Secret leakage (API)         | Low         | Critical  | High    | ✅ Done     |
+| I2  | Secret leakage (logs)        | Medium      | High      | High    | ✅ Done     |
+| I3  | Cross-project access         | Low         | High      | Medium  | ✅ Done     |
+| I4  | SQL errors                   | Low         | Low       | Low     | ✅ Done     |
+| D1  | API abuse                    | High        | Medium    | Medium  | ✅ Done     |
+| D2  | Resource exhaustion          | Medium      | Medium    | Medium  | ✅ Done     |
+| D3  | Database overload            | Low         | High      | Medium  | ⚠️ Partial  |
+| E1  | RBAC bypass                  | Low         | Critical  | High    | ✅ Done     |
+| E2  | Role manipulation            | Low         | Critical  | High    | ✅ Done     |
+| E3  | Agent token escalation       | Low         | High      | Medium  | ✅ Done     |

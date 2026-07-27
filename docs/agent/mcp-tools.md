@@ -1,5 +1,6 @@
 # MCP Tools Reference
-Справочник по MCP tools для агентов. Протокол: JSON-RPC 2.0 over HTTP POST на `/mcp/`.
+
+Reference for agent MCP tools. Protocol: JSON-RPC 2.0 over HTTP POST to `/mcp/`.
 
 ---
 
@@ -7,7 +8,7 @@
 
 ### whoami
 
-Профиль текущего агента, scopes и assignments.
+Profile of the current agent, scopes, and assignments.
 
 ```json
 { "name": "whoami", "arguments": {} }
@@ -18,7 +19,7 @@
 
 ### get_capabilities
 
-Список доступных tools для текущего агента с учётом scope.
+List of available tools for the current agent based on scope.
 
 ```json
 { "name": "get_capabilities", "arguments": {} }
@@ -29,7 +30,7 @@
 
 ### project_list
 
-Список проектов с пагинацией.
+List of projects with pagination.
 
 ```json
 { "name": "project_list", "arguments": { "offset": 0, "limit": 20 } }
@@ -40,7 +41,7 @@
 
 ### project_get
 
-Детали проекта по ID.
+Project details by ID.
 
 ```json
 { "name": "project_get", "arguments": { "project_id": "proj_001" } }
@@ -60,7 +61,7 @@
 
 ### task_list
 
-Задачи проекта (через features).
+Project tasks (via features).
 
 ```json
 { "name": "task_list", "arguments": { "project_id": "proj_001", "offset": 0, "limit": 50 } }
@@ -71,7 +72,7 @@
 
 ### task_get
 
-Задача + вложенные `acceptance_criteria[]`, `dod_items[]`, `subtasks[]`.
+Task with nested `acceptance_criteria[]`, `dod_items[]`, `subtasks[]`.
 
 ```json
 { "name": "task_get", "arguments": { "task_id": "task_001" } }
@@ -81,7 +82,7 @@
 
 ### get_context_pack
 
-Markdown-контекст проекта. Tiers: `minimal` | `standard` | `deep` | `debug`. См. [context-packs.md](./context-packs.md).
+Markdown project context. Tiers: `minimal` | `standard` | `deep` | `debug`. See [context-packs.md](./context-packs.md).
 
 ```json
 { "name": "get_context_pack", "arguments": { "project_id": "proj_001", "tier": "standard" } }
@@ -91,7 +92,7 @@ Markdown-контекст проекта. Tiers: `minimal` | `standard` | `deep`
 
 ### get_agent_inbox
 
-Входящие clarification requests. Filter: `open` | `answered` | `blocking`.
+Incoming clarification requests. Filter: `open` | `answered` | `blocking`.
 
 ```json
 { "name": "get_agent_inbox", "arguments": { "status": "open" } }
@@ -102,7 +103,7 @@ Markdown-контекст проекта. Tiers: `minimal` | `standard` | `deep`
 
 ### list_evidence
 
-Evidence, прикреплённые к задаче.
+Evidence attached to a task.
 
 ```json
 { "name": "list_evidence", "arguments": { "task_id": "task_001" } }
@@ -113,7 +114,7 @@ Evidence, прикреплённые к задаче.
 
 ### list_review_rounds
 
-Раунды ревью задачи.
+Task review rounds.
 
 ```json
 { "name": "list_review_rounds", "arguments": { "task_id": "task_001" } }
@@ -126,19 +127,19 @@ Evidence, прикреплённые к задаче.
 
 ### claim_task
 
-Атомарный захват задачи. Требуется `idempotency_key` (UUID v4).
+Atomic task claim. Requires `idempotency_key` (UUID v4).
 
 ```json
 { "name": "claim_task", "arguments": { "task_id": "task_001", "idempotency_key": "<uuid>" } }
 // → { "task_id", "claim_id", "agent_id", "claimed_at", "expires_at" }
-// Ошибки: TASK_ALREADY_CLAIMED, TASK_NOT_CLAIMABLE, IDEMPOTENCY_CONFLICT
+// Errors: TASK_ALREADY_CLAIMED, TASK_NOT_CLAIMABLE, IDEMPOTENCY_CONFLICT
 ```
 
 ---
 
 ### release_task
 
-Освобождает задачу.
+Releases a task.
 
 ```json
 { "name": "release_task", "arguments": { "task_id": "task_001", "reason": "requires clarification" } }
@@ -148,7 +149,7 @@ Evidence, прикреплённые к задаче.
 
 ### heartbeat_task
 
-Сигнал жизни. Обновляет TTL claim. Каждые 30–60 сек. Без heartbeat — claim истекает через 30 мин.
+Liveness signal. Refreshes the claim TTL. Send every 30–60 seconds. Without heartbeat — claim expires after 30 min.
 
 ```json
 { "name": "heartbeat_task", "arguments": { "task_id": "task_001", "message": "analyzing codebase" } }
@@ -158,7 +159,7 @@ Evidence, прикреплённые к задаче.
 
 ### report_progress
 
-Фиксация прогресса.
+Record progress.
 
 ```json
 { "name": "report_progress", "arguments": { "task_id": "task_001", "summary": "tests written", "progress_percent": 40 } }
@@ -168,7 +169,7 @@ Evidence, прикреплённые к задаче.
 
 ### attach_evidence
 
-Прикрепление доказательства. Типы: `test_output`, `screenshot`, `log`, `url`, `file`.
+Attach evidence. Types: `test_output`, `screenshot`, `log`, `url`, `file`.
 
 ```json
 { "name": "attach_evidence", "arguments": {
@@ -181,7 +182,7 @@ Evidence, прикреплённые к задаче.
 
 ### request_clarification
 
-Запрос уточнения. `blocking: true` — задача в `blocked`. `false` — продолжается.
+Request clarification. `blocking: true` — task goes to `blocked`. `false` — continues.
 
 ```json
 { "name": "request_clarification", "arguments": {
@@ -195,7 +196,7 @@ Evidence, прикреплённые к задаче.
 
 ### reply_clarification
 
-Ответ на clarification request.
+Reply to a clarification request.
 
 ```json
 { "name": "reply_clarification", "arguments": {
@@ -207,20 +208,20 @@ Evidence, прикреплённые к задаче.
 
 ### submit_task_for_review
 
-Отправка на ревью. Требования: все DoD `passed`, нет blocking clarifications, хотя бы один evidence.
+Submit for review. Requirements: all DoD `passed`, no blocking clarifications, at least one evidence.
 
 ```json
 { "name": "submit_task_for_review", "arguments": {
   "task_id": "task_001", "summary": "CRUD implemented, all tests green."
 } }
-// Ошибки: DOD_NOT_SATISFIED, EVIDENCE_REQUIRED, CLARIFICATION_BLOCKING
+// Errors: DOD_NOT_SATISFIED, EVIDENCE_REQUIRED, CLARIFICATION_BLOCKING
 ```
 
 ---
 
 ### create_review_finding
 
-Находка в раунде ревью (для reviewer-агентов). Severity: `info|low|medium|high|critical`. Category: `code_quality|security|performance|correctness`.
+Finding in a review round (for reviewer agents). Severity: `info|low|medium|high|critical`. Category: `code_quality|security|performance|correctness`.
 
 ```json
 { "name": "create_review_finding", "arguments": {
@@ -233,7 +234,7 @@ Evidence, прикреплённые к задаче.
 
 ### submit_review_verdict
 
-Финальный вердикт. Verdict: `approve` | `reject` | `needs_changes`.
+Final verdict. Verdict: `approve` | `reject` | `needs_changes`.
 
 ```json
 { "name": "submit_review_verdict", "arguments": {
@@ -242,10 +243,10 @@ Evidence, прикреплённые к задаче.
 } }
 ```
 
-## Идиемпотентность
+## Idempotency
 
-Write tools принимают `idempotency_key` (UUID v4). Повторный запрос с тем же ключом возвращает предыдущий результат. Ключи хранятся 24 часа.
+Write tools accept `idempotency_key` (UUID v4). A repeated request with the same key returns the previous result. Keys are stored for 24 hours.
 
-## Пагинация
+## Pagination
 
 List tools: `offset` (default: 0), `limit` (default: 20, max: 100).

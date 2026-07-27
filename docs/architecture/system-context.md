@@ -1,22 +1,22 @@
 # System Context — UPCP v2
 
-## Обзор
+## Overview
 
-UPCP (Universal Project Control Plane) — самодостаточная, local-first платформа для совместной работы людей и ИИ-агентов над инженерными проектами. Документ описывает границы системы и взаимодействие с внешними акторами.
+UPCP (Universal Project Control Plane) is a self-contained, local-first platform for collaborative work between humans and AI agents on engineering projects. This document describes system boundaries and interaction with external actors.
 
 ---
 
-## Контекстная диаграмма
+## Context Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        Внешние акторы                                   │
+│                        External Actors                                  │
 │                                                                         │
 │   ┌──────────┐    ┌──────────┐    ┌──────────────┐    ┌──────────────┐ │
 │   │  Owner   │    │AI Agent  │    │ MCP Client   │    │Git Provider  │ │
-│   │(человек) │    │(LLM-     │    │(Cursor,      │    │(GitLab,      │ │
-│   │          │    │ агент)   │    │ Claude,      │    │ GitHub)      │ │
-│   │          │    │          │    │ Qwen Code)   │    │              │ │
+│   │ (human)  │    │ (LLM-    │    │ (Cursor,     │    │ (GitLab,     │ │
+│   │          │    │  agent)  │    │  Claude,     │    │  GitHub)     │ │
+│   │          │    │          │    │  Qwen Code)  │    │              │ │
 │   └────┬─────┘    └────┬─────┘    └──────┬───────┘    └──────┬───────┘ │
 │        │               │                │                    │         │
 └────────┼───────────────┼────────────────┼────────────────────┼─────────┘
@@ -48,72 +48,73 @@ UPCP (Universal Project Control Plane) — самодостаточная, local
          ▼                        ▼                        ▼
 ┌────────────────┐   ┌───────────────────┐   ┌──────────────────────────┐
 │  PostgreSQL    │   │      Redis        │   │  OpenTelemetry Collector │
-│  (основная БД) │   │  (кэш, rate limit,│   │  (traces, metrics, logs) │
-│                │   │   очереди, pub/sub)│   │                          │
+│  (primary DB)  │   │  (cache, rate     │   │  (traces, metrics, logs) │
+│                │   │   limits, queues, │   │                          │
+│                │   │   pub/sub)        │   │                          │
 └────────────────┘   └───────────────────┘   └────────────┬─────────────┘
                                                           │
                                                           ▼
                                               ┌──────────────────────────┐
                                               │  Grafana Stack           │
-                                              │  ├── Grafana (дашборды)  │
-                                              │  ├── Loki (логи)        │
-                                              │  ├── Tempo (трассировки) │
-                                              │  └── Prometheus (метрики)│
+                                              │  ├── Grafana (dashboards)│
+                                              │  ├── Loki (logs)         │
+                                              │  ├── Tempo (traces)      │
+                                              │  └── Prometheus (metrics)│
                                               └──────────────────────────┘
 ```
 
 ---
 
-## Акторы
+## Actors
 
-| Актор | Роль | Канал взаимодействия |
+| Actor | Role | Interaction Channel |
 |-------|------|---------------------|
-| **Owner** | Владелец проекта, управляет агентами, принимает решения | Web UI, CLI |
-| **AI Agent** | Выполняет задачи, предоставляет evidence, запрашивает уточнения | MCP protocol |
-| **MCP Client** | Хост-приложение агента (Cursor, Claude Desktop, Qwen Code) | MCP over stdio/SSE/HTTP |
-| **Git Provider** | Внешняя SCM-система для синхронизации коммитов и веток | Webhook + REST API |
+| **Owner** | Project owner, manages agents, makes decisions | Web UI, CLI |
+| **AI Agent** | Executes tasks, provides evidence, requests clarifications | MCP protocol |
+| **MCP Client** | Agent host application (Cursor, Claude Desktop, Qwen Code) | MCP over stdio/SSE/HTTP |
+| **Git Provider** | External SCM system for commit and branch synchronization | Webhook + REST API |
 
 ---
 
-## Внешние системы
+## External Systems
 
-| Система | Назначение | Протокол |
-|---------|-----------|----------|
-| **PostgreSQL 16** | Основная реляционная БД | asyncpg / SQLAlchemy 2 |
-| **Redis 7** | Кэш, rate limiting, pub/sub, очереди | redis-py (async) |
-| **OpenTelemetry Collector** | Сбор телеметрии | OTLP gRPC/HTTP |
-| **Grafana** | Визуализация дашбордов | HTTP |
-| **Loki** | Агрегация логов | HTTP push |
-| **Tempo** | Хранение трассировок | OTLP |
-| **Prometheus** | Хранение метрик | scrape / remote write |
+| System | Purpose | Protocol |
+|--------|---------|----------|
+| **PostgreSQL 16** | Primary relational DB | asyncpg / SQLAlchemy 2 |
+| **Redis 7** | Cache, rate limiting, pub/sub, queues | redis-py (async) |
+| **OpenTelemetry Collector** | Telemetry collection | OTLP gRPC/HTTP |
+| **Grafana** | Dashboard visualization | HTTP |
+| **Loki** | Log aggregation | HTTP push |
+| **Tempo** | Trace storage | OTLP |
+| **Prometheus** | Metrics storage | scrape / remote write |
 
 ---
 
-## Внутренние компоненты
+## Internal Components
 
 ### FastAPI App
-- REST API для Web UI и внешних интеграций
-- JWT-аутентификация, RBAC
+- REST API for Web UI and external integrations
+- JWT authentication, RBAC
 - OpenTelemetry middleware
-- Rate limiting через Redis
+- Rate limiting via Redis
 
 ### MCP Server
-- Реализация Model Context Protocol
-- Транспорты: stdio (для локальных клиентов), SSE, HTTP
-- Инструменты: read/write/admin по аналогии с REST API
-- Токен-аутентификация для агентов
+- Model Context Protocol implementation
+- Transports: stdio (for local clients), SSE, HTTP
+- Tools: read/write/admin analogous to REST API
+- Token-based authentication for agents
 
 ### CLI (upcp-cli)
-- Командная оболочка для владельцев и CI/CD
-- Аутентификация через API-ключи или JWT
-- Команды: project, agent, task, review, report
+- Command-line shell for owners and CI/CD
+- Authentication via API keys or JWT
+- Commands: project, agent, task, review, report
 
 ---
 
-## Границы доверия
+## Trust Boundaries
 
 ```
-┌─ Доверенная зона (self-hosted) ─────────────────────────┐
+┌─ Trusted Zone (self-hosted) ────────────────────────────┐
 │  FastAPI + MCP Server + CLI + PostgreSQL + Redis         │
 └──────────────────────────────────────────────────────────┘
          ▲                    ▲                   ▲
@@ -125,7 +126,7 @@ UPCP (Universal Project Control Plane) — самодостаточная, local
 └────────────┘    └───────────────┘    └──────────────────┘
 ```
 
-- Все входящие соединения аутентифицируются
-- MCP-агенты получают scoped-токены с ограничением по проектам
-- Webhook-ы от Git-провайдеров верифицируются по HMAC-подписи
-- Нет исходящих соединений к LLM-провайдерам (агент работает через MCP-клиент)
+- All incoming connections are authenticated
+- MCP agents receive scoped tokens with project-level restrictions
+- Webhooks from Git providers are verified via HMAC signature
+- No outgoing connections to LLM providers (agents operate through MCP clients)

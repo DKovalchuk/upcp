@@ -1,58 +1,58 @@
 # SaaS Readiness — UPCP v2
 
-> Связано: [UPCP v2 PRD](./upcp-v2.md) | Milestone: future
+> Related: [UPCP v2 PRD](./upcp-v2.md) | Milestone: future
 
-## 1. Обзор
+## 1. Overview
 
-Документ описывает архитектурные решения для будущей SaaS-версии UPCP. В v2 SaaS не реализуется, но архитектура должна это позволять.
+This document describes architectural decisions for the future SaaS version of UPCP. SaaS is not implemented in v2, but the architecture must allow for it.
 
-## 2. Текущие решения для SaaS-readiness
+## 2. Current SaaS-Readiness Decisions
 
 ### 2.1 Organization Model
 
-Organization создается с первого дня:
+Organization is created from day one:
 - `id`, `name`, `slug`, `is_default`
-- Standalone: автоматически создаётся одна default org
-- SaaS: каждая организация — отдельный租户
+- Standalone: a single default org is created automatically
+- SaaS: each organization is a separate tenant
 
-### 2.2 Multi-user поддержка
+### 2.2 Multi-user Support
 
-- User + Membership + RBAC — с M7
-- Роли: Owner, Admin, Member, Viewer
+- User + Membership + RBAC — from M7
+- Roles: Owner, Admin, Member, Viewer
 - Scope bindings: global, organization, project
 
 ### 2.3 Feature Flags
 
-Будущие SaaS-фичи управляются через feature flags:
+Future SaaS features are controlled via feature flags:
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `public_registration` | false | Открытая регистрация |
-| `email_verification` | false | Подтверждение email |
-| `invitations` | false | Приглашения пользователей |
-| `oidc` | false | Внешняя аутентификация |
-| `multi_org` | false | Множество организаций |
-| `billing` | false | Платежи и подписки |
-| `webhooks` | false | Внешние webhook'и |
+| `public_registration` | false | Open registration |
+| `email_verification` | false | Email verification |
+| `invitations` | false | User invitations |
+| `oidc` | false | External authentication |
+| `multi_org` | false | Multiple organizations |
+| `billing` | false | Payments and subscriptions |
+| `webhooks` | false | External webhooks |
 
 ### 2.4 Data Isolation
 
-В standalone — всё в одной БД, одна org.
-В SaaS — два варианта:
+In standalone — everything in one database, one org.
+In SaaS — two options:
 
-1. **Shared database, org-scoped queries** (v2 default): все orgs в одной таблице, изоляция через `org_id` в каждом запросе
-2. **Schema-per-org** (future): PostgreSQL schemas для изоляции
+1. **Shared database, org-scoped queries** (v2 default): all orgs in one table, isolation via `org_id` in every query
+2. **Schema-per-org** (future): PostgreSQL schemas for isolation
 
 ### 2.5 Rate Limiting
 
-Rate limiting через Redis с org-level quotas:
+Rate limiting via Redis with org-level quotas:
 - Free tier: 1000 req/day
 - Pro tier: 10000 req/day
 - Enterprise: custom
 
-## 3. Что НЕ делается в v2
+## 3. Not Done in v2
 
-- Billing и subscriptions
+- Billing and subscriptions
 - Usage metering
 - Stripe/integration
 - Public registration UI
@@ -63,7 +63,7 @@ Rate limiting через Redis с org-level quotas:
 
 ## 4. Migration Path (Standalone → SaaS)
 
-1. v2: standalone с Organization model
+1. v2: standalone with Organization model
 2. v2.1: public registration + email verification
 3. v2.2: invitations
 4. v3: OIDC

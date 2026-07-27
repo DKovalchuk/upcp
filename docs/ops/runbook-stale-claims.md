@@ -1,36 +1,36 @@
 # Runbook: Stale Claims
 
-> Проект: UPCP | Механизм: Heartbeat-based stale detection
+> Project: UPCP | Mechanism: Heartbeat-based stale detection
 
-## 1. Обзор
+## 1. Overview
 
-Stale claims — задачи, захваченные агентами, которые перестали отправлять heartbeat. Система автоматически обнаруживает и освобождает такие задачи.
+Stale claims — tasks claimed by agents that stopped sending heartbeats. The system automatically detects and releases such tasks.
 
-## 2. Механизм детекции
+## 2. Detection Mechanism
 
-### 2.1 Таймауты
+### 2.1 Timeouts
 
-| Параметр | Значение | Описание |
+| Parameter | Value | Description |
 |----------|----------|----------|
-| `HEARTBEAT_INTERVAL` | 30-60 сек | Рекомендуемый интервал heartbeat |
-| `HEARTBEAT_STALE` | 7 мин | Задача считается stale |
-| `HEARTBEAT_DEAD` | 15 мин | Автоматический release |
-| `HEARTBEAT_CHECK_INTERVAL` | 1 мин | Как часто система проверяет |
+| `HEARTBEAT_INTERVAL` | 30-60 sec | Recommended heartbeat interval |
+| `HEARTBEAT_STALE` | 7 min | Task is considered stale |
+| `HEARTBEAT_DEAD` | 15 min | Automatic release |
+| `HEARTBEAT_CHECK_INTERVAL` | 1 min | How often the system checks |
 
 ### 2.2 State machine
 
 ```
-claimed ──(7 мин без heartbeat)──→ stale ──(ещё 8 мин)──→ auto_released → open
+claimed ──(7 min without heartbeat)──→ stale ──(another 8 min)──→ auto_released → open
   │                                    │
-  │                                    └→ heartbeat_received → claimed (сброс таймера)
+  │                                    └→ heartbeat_received → claimed (timer reset)
   │
-  └──(heartbeat ok)──→ claimed (продление)
+  └──(heartbeat ok)──→ claimed (extension)
 ```
 
-### 2.3 Реализация
+### 2.3 Implementation
 
 ```python
-# Периодическая задача (celery/apscheduler или cron endpoint)
+# Periodic task (celery/apscheduler or cron endpoint)
 async def check_stale_claims():
     stale_threshold = datetime.utcnow() - timedelta(minutes=7)
     dead_threshold = datetime.utcnow() - timedelta(minutes=15)
@@ -52,25 +52,25 @@ async def check_stale_claims():
             await notify(task.project.owner, "task.stale", task)
 ```
 
-## 3. Как идентифицировать stale claims
+## 3. How to Identify Stale Claims
 
-### 3.1 Через API
+### 3.1 Via API
 
 ```bash
-# Список stale задач проекта
+# List stale tasks of a project
 curl -H "Authorization: Bearer TOKEN" \
   "http://localhost:38080/api/v1/projects/PROJECT_ID/tasks?status=claimed&stale=true"
 
-# Детали конкретной задачи
+# Details of a specific task
 curl -H "Authorization: Bearer TOKEN" \
   "http://localhost:38080/api/v1/tasks/TASK_ID"
-# Смотреть поле last_heartbeat_at и heartbeat_status
+# Check the last_heartbeat_at and heartbeat_status fields
 ```
 
-### 3.2 Через БД
+### 3.2 Via Database
 
 ```bash
-# Найти stale claims
+# Find stale claims
 docker compose exec db psql -U upcp -c "
   SELECT
     t.id,
@@ -83,7 +83,7 @@ docker compose exec db psql -U upcp -c "
     AND t.last_heartbeat_at < NOW() - INTERVAL '7 minutes'
   ORDER BY t.last_heartbeat_at ASC;"
 
-# Найти dead claims (auto-release кандидаты)
+# Find dead claims (auto-release candidates)
 docker compose exec db psql -U upcp -c "
   SELECT id, title, agent_id, last_heartbeat_at
   FROM tasks
@@ -91,74 +91,74 @@ docker compose exec db psql -U upcp -c "
     AND last_heartbeat_at < NOW() - INTERVAL '15 minutes';"
 ```
 
-### 3.3 Через Grafana
+### 3.3 Via Grafana
 
 Dashboard: **Agent Activity** → Panels:
 - **Heartbeat Status**: healthy / stale / dead
-- **Stale Detections**: количество за период
-- **Claims by Agent**: таблица с last heartbeat
+- **Stale Detections**: count per period
+- **Claims by Agent**: table with last heartbeat
 
-### 3.4 Через логи
+### 3.4 Via Logs
 
 ```bash
-# Поиск stale events
+# Search for stale events
 docker compose logs app --tail 1000 | grep "stale"
 
-# Пример лога:
+# Example log:
 # 2026-07-27 14:30:00 WARNING task.stale_detected task_id=142 agent=claude-agent-3 heartbeat_age=8m30s
 ```
 
-## 4. Как освободить stale claim
+## 4. How to Release a Stale Claim
 
-### 4.1 Автоматически (система)
+### 4.1 Automatically (system)
 
-Система автоматически release dead claims (>15 мин). Не требует ручного вмешательства.
+The system automatically releases dead claims (>15 min). No manual intervention required.
 
-### 4.2 Вручную (администратор)
+### 4.2 Manually (administrator)
 
 ```bash
-# Через API
+# Via API
 curl -X POST -H "Authorization: Bearer TOKEN" \
   "http://localhost:38080/api/v1/tasks/TASK_ID/release" \
   -d '{"reason": "manual_release_stale"}'
 
-# Через БД (экстренно)
+# Via database (emergency)
 docker compose exec db psql -U upcp -c "
   UPDATE tasks
   SET status = 'open', agent_id = NULL, claimed_at = NULL, last_heartbeat_at = NULL
   WHERE id = 'TASK_ID' AND status IN ('claimed', 'stale');"
 ```
 
-### 4.3 Через UI
+### 4.3 Via UI
 
-Attention Dashboard → Stale секция → [Release] кнопка на карточке задачи.
+Attention Dashboard → Stale section → [Release] button on the task card.
 
-## 5. Как переназначить задачу
+## 5. How to Reassign a Task
 
-### 5.1 Тот же агент (retry)
+### 5.1 Same agent (retry)
 
 ```bash
-# Агент может claim повторно после release
+# Agent can re-claim after release
 curl -X POST -H "Authorization: ApiKey AGENT_KEY" \
   "http://localhost:38080/api/v1/tasks/TASK_ID/claim"
 ```
 
-### 5.2 Другой агент
+### 5.2 Different agent
 
 ```bash
-# Назначить конкретного агента (admin)
+# Assign a specific agent (admin)
 curl -X POST -H "Authorization: Bearer TOKEN" \
   "http://localhost:38080/api/v1/tasks/TASK_ID/assign" \
   -d '{"agent_id": "OTHER_AGENT_ID"}'
 ```
 
-### 5.3 Round-robin (автоматически)
+### 5.3 Round-robin (automatic)
 
-Если настроен auto-assign, задача автоматически назначается следующему свободному агенту после release.
+If auto-assign is configured, the task is automatically assigned to the next available agent after release.
 
-## 6. Мониторинг
+## 6. Monitoring
 
-### 6.1 Алёрты
+### 6.1 Alerts
 
 ```yaml
 groups:
@@ -189,21 +189,21 @@ groups:
           summary: "No heartbeats received for 3 minutes"
 ```
 
-### 6.2 Метрики
+### 6.2 Metrics
 
-| Метрика | Тип | Описание |
+| Metric | Type | Description |
 |---------|-----|----------|
-| `upcp_tasks_stale_total` | counter | Всего stale detections |
-| `upcp_tasks_auto_released_total` | counter | Автоматических releases |
-| `upcp_heartbeat_age_seconds` | gauge | Возраст последнего heartbeat |
-| `upcp_claims_active` | gauge | Активные claims |
+| `upcp_tasks_stale_total` | counter | Total stale detections |
+| `upcp_tasks_auto_released_total` | counter | Automatic releases |
+| `upcp_heartbeat_age_seconds` | gauge | Age of last heartbeat |
+| `upcp_claims_active` | gauge | Active claims |
 
-## 7. Предотвращение
+## 7. Prevention
 
-### 7.1 На стороне агента
+### 7.1 Agent-side
 
 ```python
-# Пример heartbeat loop для агента
+# Example heartbeat loop for an agent
 import asyncio
 import httpx
 
@@ -220,19 +220,19 @@ async def work_on_task(task_id: str, api_key: str):
                 json={"message": "Working...", "progress": current_progress}
             )
 
-            await asyncio.sleep(30)  # каждые 30 секунд
+            await asyncio.sleep(30)  # every 30 seconds
 ```
 
-### 7.2 На стороне UPCP
+### 7.2 UPCP-side
 
-- Playbook указывает `heartbeat_interval: 30` как рекомендацию
-- При claim агент получает напоминание о heartbeat
-- Inbox сообщение при первом stale warning (до auto-release)
+- Playbook specifies `heartbeat_interval: 30` as a recommendation
+- On claim, the agent receives a heartbeat reminder
+- Inbox message on first stale warning (before auto-release)
 
-### 7.3 Health checks агентов
+### 7.3 Agent health checks
 
 ```bash
-# Проверить, какие агенты активны
+# Check which agents are active
 docker compose exec db psql -U upcp -c "
   SELECT
     agent_id,
@@ -244,12 +244,12 @@ docker compose exec db psql -U upcp -c "
   ORDER BY last_hb ASC;"
 ```
 
-## 8. Диагностика частых stale
+## 8. Diagnosing Frequent Stale Claims
 
-Если stale claims происходят регулярно:
+If stale claims occur regularly:
 
-1. **Проверить агента**: работает ли процесс? не crashed?
-2. **Проверить сеть**: может ли агент достучаться до UPCP API?
-3. **Проверить rate limits**: не блокирует ли rate limiter heartbeat?
-4. **Проверить DNS**: резолвится ли имя сервера?
-5. **Проверить нагрузку**: не перегружен ли агент слишком большой задачей?
+1. **Check the agent**: is the process running? has it crashed?
+2. **Check the network**: can the agent reach the UPCP API?
+3. **Check rate limits**: is the rate limiter blocking heartbeats?
+4. **Check DNS**: is the server name resolving?
+5. **Check load**: is the agent overloaded by a too-large task?

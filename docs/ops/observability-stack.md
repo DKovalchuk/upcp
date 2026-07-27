@@ -1,8 +1,8 @@
-# Observability Stack — Настройка
+# Observability Stack — Setup
 
-> Проект: UPCP | Стек: OpenTelemetry, Prometheus, Grafana, Loki, Tempo
+> Project: UPCP | Stack: OpenTelemetry, Prometheus, Grafana, Loki, Tempo
 
-## 1. Архитектура
+## 1. Architecture
 
 ```
 ┌──────────┐     ┌───────────────────┐     ┌────────────┐
@@ -23,9 +23,9 @@
 
 ## 2. OpenTelemetry Collector
 
-### 2.1 Конфигурация
+### 2.1 Configuration
 
-Файл: `observability/otel-collector-config.yaml`
+File: `observability/otel-collector-config.yaml`
 
 ```yaml
 receivers:
@@ -96,7 +96,7 @@ otel-collector:
 
 ### 3.1 Scrape config
 
-Файл: `observability/prometheus.yml`
+File: `observability/prometheus.yml`
 
 ```yaml
 global:
@@ -140,7 +140,7 @@ prometheus:
 
 ### 4.1 Datasource provisioning
 
-Файл: `observability/grafana/provisioning/datasources/datasources.yaml`
+File: `observability/grafana/provisioning/datasources/datasources.yaml`
 
 ```yaml
 apiVersion: 1
@@ -168,7 +168,7 @@ datasources:
 
 ### 4.2 Dashboard provisioning
 
-Файл: `observability/grafana/provisioning/dashboards/dashboards.yaml`
+File: `observability/grafana/provisioning/dashboards/dashboards.yaml`
 
 ```yaml
 apiVersion: 1
@@ -187,9 +187,9 @@ providers:
 
 ## 5. Loki
 
-### 5.1 Конфигурация
+### 5.1 Configuration
 
-Файл: `observability/loki-config.yaml`
+File: `observability/loki-config.yaml`
 
 ```yaml
 auth_enabled: false
@@ -235,9 +235,9 @@ loki:
 
 ## 6. Tempo
 
-### 6.1 Конфигурация
+### 6.1 Configuration
 
-Файл: `observability/tempo-config.yaml`
+File: `observability/tempo-config.yaml`
 
 ```yaml
 server:
@@ -275,7 +275,7 @@ tempo:
     - observability
 ```
 
-## 7. Инструментация приложения
+## 7. Application Instrumentation
 
 ### 7.1 Python (FastAPI)
 
@@ -304,37 +304,37 @@ def setup_telemetry(service_name: str, otlp_endpoint: str):
     metrics.set_meter_provider(meter_provider)
 ```
 
-### 7.2 Ключевые метрики приложения
+### 7.2 Key Application Metrics
 
-| Метрика | Тип | Описание |
-|---------|-----|----------|
-| `upcp_http_requests_total` | counter | Всего HTTP запросов |
-| `upcp_http_request_duration_seconds` | histogram | Latency запросов |
-| `upcp_tasks_active` | gauge | Активные задачи |
+| Metric | Type | Description |
+|--------|------|-------------|
+| `upcp_http_requests_total` | counter | Total HTTP requests |
+| `upcp_http_request_duration_seconds` | histogram | Request latency |
+| `upcp_tasks_active` | gauge | Active tasks |
 | `upcp_tasks_stale_total` | counter | Stale detections |
 | `upcp_heartbeat_total` | counter | Heartbeats received |
 | `upcp_review_rounds_total` | counter | Review rounds completed |
 | `upcp_auth_failures_total` | counter | Failed auth attempts |
 
-## 8. Запуск
+## 8. Launch
 
 ```bash
-# Только приложение
+# App only
 docker compose up -d
 
-# С полным observability stack
+# With full observability stack
 docker compose --profile observability up -d
 
-# Проверить endpoints
+# Verify endpoints
 curl http://localhost:39090/api/v1/status/config  # Prometheus
 curl http://localhost:33000/api/health             # Grafana
 curl http://localhost:3100/ready                   # Loki
 curl http://localhost:3200/ready                   # Tempo
 ```
 
-## 9. Порты (observability)
+## 9. Ports (observability)
 
-| Сервис | Порт | Назначение |
+| Service | Port | Purpose |
 |--------|------|-----------|
 | OTel Collector | 4317 | gRPC receiver |
 | OTel Collector | 4318 | HTTP receiver |

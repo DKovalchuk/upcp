@@ -1,72 +1,72 @@
-# Troubleshooting — Частые проблемы и решения
+# Troubleshooting — Common Issues and Solutions
 
-> Проект: UPCP | Среда: Docker Compose
+> Project: UPCP | Environment: Docker Compose
 
 ## 1. Database Connection
 
-### Симптом: `Connection refused` или `could not connect to server`
+### Symptom: `Connection refused` or `could not connect to server`
 
-**Причины:**
-- PostgreSQL контейнер не запущен
-- Неверный `DATABASE_URL`
-- Сеть Docker не поднята
+**Causes:**
+- PostgreSQL container is not running
+- Incorrect `DATABASE_URL`
+- Docker network is not up
 
-**Диагностика:**
+**Diagnostics:**
 ```bash
-# Проверить контейнер
+# Check container status
 docker compose ps db
 
-# Проверить логи
+# Check logs
 docker compose logs db --tail 50
 
-# Проверить healthcheck
+# Check healthcheck
 docker compose exec db pg_isready -U upcp
 
-# Проверить подключение из app
+# Check connection from app
 docker compose exec app python -c "import asyncpg; import asyncio; asyncio.run(asyncpg.connect('postgresql://upcp:pass@db:5432/upcp'))"
 ```
 
-**Решения:**
-1. Запустить db: `docker compose up -d db`
-2. Проверить `DATABASE_URL` в `.env` — должен быть `postgresql+asyncpg://upcp:PASSWORD@db:5432/upcp`
-3. Ждать healthcheck: db может запускаться 5-10 секунд
-4. Удалить volume и пересоздать (⚠️ данные потеряются): `docker compose down -v && docker compose up -d`
+**Solutions:**
+1. Start db: `docker compose up -d db`
+2. Verify `DATABASE_URL` in `.env` — should be `postgresql+asyncpg://upcp:PASSWORD@db:5432/upcp`
+3. Wait for healthcheck: db may take 5-10 seconds to start
+4. Remove volume and recreate (⚠️ data will be lost): `docker compose down -v && docker compose up -d`
 
-### Симптом: `too many connections`
+### Symptom: `too many connections`
 
-**Решение:**
+**Solution:**
 ```bash
-# Проверить текущие соединения
+# Check current connections
 docker compose exec db psql -U upcp -c "SELECT count(*) FROM pg_stat_activity;"
 
-# Настроить пул в приложении
-DATABASE_MAX_CONNECTIONS=20  # в .env
+# Configure pool in application
+DATABASE_MAX_CONNECTIONS=20  # in .env
 ```
 
 ## 2. Redis Connection
 
-### Симптом: `Connection refused` или `Error 111`
+### Symptom: `Connection refused` or `Error 111`
 
-**Диагностика:**
+**Diagnostics:**
 ```bash
 docker compose ps redis
 docker compose logs redis --tail 20
 docker compose exec redis redis-cli ping
 ```
 
-**Решения:**
-1. Запустить redis: `docker compose up -d redis`
-2. Проверить `REDIS_URL` в `.env` — формат: `redis://redis:6379/0`
-3. Проверить, что Redis слушает на нужном порту
+**Solutions:**
+1. Start redis: `docker compose up -d redis`
+2. Verify `REDIS_URL` in `.env` — format: `redis://redis:6379/0`
+3. Check that Redis is listening on the correct port
 
-### Симптом: `OOM command not allowed`
+### Symptom: `OOM command not allowed`
 
-**Решение:**
+**Solution:**
 ```bash
-# Проверить память
+# Check memory
 docker compose exec redis redis-cli INFO memory
 
-# Увеличить лимит в docker-compose.yml
+# Increase limit in docker-compose.yml
 deploy:
   resources:
     limits:
@@ -75,202 +75,202 @@ deploy:
 
 ## 3. Docker Build Failures
 
-### Симптом: `COPY failed: file not found`
+### Symptom: `COPY failed: file not found`
 
-**Причина:** Контекст сборки не содержит нужные файлы.
+**Cause:** Build context does not contain the required files.
 
-**Решение:**
+**Solution:**
 ```bash
-# Проверить .dockerignore
+# Check .dockerignore
 cat .dockerignore
 
-# Убедиться, что файл существует
+# Verify that the file exists
 ls -la requirements.txt pyproject.toml
 
-# Пересобрать без кеша
+# Rebuild without cache
 docker compose build --no-cache app
 ```
 
-### Симптом: `pip install` timeout или ошибки сети
+### Symptom: `pip install` timeout or network errors
 
-**Решение:**
+**Solution:**
 ```bash
-# Использовать внутренний mirror
-# В Dockerfile:
+# Use an internal mirror
+# In Dockerfile:
 RUN pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple/
 
-# Или увеличить таймаут
+# Or increase timeout
 RUN pip install --timeout 120 -r requirements.txt
 ```
 
-### Симптом: Out of disk space
+### Symptom: Out of disk space
 
-**Решение:**
+**Solution:**
 ```bash
-# Проверить место
+# Check disk space
 df -h
 docker system df
 
-# Очистить неиспользуемые образы
+# Remove unused images
 docker system prune -a --volumes
 
-# Очистить конкретно build cache
+# Remove build cache specifically
 docker builder prune -a
 ```
 
 ## 4. Migration Errors
 
-### Симптом: `alembic.util.exc.CommandError: Can't locate revision`
+### Symptom: `alembic.util.exc.CommandError: Can't locate revision`
 
-**Причина:** Несоответствие версий миграций между кодом и БД.
+**Cause:** Migration version mismatch between code and database.
 
-**Решение:**
+**Solution:**
 ```bash
-# Проверить текущую версию
+# Check current version
 docker compose exec db psql -U upcp -c "SELECT * FROM alembic_version;"
 
-# Применить миграции
+# Apply migrations
 docker compose exec app alembic upgrade head
 
-# Если миграция сломана — downgrade и повторить
+# If migration is broken — downgrade and retry
 docker compose exec app alembic downgrade -1
 docker compose exec app alembic upgrade head
 ```
 
-### Симптом: `table already exists`
+### Symptom: `table already exists`
 
-**Решение:**
+**Solution:**
 ```bash
-# Проверить, какая таблица конфликтует
+# Check which table is conflicting
 docker compose exec app alembic upgrade head 2>&1
 
-# Stamp текущей версии (если таблицы уже созданы вручную)
+# Stamp current version (if tables were already created manually)
 docker compose exec app alembic stamp head
 ```
 
-### Симптом: `column "xxx" does not exist` после миграции
+### Symptom: `column "xxx" does not exist` after migration
 
-**Решение:**
+**Solution:**
 ```bash
-# Проверить, применилась ли миграция
+# Check if migration was applied
 docker compose exec db psql -U upcp -c "\d table_name"
 
-# Принудительно применить конкретную миграцию
+# Force apply a specific migration
 docker compose exec app alembic upgrade <revision>
 ```
 
 ## 5. Auth Issues
 
-### Симптом: `401 Unauthorized` на всех запросах
+### Symptom: `401 Unauthorized` on all requests
 
-**Диагностика:**
+**Diagnostics:**
 ```bash
-# Проверить JWT_SECRET
+# Check JWT_SECRET
 docker compose exec app env | grep JWT_SECRET
 
-# Проверить, не истёк ли токен
+# Check if token has expired
 python3 -c "import jwt; print(jwt.decode('YOUR_TOKEN', options={'verify_signature': False}))"
 ```
 
-**Решения:**
-1. Убедиться, что `JWT_SECRET` совпадает между перезапусками
-2. Заново авторизоваться (получить новый access token)
-3. Проверить, что `Authorization: Bearer <token>` формат правильный
+**Solutions:**
+1. Ensure `JWT_SECRET` is consistent across restarts
+2. Re-authenticate (obtain a new access token)
+3. Verify that `Authorization: Bearer <token>` format is correct
 
-### Симптом: `403 Forbidden` — нет прав
+### Symptom: `403 Forbidden` — insufficient permissions
 
-**Решение:**
+**Solution:**
 ```bash
-# Проверить роль пользователя
+# Check user role
 docker compose exec db psql -U upcp -c "SELECT id, email, role FROM users WHERE email='user@example.com';"
 
-# Проверить membership в проекте
+# Check project membership
 docker compose exec db psql -U upcp -c "SELECT * FROM project_members WHERE user_id='USER_ID';"
 ```
 
 ## 6. Agent Token Issues
 
-### Симптом: `Invalid API key`
+### Symptom: `Invalid API key`
 
-**Диагностика:**
+**Diagnostics:**
 ```bash
-# Проверить ключи в БД
+# Check keys in database
 docker compose exec db psql -U upcp -c "SELECT id, name, prefix, is_active FROM api_keys;"
 
-# Проверить, не отозван ли ключ
+# Check if key has been revoked
 docker compose exec db psql -U upcp -c "SELECT revoked_at FROM api_keys WHERE prefix='PREFIX';"
 ```
 
-**Решения:**
-1. Создать новый ключ: `POST /api/v1/api-keys`
-2. Убедиться, что заголовок `Authorization: ApiKey <key>`, не `Bearer`
-3. Проверить, что ключ для правильного проекта
+**Solutions:**
+1. Create a new key: `POST /api/v1/api-keys`
+2. Ensure the header is `Authorization: ApiKey <key>`, not `Bearer`
+3. Verify the key belongs to the correct project
 
-### Симптом: Agent не может claim задачу
+### Symptom: Agent cannot claim a task
 
-**Решение:**
+**Solution:**
 ```bash
-# Проверить роль агента
+# Check agent role
 docker compose exec db psql -U upcp -c "SELECT role FROM api_keys WHERE prefix='PREFIX';"
-# Должна быть 'agent'
+# Should be 'agent'
 
-# Проверить, что задача в статусе 'open'
+# Check that task is in 'open' status
 docker compose exec db psql -U upcp -c "SELECT id, status FROM tasks WHERE id='TASK_ID';"
 ```
 
 ## 7. Rate Limiting
 
-### Симптом: `429 Too Many Requests`
+### Symptom: `429 Too Many Requests`
 
-**Диагностика:**
+**Diagnostics:**
 ```bash
-# Проверить текущие лимиты
+# Check current limits
 docker compose exec redis redis-cli GET "rate_limit:USER_ID"
 
-# Проверить конфигурацию
+# Check configuration
 docker compose exec app env | grep RATE_LIMIT
 ```
 
-**Решения:**
-1. Подождать (лимиты обычно 1 мин окно)
-2. Увеличить лимит: `RATE_LIMIT_DEFAULT=120` в `.env`
-3. Whitelist IP: `RATE_LIMIT_WHITELIST=10.0.0.0/8` в `.env`
+**Solutions:**
+1. Wait (limits typically use a 1-minute window)
+2. Increase limit: `RATE_LIMIT_DEFAULT=120` in `.env`
+3. Whitelist IP: `RATE_LIMIT_WHITELIST=10.0.0.0/8` in `.env`
 
 ## 8. Performance
 
-### Симптом: Медленные запросы API
+### Symptom: Slow API requests
 
-**Диагностика:**
+**Diagnostics:**
 ```bash
-# Проверить медленные запросы в PostgreSQL
+# Check slow queries in PostgreSQL
 docker compose exec db psql -U upcp -c "
   SELECT query, mean_exec_time, calls
   FROM pg_stat_statements
   ORDER BY mean_exec_time DESC
   LIMIT 10;"
 
-# Проверить индексы
+# Check indexes
 docker compose exec db psql -U upcp -c "
   SELECT schemaname, tablename, indexname, idx_scan
   FROM pg_stat_user_indexes
   WHERE idx_scan = 0;"
 ```
 
-**Решения:**
-1. Добавить индексы для часто запрашиваемых полей
-2. Проверить N+1 запросы (SQLAlchemy eager loading)
-3. Включить query logging: `LOG_LEVEL=DEBUG`
-4. Проверить пул соединений: `DATABASE_POOL_SIZE=20`
+**Solutions:**
+1. Add indexes for frequently queried fields
+2. Check for N+1 queries (SQLAlchemy eager loading)
+3. Enable query logging: `LOG_LEVEL=DEBUG`
+4. Check connection pool: `DATABASE_POOL_SIZE=20`
 
-### Симптом: Высокое потребление памяти
+### Symptom: High memory usage
 
-**Диагностика:**
+**Diagnostics:**
 ```bash
 docker stats --no-stream
 docker compose exec app ps aux --sort=-%mem | head
 ```
 
-**Решения:**
-1. Ограничить memory в docker-compose: `memory: 1G`
-2. Проверить утечки: `tracemalloc` в Python
-3. Увеличить `GUNICORN_WORKERS` если нужна масштабируемость
+**Solutions:**
+1. Limit memory in docker-compose: `memory: 1G`
+2. Check for leaks: `tracemalloc` in Python
+3. Increase `GUNICORN_WORKERS` if scalability is needed

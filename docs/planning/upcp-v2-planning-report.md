@@ -4,15 +4,15 @@ Updated: 2026-07-27
 
 ## 1. Executive Summary
 
-UPCP v2 — это следующая версия Universal Project Control Plane, которая превращает рабочий прототип в production-ready платформу для совместной работы людей и AI-агентов.
+UPCP v2 is the next version of Universal Project Control Plane, transforming the working prototype into a production-ready platform for collaborative work between humans and AI agents.
 
-**Текущее состояние**: рабочий модулярный монолит с CRUD для иерархии проектов, MCP-сервером, REST API, CLI, фронтендом с dashboard/kanban/search, аудитом и отчётами. Без аутентификации, авторизации, агентного workflow, evidence engine и полной observability.
+**Current state**: working modular monolith with CRUD for project hierarchy, MCP server, REST API, CLI, frontend with dashboard/kanban/search, audit, and reports. No authentication, authorization, agent workflow, evidence engine, or full observability.
 
-**Целевое состояние**: полноценная платформа с identity/access, RBAC, агентами как first-class субъектами, task lifecycle с claim/heartbeat/clarification, evidence-based Done, agent-assisted review, observability и attention-first UX.
+**Target state**: full-featured platform with identity/access, RBAC, agents as first-class entities, task lifecycle with claim/heartbeat/clarification, evidence-based Done, agent-assisted review, observability, and attention-first UX.
 
-**Объём документации**: 48 файлов (11 architecture, 7 security, 7 agent, 8 UX, 4 PRD, 7 ops, 4 testing).
+**Documentation scope**: 48 files (11 architecture, 7 security, 7 agent, 8 UX, 4 PRD, 7 ops, 4 testing).
 
-**Объём заполнения UPCP**: 1 проект, 13 компонентов, 81 модуль, 26 фичей, ~50 задач с полными метаданными.
+**UPCP population scope**: 1 project, 13 components, 81 modules, 26 features, ~50 tasks with full metadata.
 
 ## 2. Assumptions
 
@@ -35,56 +35,56 @@ UPCP v2 — это следующая версия Universal Project Control Pla
 
 ## 3. Target Vision
 
-> Владелец и AI-агенты ежедневно работают в UPCP: планируют, проектируют, выполняют задачи, прикладывают доказательства, проходят ревью, получают отчёты и имеют полную трассируемость.
+> The owner and AI agents work daily in UPCP: planning, designing, executing tasks, attaching evidence, going through reviews, receiving reports, and having full traceability.
 
-### Ключевые сценарии
+### Key Scenarios
 
-**Сценарий 1: Ежедневная работа**
-1. Владелец логинится → видит Attention Dashboard
-2. Открывает проект → drill-down до задачи
-3. Видит heartbeat и progress агента
-4. Отвечает на clarification
-5. Агент прикрепляет evidence → отправляет на review
-6. Владелец смотрит evidence → approve/reject
+**Scenario 1: Daily work**
+1. Owner logs in → sees Attention Dashboard
+2. Opens a project → drill-down to a task
+3. Sees agent heartbeat and progress
+4. Answers a clarification
+5. Agent attaches evidence → submits for review
+6. Owner reviews evidence → approve/reject
 
-**Сценарий 2: Agent-assisted review**
-1. Агент-исполнитель завершает задачу → submit review
-2. Назначается agent reviewer
-3. Agent reviewer проверяет DoD, evidence, git → verdict
-4. Человек принимает финальное решение
+**Scenario 2: Agent-assisted review**
+1. Executor agent completes a task → submit review
+2. An agent reviewer is assigned
+3. Agent reviewer checks DoD, evidence, git → verdict
+4. Human makes the final decision
 
-**Сценарий 3: Multi-project control**
-1. Dashboard показывает проекты с проблемами
+**Scenario 3: Multi-project control**
+1. Dashboard shows projects with issues
 2. Stale claims, open clarifications, failed gates
 3. Drill-down: Portfolio → Project → Component → Module → Feature → Task
-4. На каждом уровне: evidence, review, audit, git links
+4. At each level: evidence, review, audit, git links
 
 ## 4. Milestones
 
 ### M7: Identity, Access & Agent Foundation
-**Цель**: Полноценные пользователи, организации, RBAC, агенты, токены.
-**Срок**: Phase 1
-**Критичность**: Critical
+**Goal**: Full users, organizations, RBAC, agents, tokens.
+**Timeline**: Phase 1
+**Criticality**: Critical
 
 ### M8: Runtime Foundation
-**Цель**: Redis, secrets, rate limiting, observability.
-**Срок**: Phase 1 (параллельно с M7)
-**Критичность**: Critical/High
+**Goal**: Redis, secrets, rate limiting, observability.
+**Timeline**: Phase 1 (parallel with M7)
+**Criticality**: Critical/High
 
 ### M9: Agent Workflow MVP
-**Цель**: Агент может полноценно работать с задачей от claim до review.
-**Срок**: Phase 2
-**Критичность**: High
+**Goal**: Agent can fully work with a task from claim to review.
+**Timeline**: Phase 2
+**Criticality**: High
 
 ### M10: Evidence & Review Engine
-**Цель**: Done требует evidence, DoD coverage и review.
-**Срок**: Phase 2
-**Критичность**: High
+**Goal**: Done requires evidence, DoD coverage, and review.
+**Timeline**: Phase 2
+**Criticality**: High
 
 ### M11: Human Control UX, Project Drill-down & Portfolio Insights
-**Цель**: Удобный командный центр с полным drill-down.
-**Срок**: Phase 3
-**Критичность**: Medium
+**Goal**: Convenient command center with full drill-down.
+**Timeline**: Phase 3
+**Criticality**: Medium
 
 ## 5. Component Map
 
@@ -853,7 +853,7 @@ TASK-0062 Notifications integrated into new `notifications` component as feature
 
 ## 18. Next Implementation Tasks
 
-Рекомендуемый порядок реализации (первые 20 задач):
+Recommended implementation order (first 20 tasks):
 
 | # | Task | Milestone | Priority | Size |
 |---|------|-----------|----------|------|
@@ -878,7 +878,7 @@ TASK-0062 Notifications integrated into new `notifications` component as feature
 | 19 | Implement sliding window rate limiter | M8 | High | L |
 | 20 | Implement structured JSON logging | M8 | High | M |
 
-### Критический путь
+### Critical path
 
 ```
 User/Org/Membership models
@@ -895,7 +895,7 @@ User/Org/Membership models
   → Security hardening
 ```
 
-После этого — M9 Agent Workflow, M10 Evidence & Review, M11 UX.
+After this — M9 Agent Workflow, M10 Evidence & Review, M11 UX.
 
 ---
 

@@ -1,55 +1,55 @@
 # API Design — UPCP v2
 
-## Обзор
+## Overview
 
-UPCP предоставляет REST API для Web UI и внешних интеграций, а также MCP tools для ИИ-агентов. Документ описывает конвенции REST API.
+UPCP provides a REST API for Web UI and external integrations, as well as MCP tools for AI agents. This document describes REST API conventions.
 
 ---
 
-## Базовый URL и версионирование
+## Base URL and Versioning
 
 ```
 https://{host}/api/v1/{resource}
 ```
 
-- Версия в URL: `/api/v1`
-- При breaking change — новая версия `/api/v2`, старая поддерживается минимум 6 месяцев
-- MCP tools не версионируются (версия = версия сервера)
+- Version in URL: `/api/v1`
+- On breaking changes — new version `/api/v2`, old version supported for at least 6 months
+- MCP tools are not versioned (version = server version)
 
 ---
 
-## HTTP-методы
+## HTTP Methods
 
-| Метод | Назначение | Idempotent | Тело ответа |
-|-------|-----------|------------|-------------|
-| `GET` | Чтение ресурса/коллекции | Да | Ресурс или массив |
-| `POST` | Создание ресурса | Нет* | Созданный ресурс |
-| `PUT` | Полная замена | Да | Обновлённый ресурс |
-| `PATCH` | Частичное обновление | Да | Обновлённый ресурс |
-| `DELETE` | Удаление (soft) | Да | `204 No Content` |
+| Method | Purpose | Idempotent | Response Body |
+|--------|---------|------------|---------------|
+| `GET` | Read resource/collection | Yes | Resource or array |
+| `POST` | Create resource | No* | Created resource |
+| `PUT` | Full replacement | Yes | Updated resource |
+| `PATCH` | Partial update | Yes | Updated resource |
+| `DELETE` | Delete (soft) | Yes | `204 No Content` |
 
-*POST идемпотентен при наличии `Idempotency-Key` заголовка.
+*POST is idempotent when an `Idempotency-Key` header is present.
 
 ---
 
-## Именование ресурсов
+## Resource Naming
 
 ```
-/api/v1/projects                           # коллекция
-/api/v1/projects/{project_id}              # конкретный ресурс
-/api/v1/projects/{project_id}/tasks        # вложенная коллекция
+/api/v1/projects                           # collection
+/api/v1/projects/{project_id}              # specific resource
+/api/v1/projects/{project_id}/tasks        # nested collection
 /api/v1/projects/{project_id}/tasks/{task_id}
 ```
 
-**Правила:**
-- Имена в kebab-case: `review-rounds`, `acceptance-criteria`
-- Множественное число для коллекций
-- UUID v7 в качестве идентификаторов
-- Вложенность максимум 2 уровня
+**Rules:**
+- Names in kebab-case: `review-rounds`, `acceptance-criteria`
+- Plural for collections
+- UUID v7 as identifiers
+- Nesting max 2 levels deep
 
 ---
 
-## Аутентификация
+## Authentication
 
 ### Web API (JWT)
 
@@ -57,9 +57,9 @@ https://{host}/api/v1/{resource}
 Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
 ```
 
-- Access token: 15 минут
-- Refresh token: 7 дней (хранится в httpOnly cookie)
-- Ротация refresh token при каждом использовании
+- Access token: 15 minutes
+- Refresh token: 7 days (stored in httpOnly cookie)
+- Refresh token rotation on every use
 
 ### Agent API (MCP Token)
 
@@ -67,8 +67,8 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
 Authorization: Bearer mcp_{token_prefix}_{random}
 ```
 
-- Токен привязан к Agent + scope
-- Автоматический expiry (настраивается)
+- Token bound to Agent + scope
+- Automatic expiry (configurable)
 
 ### API Key (CLI/CI)
 
@@ -76,25 +76,25 @@ Authorization: Bearer mcp_{token_prefix}_{random}
 X-API-Key: upcp_{key_prefix}_{random}
 ```
 
-- Для CLI и автоматизации
-- Привязан к пользователю + организация
+- For CLI and automation
+- Bound to user + organization
 
 ---
 
-## Пагинация
+## Pagination
 
-### Запрос
+### Request
 
 ```http
 GET /api/v1/projects?offset=0&limit=20
 ```
 
-| Параметр | Тип | Default | Max |
-|----------|-----|---------|-----|
+| Parameter | Type | Default | Max |
+|-----------|------|---------|-----|
 | `offset` | int | 0 | — |
 | `limit` | int | 20 | 100 |
 
-### Ответ
+### Response
 
 ```json
 {
@@ -110,15 +110,15 @@ GET /api/v1/projects?offset=0&limit=20
 
 ---
 
-## Фильтрация
+## Filtering
 
-### Синтаксис
+### Syntax
 
 ```http
 GET /api/v1/tasks?filter[state]=in_progress&filter[priority]=high
 ```
 
-### Операторы
+### Operators
 
 ```http
 filter[field]=value           # exact match
@@ -126,43 +126,43 @@ filter[field_gt]=value        # greater than
 filter[field_gte]=value       # greater than or equal
 filter[field_lt]=value        # less than
 filter[field_lte]=value       # less than or equal
-filter[field_like]=value      # LIKE (подстрока)
-filter[field_in]=a,b,c        # IN (список)
+filter[field_like]=value      # LIKE (substring)
+filter[field_in]=a,b,c        # IN (list)
 filter[field_null]=true       # IS NULL
 ```
 
-### Правила
+### Rules
 
-- Фильтрация только по whitelist полей (ограничена per-endpoint)
-- Нет произвольных SQL-выражений
-- Максимум 5 фильтров на запрос
+- Filtering only by whitelisted fields (restricted per-endpoint)
+- No arbitrary SQL expressions
+- Max 5 filters per request
 
 ---
 
-## Сортировка
+## Sorting
 
 ```http
 GET /api/v1/tasks?sort=-created_at,title
 ```
 
-- Префикс `-` = DESC, без префикса = ASC
-- Множественные поля через запятую
-- Whitelist допустимых полей per-endpoint
+- Prefix `-` = DESC, no prefix = ASC
+- Multiple fields separated by comma
+- Whitelist of allowed fields per-endpoint
 
-**Default:** `-created_at` (новые первые)
+**Default:** `-created_at` (newest first)
 
 ---
 
-## Формат ошибок
+## Error Format
 
-### Структура
+### Structure
 
 ```json
 {
   "error": {
     "error_code": "VALIDATION_ERROR",
-    "message": "Поле 'title' обязательно",
-    "hint": "Укажите заголовок задачи",
+    "message": "The 'title' field is required",
+    "hint": "Provide a task title",
     "entity": "task",
     "entity_id": null,
     "details": [
@@ -176,36 +176,36 @@ GET /api/v1/tasks?sort=-created_at,title
 }
 ```
 
-### Стандартные error codes
+### Standard Error Codes
 
-| HTTP | error_code | Описание |
-|------|-----------|----------|
-| 400 | `VALIDATION_ERROR` | Ошибка валидации входных данных |
-| 400 | `MALFORMED_REQUEST` | Невалидный JSON / формат |
-| 401 | `AUTHENTICATION_REQUIRED` | Нет токена |
-| 401 | `TOKEN_EXPIRED` | Токен истёк |
-| 403 | `PERMISSION_DENIED` | Нет прав |
-| 404 | `NOT_FOUND` | Ресурс не найден |
-| 409 | `CONFLICT` | Конфлик состояний (duplicate, state machine) |
-| 409 | `ALREADY_EXISTS` | Ресурс уже существует |
-| 422 | `UNPROCESSABLE_ENTITY` | Бизнес-валидация не пройдена |
-| 429 | `RATE_LIMITED` | Превышен лимит |
-| 500 | `INTERNAL_ERROR` | Внутренняя ошибка |
-| 503 | `SERVICE_UNAVAILABLE` | Зависимость недоступна |
+| HTTP | error_code | Description |
+|------|-----------|-------------|
+| 400 | `VALIDATION_ERROR` | Input data validation error |
+| 400 | `MALFORMED_REQUEST` | Invalid JSON / format |
+| 401 | `AUTHENTICATION_REQUIRED` | No token |
+| 401 | `TOKEN_EXPIRED` | Token expired |
+| 403 | `PERMISSION_DENIED` | No permissions |
+| 404 | `NOT_FOUND` | Resource not found |
+| 409 | `CONFLICT` | State conflict (duplicate, state machine) |
+| 409 | `ALREADY_EXISTS` | Resource already exists |
+| 422 | `UNPROCESSABLE_ENTITY` | Business validation failed |
+| 429 | `RATE_LIMITED` | Rate limit exceeded |
+| 500 | `INTERNAL_ERROR` | Internal error |
+| 503 | `SERVICE_UNAVAILABLE` | Dependency unavailable |
 
-### Правила
+### Rules
 
-- `message` — человекочитаемое описание (может быть на языке пользователя)
-- `error_code` — machine-readable, стабильный
-- `details` — массив ошибок полей (для validation)
-- `entity` + `entity_id` — контекст ошибки
-- Никогда не раскрывать внутренние детали (stack trace, SQL)
+- `message` — human-readable description (may be in user's language)
+- `error_code` — machine-readable, stable
+- `details` — array of field errors (for validation)
+- `entity` + `entity_id` — error context
+- Never expose internal details (stack trace, SQL)
 
 ---
 
 ## Rate Limiting
 
-### Заголовки ответа
+### Response Headers
 
 ```http
 X-RateLimit-Limit: 100
@@ -214,7 +214,7 @@ X-RateLimit-Reset: 1699999999
 Retry-After: 30
 ```
 
-### При превышении (429)
+### On Exceeding (429)
 
 ```json
 {
@@ -233,28 +233,28 @@ Retry-After: 30
 
 ---
 
-## Идемпотентность
+## Idempotency
 
-### Заголовок
+### Header
 
 ```http
 Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 ```
 
-### Правила
+### Rules
 
-- Обязателен для `POST` запросов (создание)
-- Опционален для `PUT`/`PATCH`/`DELETE`
-- UUID v4, клиент генерирует
-- Ключ живёт 24 часа в Redis
-- При повторном запросе с тем же ключом — возвращается кэшированный ответ
-- При конфликте (другое тело) — `409 CONFLICT`
+- Required for `POST` requests (creation)
+- Optional for `PUT`/`PATCH`/`DELETE`
+- UUID v4, generated by the client
+- Key lives 24 hours in Redis
+- On repeat request with the same key — cached response is returned
+- On conflict (different body) — `409 CONFLICT`
 
 ---
 
-## Типичные ответы
+## Typical Responses
 
-### Успешное создание (201)
+### Successful Creation (201)
 
 ```http
 HTTP/1.1 201 Created
@@ -270,7 +270,7 @@ Content-Type: application/json
 }
 ```
 
-### Успешное чтение (200)
+### Successful Read (200)
 
 ```json
 {
@@ -278,7 +278,7 @@ Content-Type: application/json
 }
 ```
 
-### Успешный список (200)
+### Successful List (200)
 
 ```json
 {
@@ -287,7 +287,7 @@ Content-Type: application/json
 }
 ```
 
-### Успешное удаление (204)
+### Successful Deletion (204)
 
 ```http
 HTTP/1.1 204 No Content
@@ -308,16 +308,16 @@ Access-Control-Max-Age: 86400
 
 ## Content-Type
 
-- Запросы: `application/json`
-- Ответы: `application/json; charset=utf-8`
-- Загрузки: `multipart/form-data`
-- Экспорты: `application/octet-stream` (PDF, CSV)
+- Requests: `application/json`
+- Responses: `application/json; charset=utf-8`
+- Uploads: `multipart/form-data`
+- Exports: `application/octet-stream` (PDF, CSV)
 
 ---
 
 ## OpenAPI
 
-- Спецификация автоматически генерируется из FastAPI
-- Доступна по `/api/v1/openapi.json`
-- Swagger UI: `/api/v1/docs` (только в dev/staging)
-- ReDoc: `/api/v1/redoc` (только в dev/staging)
+- Specification is auto-generated from FastAPI
+- Available at `/api/v1/openapi.json`
+- Swagger UI: `/api/v1/docs` (dev/staging only)
+- ReDoc: `/api/v1/redoc` (dev/staging only)

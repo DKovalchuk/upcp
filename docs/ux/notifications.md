@@ -1,6 +1,6 @@
 # Notifications UX
 
-Система уведомлений UPCP.
+UPCP notification system.
 
 ---
 
@@ -8,11 +8,11 @@
 
 **Location:** Top bar.
 
-**Badge:** Количество непрочитанных (макс `99+`). Скрывается при 0.
+**Badge:** Number of unread notifications (max `99+`). Hidden when 0.
 
 ### Dropdown
 
-Клик → последние 10 уведомлений.
+Click → last 10 notifications.
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -31,13 +31,13 @@
 └──────────────────────────────────────────────────┘
 ```
 
-Unread indicator: filled/empty dot. Клик → переход к ресурсу + mark read.
+Unread indicator: filled/empty dot. Click → navigate to resource + mark read.
 
 ---
 
 ## 2. Notification Types
 
-| Тип | Title | Иконка | Действие |
+| Type | Title | Icon | Action |
 |-----|-------|--------|----------|
 | `review_submitted` | "TASK-XXXX submitted for review" | `FileCheck` | Task Reviews tab |
 | `clarification_open` | "Blocking question on TASK-XXXX" | `MessageCircleQuestion` | Task Clarifications |
@@ -93,15 +93,15 @@ Unread indicator: filled/empty dot. Клик → переход к ресурс�
 
 ### Filters
 
-| Фильтр | Опции |
-|--------|-------|
+| Filter | Options |
+|--------|---------|
 | Read status | All / Unread / Read |
 | Type | All / Review / Clarification / Claim / Quality / Agent |
-| Project | All / [список проектов] |
+| Project | All / [project list] |
 
 ### Grouping
 
-По дням: Today, Yesterday, Older.
+By day: Today, Yesterday, Older.
 
 ---
 
@@ -109,7 +109,7 @@ Unread indicator: filled/empty dot. Клик → переход к ресурс�
 
 - **Click** → mark read + navigate.
 - **[Mark Read]** → mark without navigate.
-- **[Mark All Read]** → все.
+- **[Mark All Read]** → all.
 - **[🗑️]** → delete single (no confirmation).
 
 ---
@@ -142,9 +142,9 @@ Quiet Hours: [22:00] — [08:00]
 
 ## 6. Real-time
 
-- Polling каждые 30 сек (TanStack Query).
-- Badge обновляется в real-time.
-- Toast (sonner) для критических: blocking clarification, review submitted.
+- Polling every 30 sec (TanStack Query).
+- Badge updates in real-time.
+- Toast (sonner) for critical events: blocking clarification, review submitted.
 
 ---
 

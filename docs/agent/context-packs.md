@@ -1,30 +1,30 @@
 # Context Packs
 
-Документация по системе контекст-пакетов UPCP для ИИ-агентов.
+Documentation on the UPCP context pack system for AI agents.
 
 ---
 
-## 1. Обзор
+## 1. Overview
 
-Context pack — это структурированный markdown-документ, содержащий релевантную информацию о проекте для агента. Генерируется на лету из БД и предоставляется через MCP resource или tool.
+A context pack is a structured markdown document containing relevant project information for an agent. It is generated on the fly from the database and provided via an MCP resource or tool.
 
-**Цель:** Минимизировать токены, предоставив агенту достаточно контекста для начала работы.
+**Goal:** Minimize tokens by providing the agent with enough context to start working.
 
 ---
 
-## 2. Tiers (уровни детализации)
+## 2. Tiers (Detail Levels)
 
 ### minimal
 
-Минимальный контекст для проверки доступности проекта.
+Minimal context for verifying project availability.
 
-**Содержимое:**
-- Имя проекта, slug, статус
-- Количество задач по статусам
+**Content:**
+- Project name, slug, status
+- Task count by status
 
-**Оценка токенов:** ~200
+**Token estimate:** ~200
 
-**Когда использовать:** Проверка connectivity, первичный обзор доступных проектов.
+**When to use:** Connectivity check, initial overview of available projects.
 
 ```
 tools/call → get_context_pack
@@ -36,60 +36,60 @@ tools/call → get_context_pack
 
 ### standard
 
-Стандартный контекст для начала работы над задачей.
+Standard context for starting work on a task.
 
-**Содержимое:**
-- Имя проекта, slug, статус, описание
-- Список задач (title, status, priority)
-- Git-ссылки проекта
-- Краткая статистика
+**Content:**
+- Project name, slug, status, description
+- Task list (title, status, priority)
+- Project git links
+- Brief statistics
 
-**Оценка токенов:** ~1000
+**Token estimate:** ~1000
 
-**Когда использовать:** Перед claim_task. Обычная рабочая сессия.
+**When to use:** Before claim_task. Normal working session.
 
 ---
 
 ### deep
 
-Глубокий контекст для сложных задач.
+Deep context for complex tasks.
 
-**Содержимое:**
-- Всё из `standard`
-- Acceptance Criteria по задачам
-- DoD items по задачам
-- Evidence (последние 5 на задачу)
-- Открытые clarifications
-- Компоненты и модули проекта
+**Content:**
+- Everything from `standard`
+- Acceptance Criteria per task
+- DoD items per task
+- Evidence (last 5 per task)
+- Open clarifications
+- Project components and modules
 
-**Оценка токенов:** ~3000
+**Token estimate:** ~3000
 
-**Когда использовать:** Задачи с complex AC. Ревью. Задачи, требующие понимания архитектуры.
+**When to use:** Tasks with complex AC. Reviews. Tasks requiring architectural understanding.
 
 ---
 
 ### debug
 
-Максимальный контекст для отладки.
+Maximum context for debugging.
 
-**Содержимое:**
-- Всё из `deep`
-- Audit events (последние 20)
-- Subtasks по задачам
-- Git commits (последние 10)
+**Content:**
+- Everything from `deep`
+- Audit events (last 20)
+- Subtasks per task
+- Git commits (last 10)
 - Git branches
-- Review rounds и findings
-- Полные metadata всех сущностей
+- Review rounds and findings
+- Full metadata of all entities
 
-**Оценка токенов:** ~5000
+**Token estimate:** ~5000
 
-**Когда использовать:** Отладка проблем. Audit trail анализ. Post-mortem.
+**When to use:** Debugging issues. Audit trail analysis. Post-mortem.
 
 ---
 
 ## 3. ContextSnapshot Model
 
-При выполнении задачи агент может зафиксировать снимок контекста:
+When working on a task, an agent can capture a context snapshot:
 
 ```json
 {
@@ -105,47 +105,47 @@ tools/call → get_context_pack
 }
 ```
 
-### Поля
+### Fields
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `id` | UUID | Уникальный ID снимка |
-| `task_id` | UUID | Связанная задача |
-| `agent_id` | UUID | Агент, создавший снимок |
-| `tier` | enum | Уровень детализации |
-| `version` | semver | Версия формата context pack |
-| `content_hash` | SHA-256 | Хеш содержимого для дедупликации |
-| `token_estimate` | int | Оценка токенов |
-| `content` | text | Markdown-содержимое |
-| `created_at` | timestamp | Время создания |
-
----
-
-## 4. Версионирование
-
-Формат context pack версионируется:
-
-| Версия | Изменения |
-|--------|-----------|
-| `1.0.0` | Базовый формат: project, tasks, git links |
-
-При изменении формата инкрементируется minor/major версия. Агенты могут проверять версию через `content_hash` и кешировать.
+| Field            | Type     | Description                          |
+|------------------|----------|--------------------------------------|
+| `id`             | UUID     | Unique snapshot ID                   |
+| `task_id`        | UUID     | Associated task                      |
+| `agent_id`       | UUID     | Agent that created the snapshot      |
+| `tier`           | enum     | Detail level                         |
+| `version`        | semver   | Context pack format version          |
+| `content_hash`   | SHA-256  | Content hash for deduplication       |
+| `token_estimate` | int      | Token estimate                       |
+| `content`        | text     | Markdown content                     |
+| `created_at`     | timestamp| Creation time                        |
 
 ---
 
-## 5. Оценка токенов
+## 4. Versioning
 
-`token_estimate` — приблизительное количество токенов (1 токен ≈ 4 символа для английского, ≈ 2 символа для кода). Используется для:
+The context pack format is versioned:
 
-- Выбора tier перед отправкой в LLM
-- Мониторинга стоимости
-- Предупреждения о превышении context window
+| Version | Changes                                  |
+|---------|------------------------------------------|
+| `1.0.0` | Base format: project, tasks, git links   |
+
+When the format changes, the minor/major version is incremented. Agents can check the version via `content_hash` and cache accordingly.
+
+---
+
+## 5. Token Estimation
+
+`token_estimate` — approximate token count (1 token ≈ 4 characters for English, ≈ 2 characters for code). Used for:
+
+- Selecting a tier before sending to LLM
+- Cost monitoring
+- Context window overflow warnings
 
 ---
 
 ## 6. MCP Resource
 
-Context pack доступен как MCP resource:
+Context packs are available as an MCP resource:
 
 ```
 resources/list → [
@@ -160,37 +160,37 @@ resources/read → context_pack://project/{project_id}?tier=standard
 ## 7. CLI
 
 ```bash
-# Стандартный контекст
+# Standard context
 upcp context-pack proj_001
 
-# С указанием tier
+# With specific tier
 upcp context-pack proj_001 --tier deep
 
-# Сохранение в файл
+# Save to file
 upcp context-pack proj_001 --tier standard --output context.md
 
-# JSON формат
+# JSON format
 upcp context-pack proj_001 --format json
 ```
 
 ---
 
-## 8. Кеширование
+## 8. Caching
 
-Context pack кешируется на 5 минут. Повторный запрос с тем же `project_id` и `tier` возвращает кешированную версию. Сброс кеша при:
+Context packs are cached for 5 minutes. A repeated request with the same `project_id` and `tier` returns the cached version. Cache is invalidated on:
 
-- Изменении задачи (status, AC, DoD)
-- Прикреплении evidence
-- Изменении git-ссылок
-- Изменении проекта
+- Task change (status, AC, DoD)
+- Evidence attachment
+- Git link change
+- Project change
 
 ---
 
 ## 9. Best Practices
 
-1. **Запрашивайте минимально достаточный tier.** Не используйте `debug` без необходимости.
-2. **Кешируйте content_hash.** Если хеш не изменился, контекст актуален.
-3. **Запрашивайте context pack перед claim_task**, а не после.
-4. **Для review** используйте `deep` — нужны AC, DoD, evidence.
-5. **Для heartbeat-сообщений** не включайте контекст — это overhead.
-6. **Сохраняйте snapshot** при начале работы — полезно для post-mortem.
+1. **Request the minimally sufficient tier.** Do not use `debug` unless necessary.
+2. **Cache content_hash.** If the hash hasn't changed, the context is current.
+3. **Request the context pack before claim_task**, not after.
+4. **For reviews**, use `deep` — AC, DoD, and evidence are needed.
+5. **For heartbeat messages**, do not include context — it's overhead.
+6. **Save a snapshot** at the start of work — useful for post-mortem.

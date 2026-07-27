@@ -1,112 +1,112 @@
 # Attention Dashboard
 
-Главная страница UPCP. Фокус на том, что требует внимания пользователя прямо сейчас.
+The main page of UPCP. Focused on what requires the user's attention right now.
 
 ---
 
-## 1. Обзор
+## 1. Overview
 
-Dashboard — не витринная статистика, а action-oriented inbox. Каждая секция содержит элементы, которые нуждаются в действии: ревью, ответ, исправление, подтверждение.
+Dashboard is not a vanity statistics page, but an action-oriented inbox. Each section contains items that need action: review, answer, fix, or confirmation.
 
 **URL:** `/`
 
 ---
 
-## 2. Секции
+## 2. Sections
 
 ### 2.1 Needs Your Review
 
-**Что:** Задачи, отправленные агентами на ревью и ожидающие решения.
+**What:** Tasks submitted by agents for review and awaiting a decision.
 
-**Данные:** Task title, Agent name, Submitted at, Evidence count, Review round number.
+**Data:** Task title, Agent name, Submitted at, Evidence count, Review round number.
 
-**Действие:** Клик → task detail sheet на вкладке Reviews.
+**Action:** Click → task detail sheet on the Reviews tab.
 
-**Пустое:** "No tasks awaiting review."
+**Empty state:** "No tasks awaiting review."
 
 ---
 
 ### 2.2 Open Agent Questions
 
-**Что:** Clarification requests от агентов, требующие ответа.
+**What:** Clarification requests from agents that require an answer.
 
-**Данные:** Task title, Agent name, Question (truncated), Blocking indicator, Created at.
+**Data:** Task title, Agent name, Question (truncated), Blocking indicator, Created at.
 
-**Действие:** Клик → task detail sheet на вкладке Clarifications.
+**Action:** Click → task detail sheet on the Clarifications tab.
 
-**Пустое:** "No open questions from agents."
+**Empty state:** "No open questions from agents."
 
-**Сортировка:** Blocking первые, затем по дате.
+**Sorting:** Blocking items first, then by date.
 
 ---
 
 ### 2.3 Blocked Tasks
 
-**Что:** Задачи в статусе `blocked`.
+**What:** Tasks in `blocked` status.
 
-**Данные:** Task title, Block reason, Blocked since, Assigned agent.
+**Data:** Task title, Block reason, Blocked since, Assigned agent.
 
-**Действие:** Клик → task detail sheet.
+**Action:** Click → task detail sheet.
 
-**Пустое:** "No blocked tasks."
+**Empty state:** "No blocked tasks."
 
 ---
 
 ### 2.4 Stale Agent Claims
 
-**Что:** Claim без heartbeat > 7 минут.
+**What:** Claim without heartbeat for > 7 minutes.
 
-**Данные:** Task title, Agent name, Last heartbeat, Claim age.
+**Data:** Task title, Agent name, Last heartbeat, Claim age.
 
-**Действие:** Клик → task detail sheet, Execution tab. Кнопка "Release claim".
+**Action:** Click → task detail sheet, Execution tab. "Release claim" button.
 
-**Пустое:** "All agent claims are active."
+**Empty state:** "All agent claims are active."
 
-**Индикатор:** Жёлтый/оранжевый badge для stale.
+**Indicator:** Yellow/orange badge for stale.
 
 ---
 
 ### 2.5 Failed Quality Gates
 
-**Что:** Задачи, где DoD items failed.
+**What:** Tasks where DoD items failed.
 
-**Данные:** Task title, Failed count / Total, Specific failed items.
+**Data:** Task title, Failed count / Total, Specific failed items.
 
-**Действие:** Клик → task detail sheet, DoD tab.
+**Action:** Click → task detail sheet, DoD tab.
 
-**Пустое:** "All quality gates passing."
+**Empty state:** "All quality gates passing."
 
 ---
 
 ### 2.6 Rejected Tasks
 
-**Что:** Задачи с вердиктом `reject` в последнем review round.
+**What:** Tasks with a `reject` verdict in the last review round.
 
-**Данные:** Task title, Reviewer, Rejection summary, Rejected at.
+**Data:** Task title, Reviewer, Rejection summary, Rejected at.
 
-**Действие:** Клик → task detail sheet, Reviews tab.
+**Action:** Click → task detail sheet, Reviews tab.
 
-**Пустое:** "No rejected tasks."
+**Empty state:** "No rejected tasks."
 
 ---
 
 ### 2.7 Agent Verdicts Waiting Confirmation
 
-**Что:** Агент-ревьюер вынес вердикт, human не подтвердил.
+**What:** Agent reviewer has issued a verdict, but a human has not confirmed it.
 
-**Данные:** Task title, Reviewer agent, Verdict, Summary.
+**Data:** Task title, Reviewer agent, Verdict, Summary.
 
-**Действие:** Клик → task detail, Reviews tab с кнопками Approve/Reject.
+**Action:** Click → task detail, Reviews tab with Approve/Reject buttons.
 
-**Пустое:** "No verdicts awaiting confirmation."
+**Empty state:** "No verdicts awaiting confirmation."
 
 ---
 
 ### 2.8 Low Health Projects
 
-**Что:** Проекты с низким health score.
+**What:** Projects with a low health score.
 
-**Метрика:**
+**Metric:**
 ```
 health = 100
   - (blocked_tasks * 15)
@@ -116,29 +116,29 @@ health = 100
   - (rejected_tasks * 10)
 ```
 
-**Порог:** < 70 = low health.
+**Threshold:** < 70 = low health.
 
-**Данные:** Project name, Health score (circular progress), Top issue.
+**Data:** Project name, Health score (circular progress), Top issue.
 
-**Действие:** Клик → project detail.
+**Action:** Click → project detail.
 
-**Пустое:** "All projects healthy."
+**Empty state:** "All projects healthy."
 
 ---
 
 ### 2.9 Recent Agent Activity
 
-**Что:** Последние 10 действий агентов.
+**What:** The last 10 agent actions.
 
-**Данные:** Agent name, Action type (badge), Target (task title), Timestamp.
+**Data:** Agent name, Action type (badge), Target (task title), Timestamp.
 
-**Действие:** Клик → task detail или agent detail.
+**Action:** Click → task detail or agent detail.
 
-**Пустое:** "No recent agent activity."
+**Empty state:** "No recent agent activity."
 
 ---
 
-## 3. Макет
+## 3. Layout
 
 ```
 +------------------------------------------------------------------+
@@ -159,21 +159,21 @@ health = 100
 +------------------------------------------+------------------------+
 ```
 
-**Макет:** 2-колоночный. Левая — action items. Правая — activity + health.
+**Layout:** Two-column. Left — action items. Right — activity + health.
 
-**Summary cards** вверху — быстрые метрики с кликом для фильтрации.
+**Summary cards** at the top — quick metrics with click-to-filter.
 
 ---
 
 ## 4. Data Fetching
 
-TanStack Query с auto-refresh каждые 30 секунд. `useDashboardAttention()` hook. staleTime 15s.
+TanStack Query with auto-refresh every 30 seconds. `useDashboardAttention()` hook. staleTime 15s.
 
 ---
 
 ## 5. Empty State
 
-Если все секции пусты:
+If all sections are empty:
 ```
 All clear! No items need your attention right now.
 [Go to Projects →]
@@ -183,7 +183,7 @@ All clear! No items need your attention right now.
 
 ## 6. Accessibility
 
-- Каждая секция — `<section>` с `aria-label`.
-- Summary cards — `role="status"` с `aria-live="polite"`.
-- Кликабельные элементы — `<a>` или `<button>` с фокус-кольцом.
+- Each section is a `<section>` with `aria-label`.
+- Summary cards — `role="status"` with `aria-live="polite"`.
+- Clickable elements — `<a>` or `<button>` with focus ring.
 - Blocking indicators — `aria-label="blocking"`.

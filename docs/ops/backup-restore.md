@@ -1,35 +1,35 @@
-# Backup & Restore — Процедуры
+# Backup & Restore — Procedures
 
-> Проект: UPCP | СУБД: PostgreSQL 16, Redis 7 | Среда: Docker Compose
+> Project: UPCP | DBMS: PostgreSQL 16, Redis 7 | Environment: Docker Compose
 
-## 1. Обзор
+## 1. Overview
 
-Резервное копирование критично для self-hosted развёртывания. Процедуры должны быть регулярными, проверенными и документированными.
+Backup is critical for self-hosted deployments. Procedures must be regular, tested, and documented.
 
 ## 2. PostgreSQL Backup
 
-### 2.1 pg_dump (логический бэкап)
+### 2.1 pg_dump (logical backup)
 
 ```bash
-# Полный бэкап
+# Full backup
 docker compose exec db pg_dump -U upcp -Fc -f /tmp/upcp_$(date +%Y%m%d_%H%M%S).dump upcp
 
-# Копировать из контейнера
+# Copy from container
 docker compose cp db:/tmp/upcp_*.dump ./backups/
 
-# Только schema
+# Schema only
 docker compose exec db pg_dump -U upcp --schema-only -f /tmp/schema.sql upcp
 
-# Только данные (без schema)
+# Data only (no schema)
 docker compose exec db pg_dump -U upcp --data-only -f /tmp/data.sql upcp
 ```
 
-### 2.2 pg_dump непрерывный (WAL archiving)
+### 2.2 pg_dump continuous (WAL archiving)
 
-Для point-in-time recovery (PITR):
+For point-in-time recovery (PITR):
 
 ```yaml
-# docker-compose.yml additions для db
+# docker-compose.yml additions for db
 db:
   command: >
     postgres
@@ -41,17 +41,17 @@ db:
     - walarchive:/var/lib/postgresql/wal_archive
 ```
 
-### 2.3 Автоматический расписание
+### 2.3 Automatic scheduling
 
 ```bash
 # crontab
-# Ежедневный полный бэкап в 02:00
+# Daily full backup at 02:00
 0 2 * * * cd /opt/upcp && docker compose exec -T db pg_dump -U upcp -Fc upcp | gzip > /backups/upcp_$(date +\%Y\%m\%d).dump.gz
 
-# Ежечасный инкрементальный (WAL)
+# Hourly incremental (WAL)
 0 * * * * rsync -av /opt/upcp/wal_archive/ /backups/wal/
 
-# Ротация: хранить 7 дней ежедневных, 30 дней еженедельных
+# Rotation: keep 7 days daily, 30 days weekly
 0 3 * * * find /backups -name "upcp_*.dump.gz" -mtime +7 -delete
 ```
 
@@ -60,103 +60,103 @@ db:
 ### 3.1 pg_restore
 
 ```bash
-# Остановить приложение
+# Stop the application
 docker compose stop app
 
-# Восстановить из бэкапа
+# Restore from backup
 docker compose exec db pg_restore -U upcp -d upcp --clean --if-exists /tmp/upcp_20260727.dump
 
-# Запустить приложение
+# Start the application
 docker compose start app
 
-# Проверить
+# Verify
 docker compose exec app curl -f http://localhost:8000/health
 ```
 
-### 3.2 Восстановление в новую БД (тест)
+### 3.2 Restore to a new database (test)
 
 ```bash
-# Создать тестовую БД
+# Create test database
 docker compose exec db createdb -U upcp upcp_restore_test
 
-# Восстановить
+# Restore
 docker compose exec db pg_restore -U upcp -d upcp_restore_test /tmp/upcp_20260727.dump
 
-# Проверить данные
+# Verify data
 docker compose exec db psql -U upcp -d upcp_restore_test -c "SELECT count(*) FROM tasks;"
 
-# Удалить тестовую БД
+# Drop test database
 docker compose exec db dropdb -U upcp upcp_restore_test
 ```
 
 ### 3.3 Point-in-Time Recovery
 
 ```bash
-# Остановить БД
+# Stop the database
 docker compose stop db
 
-# Восстановить base backup
+# Restore base backup
 rm -rf pgdata/*
 pg_basebackup restore...
 
-# Настроить recovery
+# Configure recovery
 cat > recovery.signal << EOF
 restore_command = 'cp /var/lib/postgresql/wal_archive/%f %p'
 recovery_target_time = '2026-07-27 14:30:00+00'
 EOF
 
-# Запустить БД
+# Start the database
 docker compose start db
 ```
 
 ## 4. Redis Backup
 
-### 4.1 RDB (снимки)
+### 4.1 RDB (snapshots)
 
-Redis автоматически делает RDB snapshots при `appendonly yes`:
+Redis automatically creates RDB snapshots when `appendonly yes`:
 
 ```bash
-# Принудительный snapshot
+# Force snapshot
 docker compose exec redis redis-cli BGSAVE
 
-# Копировать RDB файл
+# Copy RDB file
 docker compose cp redis:/data/dump.rdb ./backups/redis_$(date +%Y%m%d_%H%M%S).rdb
 ```
 
 ### 4.2 AOF (append-only file)
 
-AOF включён в docker-compose (опция `--appendonly yes`):
+AOF is enabled in docker-compose (option `--appendonly yes`):
 
 ```bash
-# Копировать AOF
+# Copy AOF
 docker compose cp redis:/data/appendonlydir ./backups/redis_aof/
 
-# Принудительная rewrite AOF
+# Force AOF rewrite
 docker compose exec redis redis-cli BGREWRITEAOF
 ```
 
 ### 4.3 Restore
 
 ```bash
-# Остановить Redis
+# Stop Redis
 docker compose stop redis
 
-# Заменить данные
+# Replace data
 docker compose cp ./backups/redis_20260727.rdb redis:/data/dump.rdb
 
-# Запустить
+# Start
 docker compose start redis
 
-# Проверить
+# Verify
 docker compose exec redis redis-cli DBSIZE
 ```
 
 ## 5. Docker Volume Backup
 
-### 5.1 Все volumes
+### 5.1 All volumes
 
 ```bash
-# Список volumes
+# List volumes
 docker volume ls | grep upcp
 
 # Backup volume
@@ -175,22 +175,22 @@ docker run --rm \
 ### 5.2 Restore volume
 
 ```bash
-# Остановить сервисы
+# Stop services
 docker compose down
 
-# Восстановить volume
+# Restore volume
 docker run --rm \
   -v upcp_pgdata:/data \
   -v $(pwd)/backups:/backup \
   alpine sh -c "cd /data && tar xzf /backup/pgdata_20260727.tar.gz"
 
-# Запустить
+# Start
 docker compose up -d
 ```
 
-## 6. Проверка бэкапов
+## 6. Backup verification
 
-### 6.1 Автоматическая верификация
+### 6.1 Automatic verification
 
 ```bash
 #!/bin/bash
@@ -202,10 +202,10 @@ TEST_DB="upcp_verify_${TIMESTAMP}"
 
 echo "=== Verifying backup: $BACKUP_FILE ==="
 
-# Создать тестовую БД
+# Create test database
 docker compose exec db createdb -U upcp "$TEST_DB"
 
-# Восстановить
+# Restore
 docker compose exec db pg_restore -U upcp -d "$TEST_DB" "$BACKUP_FILE"
 if [ $? -ne 0 ]; then
   echo "FAIL: pg_restore failed"
@@ -213,12 +213,12 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Проверить таблицы
+# Verify tables
 TABLES=$(docker compose exec db psql -U upcp -d "$TEST_DB" -t -c \
   "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")
 echo "Tables found: $TABLES"
 
-# Проверить миграции
+# Verify migrations
 CURRENT_REV=$(docker compose exec db psql -U upcp -d "$TEST_DB" -t -c \
   "SELECT version_num FROM alembic_version;")
 echo "Alembic version: $CURRENT_REV"
@@ -229,14 +229,14 @@ docker compose exec db dropdb -U upcp "$TEST_DB"
 echo "=== Verification PASSED ==="
 ```
 
-### 6.2 Расписание проверки
+### 6.2 Verification schedule
 
 ```bash
-# Еженедельная проверка бэкапа (воскресенье 04:00)
+# Weekly backup verification (Sunday 04:00)
 0 4 * * 0 /opt/upcp/scripts/verify-backup.sh /backups/upcp_$(date -d 'yesterday' +\%Y\%m\%d).dump.gz
 ```
 
-## 7. Скрипт полного бэкапа
+## 7. Full backup script
 
 ```bash
 #!/bin/bash
@@ -273,21 +273,21 @@ echo "Backup complete: $BACKUP_DIR.tar.gz ($(du -h "$BACKUP_DIR.tar.gz" | cut -f
 
 ## 8. Restore Runbook
 
-### Экстренное восстановление (пошагово)
+### Emergency restoration (step-by-step)
 
-1. **Оценить ситуацию**: что потеряно? данные? конфигурация? всё?
-2. **Остановить сервисы**: `docker compose stop app frontend nginx`
-3. **Выбрать бэкап**: последний проверенный бэкап
-4. **Восстановить PostgreSQL**: `pg_restore` (см. §3.1)
-5. **Восстановить Redis**: копия RDB (см. §4.3)
-6. **Запустить сервисы**: `docker compose up -d`
-7. **Проверить**: health check, smoke test
-8. **Задокументировать**: что произошло, какой бэкап использован, RTO/RPO
+1. **Assess the situation**: what is lost? data? configuration? everything?
+2. **Stop services**: `docker compose stop app frontend nginx`
+3. **Choose backup**: the last verified backup
+4. **Restore PostgreSQL**: `pg_restore` (see §3.1)
+5. **Restore Redis**: RDB copy (see §4.3)
+6. **Start services**: `docker compose up -d`
+7. **Verify**: health check, smoke test
+8. **Document**: what happened, which backup was used, RTO/RPO
 
 ### RTO/RPO targets
 
-| Метрика | Цель | Метод |
+| Metric | Target | Method |
 |---------|------|-------|
-| RPO (Recovery Point Objective) | ≤ 24ч | Ежедневные бэкапы |
-| RTO (Recovery Time Objective) | ≤ 30 мин | pg_restore + volume backup |
-| RPO (с WAL archiving) | ≤ 5 мин | PITR |
+| RPO (Recovery Point Objective) | ≤ 24h | Daily backups |
+| RTO (Recovery Time Objective) | ≤ 30 min | pg_restore + volume backup |
+| RPO (with WAL archiving) | ≤ 5 min | PITR |

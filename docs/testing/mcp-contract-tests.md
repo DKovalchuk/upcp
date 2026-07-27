@@ -1,26 +1,26 @@
-# MCP Contract Tests — Спецификация
+# MCP Contract Tests — Specification
 
-> Проект: UPCP | Протокол: MCP (Model Context Protocol) | Фреймворк: pytest
+> Project: UPCP | Protocol: MCP (Model Context Protocol) | Framework: pytest
 
-## 1. Обзор
+## 1. Overview
 
-MCP contract tests гарантируют, что каждый MCP tool работает корректно: принимает валидный input, возвращает ожидаемый output, обрабатывает ошибки и соблюдает permissions.
+MCP contract tests ensure that every MCP tool works correctly: accepts valid input, returns expected output, handles errors, and respects permissions.
 
 ## 2. MCP Tools
 
-| Tool | Endpoint | Описание |
-|------|----------|----------|
-| `claim_task` | `POST /tasks/{id}/claim` | Захватить задачу |
+| Tool | Endpoint | Description |
+|------|----------|-------------|
+| `claim_task` | `POST /tasks/{id}/claim` | Claim a task |
 | `heartbeat` | `POST /tasks/{id}/heartbeat` | Heartbeat |
-| `report_progress` | `PATCH /tasks/{id}` | Обновить прогресс |
-| `report_completion` | `POST /tasks/{id}/submit-review` | Завершить задачу |
-| `report_blockage` | `POST /tasks/{id}/clarification-request` | Запросить уточнение |
-| `read_playbook` | `GET /projects/{id}/playbook` | Прочитать инструкции |
-| `get_inbox` | `GET /agents/{id}/inbox` | Получить входящие |
-| `get_task_state` | `GET /tasks/{id}` | Получить состояние задачи |
-| `log_event` | `POST /audit/events` | Записать audit event |
+| `report_progress` | `PATCH /tasks/{id}` | Update progress |
+| `report_completion` | `POST /tasks/{id}/submit-review` | Complete task |
+| `report_blockage` | `POST /tasks/{id}/clarification-request` | Request clarification |
+| `read_playbook` | `GET /projects/{id}/playbook` | Read instructions |
+| `get_inbox` | `GET /agents/{id}/inbox` | Get inbox |
+| `get_task_state` | `GET /tasks/{id}` | Get task state |
+| `log_event` | `POST /audit/events` | Log audit event |
 
-## 3. Тестовая структура
+## 3. Test structure
 
 ```
 tests/mcp/
@@ -34,12 +34,12 @@ tests/mcp/
 ├── test_get_inbox.py
 ├── test_get_task_state.py
 ├── test_log_event.py
-└── test_contract_errors.py  # Общие error cases
+└── test_contract_errors.py  # Common error cases
 ```
 
-## 4. Что тестируется для каждого tool
+## 4. What is tested for each tool
 
-Для каждого MCP tool проверяются 5 аспектов:
+For each MCP tool, 5 aspects are verified:
 
 ### 4.1 Input Schema Validation
 
@@ -70,19 +70,19 @@ class TestClaimTaskOutput:
     async def test_output_schema(self, mcp_client, open_task, agent_key):
         result = await mcp_client.call("claim_task", {"task_id": open_task.id}, agent_key)
 
-        # Проверить обязательные поля
+        # Verify required fields
         assert "task_id" in result
         assert "status" in result
         assert "claimed_at" in result
         assert result["status"] == "claimed"
 
-        # Проверить типы
+        # Verify types
         assert isinstance(result["task_id"], str)
         assert isinstance(result["claimed_at"], str)  # ISO 8601
 
     async def test_output_matches_spec(self, mcp_client, open_task, agent_key):
         result = await mcp_client.call("claim_task", {"task_id": open_task.id}, agent_key)
-        # Валидация по JSON Schema из MCP spec
+        # Validate against JSON Schema from MCP spec
         validate(instance=result, schema=CLAIM_TASK_OUTPUT_SCHEMA)
 ```
 
@@ -138,7 +138,7 @@ class TestClaimTaskIdempotency:
         r1 = await mcp_client.call("claim_task", {"task_id": open_task.id}, agent_key)
         r2 = await mcp_client.call("claim_task", {"task_id": open_task.id}, agent_key)
         assert r1["task_id"] == r2["task_id"]
-        # Второй вызов возвращает ошибку "already claimed", не создаёт дубль
+        # Second call returns "already claimed" error, does not create a duplicate
 ```
 
 ## 5. Tool-Specific Tests
@@ -208,16 +208,16 @@ class TestReadPlaybook:
 
 ## 6. Error Code Reference
 
-| Code | HTTP | Описание |
-|------|------|----------|
-| `task_not_found` | 404 | Задача не найдена |
-| `task_already_claimed` | 409 | Задача уже захвачена |
-| `task_invalid_status` | 409 | Неверный статус для операции |
-| `task_not_claimed` | 409 | Задача не захвачена данным агентом |
-| `max_claims_exceeded` | 429 | Превышен лимит claims |
-| `permission_denied` | 403 | Нет прав для операции |
-| `evidence_incomplete` | 422 | Не хватает required evidence |
-| `invalid_input` | 422 | Невалидный input |
+| Code | HTTP | Description |
+|------|------|-------------|
+| `task_not_found` | 404 | Task not found |
+| `task_already_claimed` | 409 | Task already claimed |
+| `task_invalid_status` | 409 | Invalid status for operation |
+| `task_not_claimed` | 409 | Task not claimed by this agent |
+| `max_claims_exceeded` | 429 | Claims limit exceeded |
+| `permission_denied` | 403 | No permission for operation |
+| `evidence_incomplete` | 422 | Required evidence missing |
+| `invalid_input` | 422 | Invalid input |
 | `rate_limited` | 429 | Rate limit |
 
 ## 7. MCP Schema Definitions
@@ -245,19 +245,19 @@ CLAIM_TASK_OUTPUT_SCHEMA = {
 }
 ```
 
-## 8. Запуск
+## 8. Running tests
 
 ```bash
-# Все MCP тесты
+# All MCP tests
 make test-mcp
 
-# Только один tool
+# Single tool only
 pytest tests/mcp/test_claim_task.py -v
 
-# Только error cases
+# Error cases only
 pytest tests/mcp/ -k "error" -v
 
-# С подробным выводом
+# With verbose output
 pytest tests/mcp/ -v --tb=long
 ```
 

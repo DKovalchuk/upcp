@@ -1,8 +1,8 @@
 # Secrets Management — UPCP v2
 
-## Обзор
+## Overview
 
-UPCP использует абстракцию `SecretProvider` для единообразного доступа к секретам из различных бэкендов. Все секреты redact-ятся из логов, ошибок и API-ответов.
+UPCP uses the `SecretProvider` abstraction for uniform access to secrets from various backends. All secrets are redacted from logs, errors, and API responses.
 
 ---
 
@@ -12,40 +12,40 @@ UPCP использует абстракцию `SecretProvider` для един�
 from abc import ABC, abstractmethod
 
 class SecretProvider(ABC):
-    """Абстрактный провайдер секретов."""
+    """Abstract secret provider."""
 
     @abstractmethod
     async def get_secret(self, key: str) -> str | None:
-        """Получить значение секрета по ключу."""
+        """Get secret value by key."""
         ...
 
     @abstractmethod
     async def get_secrets(self, keys: list[str]) -> dict[str, str | None]:
-        """Получить несколько секретов за один вызов."""
+        """Get multiple secrets in a single call."""
         ...
 
     @abstractmethod
     async def set_secret(self, key: str, value: str) -> None:
-        """Установить значение секрета (для провайдеров с записью)."""
+        """Set a secret value (for providers with write support)."""
         ...
 
     @abstractmethod
     async def delete_secret(self, key: str) -> None:
-        """Удалить секрет."""
+        """Delete a secret."""
         ...
 ```
 
 ---
 
-## Реализации
+## Implementations
 
 ### EnvSecretProvider
 
-Чтение секретов из переменных окружения. Default провайдер для development.
+Reads secrets from environment variables. Default provider for development.
 
 ```python
 class EnvSecretProvider(SecretProvider):
-    """Чтение из os.environ с optional prefix."""
+    """Reads from os.environ with optional prefix."""
 
     def __init__(self, prefix: str = "UPCP_"):
         self.prefix = prefix
@@ -54,17 +54,17 @@ class EnvSecretProvider(SecretProvider):
         return os.environ.get(f"{self.prefix}{key}")
 ```
 
-**Использование:** Development, тесты, простые Docker-развёртывания.
+**Use case:** Development, tests, simple Docker deployments.
 
-**Ограничения:** Нет шифрования, нет ротации, секреты в plain text.
+**Limitations:** No encryption, no rotation, secrets in plain text.
 
 ### FileSecretProvider
 
-Чтение секретов из файлов (по одному секрету на файл). Подходит для Docker secrets и Kubernetes secrets.
+Reads secrets from files (one secret per file). Suitable for Docker secrets and Kubernetes secrets.
 
 ```python
 class FileSecretProvider(SecretProvider):
-    """Чтение из файловой системы. Один файл = один секрет."""
+    """Reads from filesystem. One file = one secret."""
 
     def __init__(self, base_path: str = "/run/secrets"):
         self.base_path = Path(base_path)
@@ -76,11 +76,11 @@ class FileSecretProvider(SecretProvider):
         return None
 ```
 
-**Использование:** Docker Swarm secrets, Kubernetes Secrets (mounted as files).
+**Use case:** Docker Swarm secrets, Kubernetes Secrets (mounted as files).
 
 ### DockerSecretProvider
 
-Специализированный провайдер для Docker Swarm secrets. Обёртка над `FileSecretProvider` с дополнительной логикой.
+Specialized provider for Docker Swarm secrets. A wrapper around `FileSecretProvider` with additional logic.
 
 ```python
 class DockerSecretProvider(FileSecretProvider):
@@ -92,11 +92,11 @@ class DockerSecretProvider(FileSecretProvider):
 
 ### VaultSecretProvider (future)
 
-HashiCorp Vault integration. Планируется для production deployments.
+HashiCorp Vault integration. Planned for production deployments.
 
 ```python
 class VaultSecretProvider(SecretProvider):
-    """HashiCorp Vault KV v2. Пока не реализован."""
+    """HashiCorp Vault KV v2. Not yet implemented."""
 
     def __init__(self, vault_url: str, auth_token: str, mount_point: str = "secret"):
         self.vault_url = vault_url
@@ -108,11 +108,11 @@ class VaultSecretProvider(SecretProvider):
         raise NotImplementedError("Vault integration planned for v2.1")
 ```
 
-**Статус:** Зарезервировано, не реализовано. Трекинг: UPC-F045.
+**Status:** Reserved, not implemented. Tracking: UPC-F045.
 
 ---
 
-## Провайдер по умолчанию
+## Default Provider
 
 ```python
 # Configuration resolution order:
@@ -143,53 +143,53 @@ def create_secret_provider() -> SecretProvider:
 
 ## Encrypted Fields
 
-### Модель
+### Model
 
-Некоторые поля в БД хранятся в зашифрованном виде. Используется `EncryptionService`:
+Some fields in the database are stored encrypted. The `EncryptionService` is used:
 
 ```python
 class EncryptionService:
-    """AES-256-GCM шифрование полей."""
+    """AES-256-GCM field encryption."""
 
     def __init__(self, key: bytes):
         self.key = key  # 32 bytes from ENCRYPTION_KEY secret
 
     def encrypt(self, plaintext: str) -> str:
-        """Шифрует строку, возвращает base64(ciphertext + nonce + tag)."""
+        """Encrypts a string, returns base64(ciphertext + nonce + tag)."""
         ...
 
     def decrypt(self, ciphertext: str) -> str:
-        """Дешифрует строку."""
+        """Decrypts a string."""
         ...
 ```
 
-### Зашифрованные поля
+### Encrypted Fields
 
-| Таблица | Поле | Шифрование |
-|---------|------|-----------|
+| Table | Field | Encryption |
+|-------|-------|-----------|
 | `git_provider` | `access_token_encrypted` | AES-256-GCM |
 | `git_provider` | `webhook_secret_encrypted` | AES-256-GCM |
 | `agent_token` | `token_hash` | bcrypt (one-way) |
 | `session` | `token_hash` | bcrypt (one-way) |
 | `user` | `password_hash` | bcrypt (one-way) |
 
-### Миграция ключа
+### Key Migration
 
-При ротации `ENCRYPTION_KEY`:
+When rotating `ENCRYPTION_KEY`:
 
-1. Старый ключ: `ENCRYPTION_KEY` (текущий)
-2. Новый ключ: `ENCRYPTION_KEY_NEW`
-3. Запуск миграции: `python -m upcp.cli rotate-encryption-key`
-4. Скрипт перешифровывает все encrypted поля
-5. После завершения: `ENCRYPTION_KEY_NEW` → `ENCRYPTION_KEY`
+1. Old key: `ENCRYPTION_KEY` (current)
+2. New key: `ENCRYPTION_KEY_NEW`
+3. Run migration: `python -m upcp.cli rotate-encryption-key`
+4. Script re-encrypts all encrypted fields
+5. After completion: `ENCRYPTION_KEY_NEW` → `ENCRYPTION_KEY`
 
 ---
 
 ## Redaction Rules
 
-### Автоматическая redaction
+### Automatic Redaction
 
-Все значения, совпадающие с паттернами секретов, автоматически заменяются на `[REDACTED]` в логах, ошибках и API-ответах.
+All values matching secret patterns are automatically replaced with `[REDACTED]` in logs, errors, and API responses.
 
 ```python
 REDACTED_PATTERNS = [
@@ -202,11 +202,11 @@ REDACTED_PATTERNS = [
 ]
 ```
 
-### Context-aware redaction
+### Context-Aware Redaction
 
 ```python
 class RedactionProcessor:
-    """structlog processor для redaction."""
+    """structlog processor for redaction."""
 
     REDACTED_KEYS = {
         "password", "password_hash", "token", "token_hash",
@@ -226,14 +226,14 @@ class RedactionProcessor:
 ### API Response Redaction
 
 ```python
-# В middleware: перед отправкой ответа проверяем на наличие секретов
+# In middleware: before sending the response, check for secrets
 class SecretRedactionMiddleware:
-    """Не допускает секреты в HTTP ответах."""
+    """Prevents secrets in HTTP responses."""
 
     async def __call__(self, request, call_next):
         response = await call_next(request)
-        # Проверяем body на паттерны секретов
-        # При обнаружении — логируем warning, заменяем на [REDACTED]
+        # Check body for secret patterns
+        # On detection — log warning, replace with [REDACTED]
         return response
 ```
 
@@ -243,8 +243,8 @@ class SecretRedactionMiddleware:
 
 ### Required Secrets
 
-| Secret | Назначение | Формат | Where |
-|--------|-----------|--------|-------|
+| Secret | Purpose | Format | Where |
+|--------|---------|--------|-------|
 | `SECRET_KEY` | Session signing, CSRF | 64+ random bytes | All envs |
 | `JWT_SECRET` | JWT token signing | 32+ random bytes | All envs |
 | `DATABASE_URL` | PostgreSQL connection | `postgresql+asyncpg://user:pass@host:5432/db` | All envs |
@@ -253,9 +253,9 @@ class SecretRedactionMiddleware:
 
 ### Optional Secrets
 
-| Secret | Назначение | Формат | When |
-|--------|-----------|--------|------|
-| `LLM_API_KEY` | LLM provider (если UPCP вызывает LLM) | Provider-specific | If LLM features enabled |
+| Secret | Purpose | Format | When |
+|--------|---------|--------|------|
+| `LLM_API_KEY` | LLM provider (if UPCP calls LLM) | Provider-specific | If LLM features enabled |
 | `SMTP_PASSWORD` | Email sending | String | If email notifications enabled |
 | `GITLAB_ACCESS_TOKEN` | Default GitLab integration | `glpat-...` | If GitLab configured |
 | `GITHUB_ACCESS_TOKEN` | Default GitHub integration | `ghp_...` | If GitHub configured |
@@ -266,7 +266,7 @@ class SecretRedactionMiddleware:
 ### Generated at First Boot
 
 ```python
-# bootstrap_upcp.py генерирует секреты при первом запуске
+# bootstrap_upcp.py generates secrets on first run
 SECRETS_TO_GENERATE = {
     "SECRET_KEY": {"length": 64, "format": "urlsafe_base64"},
     "JWT_SECRET": {"length": 32, "format": "urlsafe_base64"},
@@ -278,7 +278,7 @@ SECRETS_TO_GENERATE = {
 
 ```python
 def validate_secrets() -> list[str]:
-    """Проверяет наличие и валидность всех required secrets."""
+    """Checks presence and validity of all required secrets."""
     issues = []
 
     secret_key = secrets.get_secret("SECRET_KEY")
@@ -309,12 +309,12 @@ def validate_secrets() -> list[str]:
 ## Startup Checklist
 
 ```
-1. Определить SECRET_PROVIDER (auto/env/file/docker)
-2. Загрузить required secrets
-3. Валидировать формат и длину
-4. Проверить DATABASE_URL подключение
-5. Проверить REDIS_URL подключение
-6. Инициализировать EncryptionService
-7. Проверить ENCRYPTION_KEY (дешифровка тестового значения)
-8. Если есть ENCRYPTION_KEY_NEW — запустить миграцию
+1. Determine SECRET_PROVIDER (auto/env/file/docker)
+2. Load required secrets
+3. Validate format and length
+4. Test DATABASE_URL connection
+5. Test REDIS_URL connection
+6. Initialize EncryptionService
+7. Verify ENCRYPTION_KEY (decrypt a test value)
+8. If ENCRYPTION_KEY_NEW exists — run migration
 ```

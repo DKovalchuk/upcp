@@ -1,6 +1,6 @@
-# Grafana Dashboards — Спецификация
+# Grafana Dashboards — Specification
 
-> Проект: UPCP | Datasources: Prometheus, Loki, Tempo
+> Project: UPCP | Datasources: Prometheus, Loki, Tempo
 
 ## 1. Dashboard 1: Service Health
 
@@ -231,20 +231,20 @@ Legend: {{gate}} — {{result}}
 Colors: pass=green, fail=red
 ```
 
-## 5. Общие настройки
+## 5. General Settings
 
-### Переменные (Variables)
+### Variables
 
-| Variable | Query | Описание |
-|----------|-------|----------|
-| `$project` | `label_values(upcp_tasks_total, project)` | Фильтр по проекту |
-| `$agent` | `label_values(upcp_tasks_active, agent_id)` | Фильтр по агенту |
-| `$interval` | `1m, 5m, 15m, 1h` | Интервал агрегации |
+| Variable | Query | Description |
+|----------|-------|-------------|
+| `$project` | `label_values(upcp_tasks_total, project)` | Project filter |
+| `$agent` | `label_values(upcp_tasks_active, agent_id)` | Agent filter |
+| `$interval` | `1m, 5m, 15m, 1h` | Aggregation interval |
 
-### Алёрты
+### Alerts
 
-| Алёрт | Условие | Severity |
-|-------|---------|----------|
+| Alert | Condition | Severity |
+|-------|-----------|----------|
 | High error rate | error_rate > 5% for 5m | critical |
 | Stale tasks spike | stale_detections > 5 in 10m | warning |
 | No heartbeats | heartbeat_rate == 0 for 3m | critical |

@@ -1,14 +1,14 @@
 # Test Plan — UPCP v2
 
-> Проект: UPCP | Статус: Draft | Обновлено: 2026-07-27
+> Project: UPCP | Status: Draft | Updated: 2026-07-27
 
-## 1. Обзор
+## 1. Overview
 
-Тестирование UPCP v2 следует пирамиде тестирования: много unit тестов, меньше integration, минимум E2E.
+Testing UPCP v2 follows the testing pyramid: many unit tests, fewer integration tests, minimum E2E.
 
 ```
         ╱╲
-       ╱E2E╲         ← 5-10 критических flows
+       ╱E2E╲         ← 5-10 critical flows
       ╱──────╲
      ╱ Integr.╲      ← API + DB, MCP contract
     ╱──────────╲
@@ -20,21 +20,21 @@
 
 ### 2.1 Backend (pytest)
 
-**Расположение:** `tests/unit/`
-**Конфигурация:** `pyproject.toml [tool.pytest]`
-**Запуск:** `make test-unit` или `pytest tests/unit/ -v`
+**Location:** `tests/unit/`
+**Configuration:** `pyproject.toml [tool.pytest]`
+**Run:** `make test-unit` or `pytest tests/unit/ -v`
 
-| Модуль | Что тестируется | Цель |
+| Module | What is tested | Goal |
 |--------|----------------|------|
 | `auth/` | JWT creation, validation, password hashing | 100% branches |
-| `models/` | ORM mapping, constraints, defaults | все поля |
+| `models/` | ORM mapping, constraints, defaults | all fields |
 | `schemas/` | Pydantic validation, edge cases | 100% validators |
 | `services/` | Business logic, state transitions | 100% happy + error paths |
-| `rate_limit/` | Sliding window, whitelist | все лимиты |
+| `rate_limit/` | Sliding window, whitelist | all limits |
 | `evidence/` | Hash computation, completeness calc | 100% |
 | `review/` | Round management, finding creation | 100% |
 
-**Пример:**
+**Example:**
 ```python
 # tests/unit/services/test_task_service.py
 class TestTaskClaim:
@@ -57,11 +57,11 @@ class TestTaskClaim:
 
 ### 2.2 Frontend (vitest)
 
-**Расположение:** `frontend/src/__tests__/`
-**Конфигурация:** `frontend/vitest.config.ts`
-**Запуск:** `cd frontend && npm test`
+**Location:** `frontend/src/__tests__/`
+**Configuration:** `frontend/vitest.config.ts`
+**Run:** `cd frontend && npm test`
 
-| Модуль | Что тестируется | Цель |
+| Module | What is tested | Goal |
 |--------|----------------|------|
 | `components/` | Rendering, interactions, props | 100% |
 | `hooks/` | Custom hooks, state logic | 100% |
@@ -71,7 +71,7 @@ class TestTaskClaim:
 
 ### 2.3 Coverage targets
 
-| Компонент | Target | Minimum |
+| Component | Target | Minimum |
 |-----------|--------|---------|
 | Backend services | 90% | 80% |
 | Backend schemas | 100% | 90% |
@@ -82,18 +82,18 @@ class TestTaskClaim:
 
 ### 3.1 API Integration
 
-**Расположение:** `tests/integration/`
-**Среда:** Test PostgreSQL (docker-compose.test.yml)
-**Запуск:** `make test-integration`
+**Location:** `tests/integration/`
+**Environment:** Test PostgreSQL (docker-compose.test.yml)
+**Run:** `make test-integration`
 
-**Что тестируется:**
-- CRUD операции через HTTP → DB
+**What is tested:**
+- CRUD operations via HTTP → DB
 - Auth flow: register → login → access → refresh
-- RBAC: проверка permissions для каждой роли
-- Rate limiting: получение 429 при превышении
-- Error handling: корректные HTTP status codes
+- RBAC: permission verification for each role
+- Rate limiting: receiving 429 when limit exceeded
+- Error handling: correct HTTP status codes
 
-**Пример:**
+**Example:**
 ```python
 # tests/integration/test_tasks_api.py
 class TestTasksAPI:
@@ -118,8 +118,8 @@ class TestTasksAPI:
 
 ### 3.2 Database Integration
 
-**Что тестируется:**
-- Миграции: up + down + up
+**What is tested:**
+- Migrations: up + down + up
 - Foreign key constraints
 - Unique constraints
 - Indexes
@@ -130,24 +130,24 @@ class TestTasksAPI:
 class TestMigrations:
     async def test_migrate_up(self):
         await alembic.upgrade("head")
-        # Проверить, что все таблицы созданы
+        # Verify that all tables are created
 
     async def test_migrate_down_and_up(self):
         await alembic.upgrade("head")
         await alembic.downgrade("-1")
         await alembic.upgrade("head")
-        # Данные не потеряны, schema корректна
+        # Data is not lost, schema is correct
 ```
 
 ## 4. E2E Tests
 
-**Расположение:** `tests/e2e/`
-**Инструмент:** Playwright (frontend) + httpx (backend)
-**Запуск:** `make test-e2e`
+**Location:** `tests/e2e/`
+**Tool:** Playwright (frontend) + httpx (backend)
+**Run:** `make test-e2e`
 
-### 4.1 Критические flows
+### 4.1 Critical flows
 
-| # | Flow | Описание |
+| # | Flow | Description |
 |---|------|----------|
 | 1 | First run | Setup → project → task → claim → evidence → review → done |
 | 2 | Agent auth | API key → claim → heartbeat → clarification → resolve |
@@ -156,24 +156,24 @@ class TestMigrations:
 ### 4.2 Smoke tests
 
 ```bash
-# Минимальный smoke test после deploy
+# Minimal smoke test after deploy
 make smoke-test
-# Проверяет: health, auth, CRUD
+# Checks: health, auth, CRUD
 ```
 
 ## 5. MCP Contract Tests
 
-См. [mcp-contract-tests.md](./mcp-contract-tests.md) для деталей.
+See [mcp-contract-tests.md](./mcp-contract-tests.md) for details.
 
-**Расположение:** `tests/mcp/`
-**Запуск:** `make test-mcp`
+**Location:** `tests/mcp/`
+**Run:** `make test-mcp`
 
 ## 6. Permission Matrix Tests
 
-См. [permission-matrix-tests.md](./permission-matrix-tests.md) для деталей.
+See [permission-matrix-tests.md](./permission-matrix-tests.md) for details.
 
-**Расположение:** `tests/permissions/`
-**Запуск:** `make test-permissions`
+**Location:** `tests/permissions/`
+**Run:** `make test-permissions`
 
 ## 7. Test Infrastructure
 
@@ -215,7 +215,7 @@ class TaskFactory:
         return task
 ```
 
-### 7.3 Docker Compose для тестов
+### 7.3 Docker Compose for tests
 
 ```yaml
 # docker-compose.test.yml
@@ -227,7 +227,7 @@ services:
       POSTGRES_USER: upcp_test
       POSTGRES_PASSWORD: test
     tmpfs:
-      - /var/lib/postgresql/data  # RAM disk для скорости
+      - /var/lib/postgresql/data  # RAM disk for speed
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U upcp_test"]
       interval: 2s

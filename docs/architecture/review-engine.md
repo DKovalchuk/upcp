@@ -1,68 +1,68 @@
 # Review Engine — UPCP v2
 
-## Обзор
+## Overview
 
-Review Engine управляет процессом проверки выполненных задач. Поддерживает три политики ревью, автоматическое закрытие и human override.
+The Review Engine manages the process of verifying completed tasks. It supports three review policies, automatic closure, and human override.
 
 ---
 
-## Политики ревью
+## Review Policies
 
 ### `human_only`
 
-Только человек проводит ревью. Агент не может ни провести ревью, ни закрыть задачу автоматически.
+Only humans conduct reviews. An agent can neither conduct a review nor automatically close a task.
 
 ```
-Агент выполняет задачу
+Agent completes a task
   → submit_task_for_review
     → ReviewRound(pending, reviewer_type=human)
-      → Owner открывает UI, проводит ревью
+      → Owner opens UI, conducts review
         → submit_review_verdict(approved/rejected)
 ```
 
-**Применение:** Критические задачи, security-sensitive изменения.
+**Use case:** Critical tasks, security-sensitive changes.
 
 ### `agent_review_then_human`
 
-Агент-ревьюер проводит первичное ревью. После него — обязательное human confirmation.
+An agent reviewer conducts the initial review. A mandatory human confirmation follows.
 
 ```
-Агент выполняет задачу
+Agent completes a task
   → submit_task_for_review
     → ReviewRound(pending, reviewer_type=agent)
-      → Agent-ревьюер проверяет, ставит вердикт
-        → Если approved:
+      → Agent reviewer checks, delivers verdict
+        → If approved:
           → ReviewRound(completed, verdict=approved)
-            → Создаётся новый ReviewRound(pending, reviewer_type=human)
-              → Owner подтверждает / отклоняет
-        → Если rejected:
+            → New ReviewRound(pending, reviewer_type=human) created
+              → Owner confirms / rejects
+        → If rejected:
           → Task → changes_requested
 ```
 
-**Применение:** Стандартные задачи, где первичная проверка агентом ускоряет процесс.
+**Use case:** Standard tasks where initial agent review speeds up the process.
 
 ### `agent_auto_close_if_allowed`
 
-Агент-ревьюер может автоматически закрыть задачу без human review (при выполнении условий).
+An agent reviewer can automatically close a task without human review (when conditions are met).
 
 ```
-Агент выполняет задачу
+Agent completes a task
   → submit_task_for_review
     → ReviewRound(pending, reviewer_type=agent)
-      → Agent-ревьюер проверяет
-        → Если approved И задача low/medium priority:
-          → Task → done (автоматически)
-        → Если approved И задача high/critical priority:
-          → Создаётся human review round (как в agent_review_then_human)
-        → Если rejected:
+      → Agent reviewer checks
+        → If approved AND task is low/medium priority:
+          → Task → done (automatically)
+        → If approved AND task is high/critical priority:
+          → Human review round created (as in agent_review_then_human)
+        → If rejected:
           → Task → changes_requested
 ```
 
-**Применение:** Рутинные задачи, low-risk изменения.
+**Use case:** Routine tasks, low-risk changes.
 
 ---
 
-## Модели ReviewRound и ReviewFinding
+## ReviewRound and ReviewFinding Models
 
 ### ReviewRound
 
@@ -70,13 +70,13 @@ Review Engine управляет процессом проверки выпол�
 ReviewRound(
     id: UUID,
     task_id: UUID FK → Task,
-    round_number: INT,          # Порядковый номер (1, 2, 3...)
-    policy: VARCHAR(32),        # Применённая политика
+    round_number: INT,          # Sequential number (1, 2, 3...)
+    policy: VARCHAR(32),        # Applied policy
     status: VARCHAR(16),        # pending → in_progress → completed | cancelled
-    verdict: VARCHAR(16),       # approved | rejected (null пока не completed)
+    verdict: VARCHAR(16),       # approved | rejected (null until completed)
     reviewer_type: VARCHAR(16), # human | agent
-    reviewer_id: UUID,          # User ID или Agent ID
-    summary: TEXT,              # Итоговое ревью
+    reviewer_id: UUID,          # User ID or Agent ID
+    summary: TEXT,              # Final review summary
     started_at: TIMESTAMPTZ,
     completed_at: TIMESTAMPTZ,
     created_at: TIMESTAMPTZ
@@ -92,8 +92,8 @@ ReviewFinding(
     severity: VARCHAR(16),      # info | warning | critical
     category: VARCHAR(32),      # correctness | security | performance | style | missing
     description: TEXT,
-    file_path: TEXT,            # Путь к файлу (опционально)
-    line_number: INT,           # Номер строки (опционально)
+    file_path: TEXT,            # File path (optional)
+    line_number: INT,           # Line number (optional)
     status: VARCHAR(16),        # open | addressed | dismissed
     created_at: TIMESTAMPTZ
 )
@@ -101,89 +101,89 @@ ReviewFinding(
 
 ### Severity Semantics
 
-| Severity | Описание | Влияние на вердикт |
-|----------|----------|-------------------|
-| `info` | Предложение, не блокирует | Не влияет |
-| `warning` | Рекомендация, стоит исправить | Не блокирует |
-| `critical` | Блокирующая находка | Автоматически → `rejected` |
+| Severity | Description | Impact on Verdict |
+|----------|-------------|-------------------|
+| `info` | Suggestion, non-blocking | No impact |
+| `warning` | Recommendation, worth fixing | Non-blocking |
+| `critical` | Blocking finding | Automatically → `rejected` |
 
 ### Category Taxonomy
 
-| Категория | Описание |
-|-----------|----------|
-| `correctness` | Логические ошибки, edge cases |
-| `security` | Уязвимости, OWASP |
-| `performance` | N+1, неэффективные алгоритмы |
+| Category | Description |
+|----------|-------------|
+| `correctness` | Logical errors, edge cases |
+| `security` | Vulnerabilities, OWASP |
+| `performance` | N+1, inefficient algorithms |
 | `style` | Code style, naming, formatting |
-| `missing` | Отсутствующие тесты, документация, error handling |
+| `missing` | Missing tests, documentation, error handling |
 
 ---
 
 ## Agent Reviewer Constraints
 
-### Ограничения
+### Constraints
 
-1. **Scope**: Агент-ревьюер может ревьюить только задачи в назначенных проектах
-2. **Self-review запрещён**: Агент не может ревьюить собственные задачи
-3. **Capabilities**: Агент должен иметь capability `review.submit`
-4. **Finding format**: Agent-ревьюер ОБЯЗАН приложить findings с категориями
-5. **Summary required**: Краткое текстовое резюме обязательно
+1. **Scope**: An agent reviewer can only review tasks in assigned projects
+2. **Self-review prohibited**: An agent cannot review its own tasks
+3. **Capabilities**: The agent must have the `review.submit` capability
+4. **Finding format**: The agent reviewer MUST attach findings with categories
+5. **Summary required**: A brief text summary is mandatory
 
-### Автоматические проверки агента-ревьюера
+### Automatic Checks by Agent Reviewer
 
-Перед вынесением вердикта, агент-ревьюер должен проверить:
+Before delivering a verdict, the agent reviewer must check:
 
-1. **Evidence**: Есть ли evidence, покрывающая acceptance criteria?
-2. **Tests**: Есть ли test output? Проходят ли тесты?
-3. **Code quality**: Нет ли явных anti-patterns?
-4. **Security**: Нет ли очевидных уязвимостей?
-5. **Completeness**: Все ли acceptance criteria выполнены?
+1. **Evidence**: Is there evidence covering the acceptance criteria?
+2. **Tests**: Is there test output? Do tests pass?
+3. **Code quality**: Are there obvious anti-patterns?
+4. **Security**: Are there obvious vulnerabilities?
+5. **Completeness**: Are all acceptance criteria met?
 
 ### Finding Requirements
 
-Agent-ревьюер обязан:
+The agent reviewer must:
 
-- Указать severity для каждой находки
-- Указать category
-- Описать находку текстом
-- Указать file_path и line_number если релевантно
-- Критические находки ОБЯЗАНЫ привести к `rejected`
+- Set severity for each finding
+- Set category
+- Describe the finding in text
+- Provide `file_path` and `line_number` if relevant
+- Critical findings MUST result in `rejected`
 
 ---
 
 ## Auto-Close Conditions
 
-### Условия для auto-close (политика `agent_auto_close_if_allowed`)
+### Conditions for auto-close (policy `agent_auto_close_if_allowed`)
 
-Все условия должны быть истинны одновременно:
+All conditions must be true simultaneously:
 
 ```python
 def can_auto_close(task, review_round, findings):
     return (
-        task.priority in ("low", "medium")              # 1. Низкий/средний приоритет
-        and review_round.reviewer_type == "agent"        # 2. Ревью от агента
-        and not any(                                     # 3. Нет critical findings
+        task.priority in ("low", "medium")              # 1. Low/medium priority
+        and review_round.reviewer_type == "agent"        # 2. Review by agent
+        and not any(                                     # 3. No critical findings
             f.severity == "critical"
             for f in findings
         )
-        and task.evidence.count >= 1                     # 4. Есть хотя бы одно evidence
-        and task.acceptance_criteria.all_met             # 5. Все AC выполнены
+        and task.evidence.count >= 1                     # 4. At least one evidence item
+        and task.acceptance_criteria.all_met             # 5. All AC met
     )
 ```
 
 ### Auto-Close Process
 
 ```
-1. Agent-ревьюер вызывает submit_review_verdict(approved)
-2. Система проверяет can_auto_close()
-3. Если ДА:
+1. Agent reviewer calls submit_review_verdict(approved)
+2. System checks can_auto_close()
+3. If YES:
    - ReviewRound → completed, verdict=approved
    - Task → done
    - AuditEvent: review.auto_closed
    - Notification → owner: "Task auto-approved by agent"
-4. Если НЕТ (high/critical priority):
+4. If NO (high/critical priority):
    - ReviewRound → completed, verdict=approved
-   - Создаётся НОВЫЙ ReviewRound(pending, reviewer_type=human)
+   - New ReviewRound(pending, reviewer_type=human) created
    - Notification → owner: "Task needs your review"
 ```
 
@@ -191,29 +191,29 @@ def can_auto_close(task, review_round, findings):
 
 ## Human Override
 
-### Правила
+### Rules
 
-1. **Owner может в любой момент**:
-   - Отменить текущий review round → `cancelled`
-   - Создать новый review round вручную
-   - Переопределить вердикт агента (approve → reject или наоборот)
-   - Пропустить ревью и сразу поставить `done` (force close)
+1. **Owner can at any time**:
+   - Cancel the current review round → `cancelled`
+   - Manually create a new review round
+   - Override the agent's verdict (approve → reject or vice versa)
+   - Skip review and immediately set `done` (force close)
 
 2. **Force Close**:
    ```
-   Owner вызывает force_close_task(task_id, reason)
-   → Отменяет все активные review rounds
+   Owner calls force_close_task(task_id, reason)
+   → Cancels all active review rounds
    → Task → done
    → AuditEvent: task.force_closed
    ```
 
 3. **Override Agent Verdict**:
    ```
-   Owner вызывает override_review(review_round_id, new_verdict, reason)
+   Owner calls override_review(review_round_id, new_verdict, reason)
    → ReviewRound.verdict = new_verdict
    → AuditEvent: review.verdict_overridden
-   → Если new_verdict=approved → Task → done
-   → Если new_verdict=rejected → Task → changes_requested
+   → If new_verdict=approved → Task → done
+   → If new_verdict=rejected → Task → changes_requested
    ```
 
 ---
@@ -236,21 +236,21 @@ def can_auto_close(task, review_round, findings):
 │    ▼                                                        │
 │  ReviewRound #1: in_progress                                │
 │    │                                                        │
-│    │ Добавление findings...                                 │
+│    │ Adding findings...                                     │
 │    │                                                        │
 │    │ submit_review_verdict(approved|rejected, findings[])   │
 │    ▼                                                        │
 │  ReviewRound #1: completed                                  │
 │    │                                                        │
-│    ├── Если approved (и can_auto_close)                     │
+│    ├── If approved (and can_auto_close)                     │
 │    │   → Task: done                                         │
 │    │                                                        │
-│    ├── Если approved (и !can_auto_close)                    │
+│    ├── If approved (and !can_auto_close)                    │
 │    │   → ReviewRound #2: pending (reviewer_type=human)      │
 │    │                                                        │
-│    └── Если rejected                                        │
+│    └── If rejected                                          │
 │        → Task: changes_requested                            │
-│          → Агент дорабатывает                               │
+│          → Agent performs rework                            │
 │            → submit_task_for_review(summary)                │
 │              → ReviewRound #2: pending                      │
 │                → ...                                        │
@@ -260,26 +260,26 @@ def can_auto_close(task, review_round, findings):
 
 ---
 
-## Интеграция с Evidence
+## Evidence Integration
 
 ### Requirements
 
-1. Для `submit_task_for_review` рекомендуется (но не обязательно) приложить evidence
-2. Agent-ревьюер проверяет evidence как часть ревью
-3. При auto-close evidence обязательна (хотя бы 1)
-4. Типы evidence, поддерживаемые review engine:
-   - `test_output` — вывод тестов (pytest, jest и т.д.)
-   - `command_output` — вывод команд (build, lint)
-   - `screenshot` — скриншот результата
-   - `file_diff` — diff изменений
-   - `url` — ссылка на результат (preview URL, PR)
-   - `log` — лог выполнения
+1. For `submit_task_for_review`, attaching evidence is recommended but not required
+2. The agent reviewer checks evidence as part of the review
+3. For auto-close, evidence is mandatory (at least 1)
+4. Evidence types supported by the review engine:
+   - `test_output` — test output (pytest, jest, etc.)
+   - `command_output` — command output (build, lint)
+   - `screenshot` — result screenshot
+   - `file_diff` — change diff
+   - `url` — link to result (preview URL, PR)
+   - `log` — execution log
 
 ### Evidence Validation
 
 ```python
 def validate_evidence_for_review(task, evidence_list):
-    """Проверяет, что evidence достаточна для ревью."""
+    """Checks that evidence is sufficient for review."""
     issues = []
 
     has_test_output = any(e.evidence_type == "test_output" for e in evidence_list)
@@ -288,7 +288,7 @@ def validate_evidence_for_review(task, evidence_list):
     if not has_test_output and not has_command_output:
         issues.append("No test or build output provided")
 
-    # Проверяем что acceptance criteria покрыты
+    # Check that acceptance criteria are covered
     ac_count = task.acceptance_criteria.count()
     if ac_count > 0 and len(evidence_list) == 0:
         issues.append("Task has acceptance criteria but no evidence")
@@ -298,7 +298,7 @@ def validate_evidence_for_review(task, evidence_list):
 
 ---
 
-## Конфигурация
+## Configuration
 
 ### Per-Project Settings
 
@@ -315,10 +315,10 @@ def validate_evidence_for_review(task, evidence_list):
 
 ### Per-Task Override
 
-Task может переопределить политику проекта:
+A task can override the project policy:
 
 ```json
 {
-    "review_policy": "human_only"  // Переопределение на уровне задачи
+    "review_policy": "human_only"  // Override at the task level
 }
 ```

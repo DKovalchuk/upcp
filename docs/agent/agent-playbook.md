@@ -1,44 +1,44 @@
 # Agent Playbook
 
-Полное руководство для ИИ-агентов, работающих с UPCP.
+Complete guide for AI agents working with UPCP.
 
-## 1. Аутентификация
+## 1. Authentication
 
-Все запросы требуют заголовок `X-Agent-Token`:
+All requests require the `X-Agent-Token` header:
 
 ```
 X-Agent-Token: upcp_agt_<token>
 ```
 
-Токен выдаётся при регистрации агента и привязан к scope. Токен нельзя восстановить — только перевыпустить.
+The token is issued when the agent is registered and is bound to a scope. The token cannot be recovered — only reissued.
 
-### Проверка подключения
+### Connection Verification
 
 ```json
 // MCP: whoami
 {}
 ```
 
-Ожидаемый ответ: объект с `agent_id`, `name`, `scopes[]`, `assignments[]`.
+Expected response: object with `agent_id`, `name`, `scopes[]`, `assignments[]`.
 
 ---
 
-## 2. Получение контекста
+## 2. Getting Context
 
 ### 2.1 Context Pack
 
-Запросите контекст-пакет перед работой над задачей:
+Request a context pack before working on a task:
 
 ```json
 // MCP: get_context_pack
 { "project_id": "...", "tier": "standard" }
 ```
 
-Tiers: `minimal` | `standard` | `deep` | `debug`. См. [context-packs.md](./context-packs.md).
+Tiers: `minimal` | `standard` | `deep` | `debug`. See [context-packs.md](./context-packs.md).
 
 ### 2.2 Agent Inbox
 
-Проверяйте входящие запросы на уточнение:
+Check for incoming clarification requests:
 
 ```json
 // MCP: get_agent_inbox
@@ -47,7 +47,7 @@ Tiers: `minimal` | `standard` | `deep` | `debug`. См. [context-packs.md](./con
 
 ### 2.3 Capabilities
 
-Узнайте доступные операции:
+Discover available operations:
 
 ```json
 // MCP: get_capabilities
@@ -56,7 +56,7 @@ Tiers: `minimal` | `standard` | `deep` | `debug`. См. [context-packs.md](./con
 
 ---
 
-## 3. Жизненный цикл задачи
+## 3. Task Lifecycle
 
 ```
 backlog → ready → claimed → in_progress → in_review → done
@@ -64,73 +64,73 @@ backlog → ready → claimed → in_progress → in_review → done
                                     ↘ failed
 ```
 
-### 3.1 Claim (захват)
+### 3.1 Claim
 
 ```json
 // MCP: claim_task
 { "task_id": "...", "idempotency_key": "<uuid-v4>" }
 ```
 
-**Правила:**
-- Задача должна быть в статусе `ready` или `backlog`.
-- Один агент — один активный claim.
-- Claim истекает через TTL (30 мин без heartbeat).
-- Повторный claim тем же агентом — идемпотентная операция.
+**Rules:**
+- The task must be in `ready` or `backlog` status.
+- One agent — one active claim.
+- The claim expires after the TTL (30 min without heartbeat).
+- Re-claiming by the same agent is an idempotent operation.
 
 ### 3.2 Heartbeat
 
-Отправляйте heartbeat каждые 30–60 секунд:
+Send heartbeat every 30–60 seconds:
 
 ```json
 // MCP: heartbeat_task
-{ "task_id": "...", "message": "анализ кодовой базы" }
+{ "task_id": "...", "message": "analyzing codebase" }
 ```
 
-Без heartbeat claim истекает. Задача возвращается в пул.
+Without heartbeat the claim expires. The task returns to the pool.
 
 ### 3.3 Progress
 
-Фиксируйте прогресс:
+Record progress:
 
 ```json
 // MCP: report_progress
-{ "task_id": "...", "summary": "написаны unit-тесты", "progress_percent": 40 }
+{ "task_id": "...", "summary": "unit tests written", "progress_percent": 40 }
 ```
 
-### 3.4 Release (освобождение)
+### 3.4 Release
 
-Если задача не может быть завершена:
+If the task cannot be completed:
 
 ```json
 // MCP: release_task
-{ "task_id": "...", "reason": "требуется уточнение по API контракту" }
+{ "task_id": "...", "reason": "API contract clarification required" }
 ```
 
 ---
 
-## 4. Clarification (уточнения)
+## 4. Clarification
 
-Когда информации недостаточно:
+When information is insufficient:
 
 ```json
 // MCP: request_clarification
 {
   "task_id": "...",
-  "question": "Какой формат ожидается для due_date — ISO 8601 или Unix timestamp?",
+  "question": "What format is expected for due_date — ISO 8601 or Unix timestamp?",
   "blocking": true
 }
 ```
 
-- `blocking: true` — задача в `blocked`, агент ждёт ответа.
-- `blocking: false` — задача продолжается, ответ асинхронный.
+- `blocking: true` — task goes to `blocked`, agent waits for a response.
+- `blocking: false` — task continues, response is asynchronous.
 
-Проверка ответов: `get_agent_inbox { "status": "answered" }`.
+Check answers: `get_agent_inbox { "status": "answered" }`.
 
 ---
 
-## 5. Evidence (доказательства)
+## 5. Evidence
 
-### Прикрепление
+### Attaching Evidence
 
 ```json
 // MCP: attach_evidence
@@ -141,34 +141,34 @@ backlog → ready → claimed → in_progress → in_review → done
 }
 ```
 
-### Типы evidence
+### Evidence Types
 
-| Тип | Описание | Пример |
-|-----|----------|--------|
-| `test_output` | Вывод тестов | `pytest: 47 passed` |
-| `screenshot` | Скриншот UI | URL или base64 |
-| `log` | Лог-файл | Фрагмент лога |
-| `url` | Ссылка на ресурс | PR URL, deploy URL |
-| `file` | Файл-артефакт | Путь к файлу |
+| Type          | Description         | Example                     |
+|---------------|---------------------|-----------------------------|
+| `test_output` | Test output         | `pytest: 47 passed`         |
+| `screenshot`  | UI screenshot       | URL or base64               |
+| `log`         | Log file            | Log fragment                |
+| `url`         | Resource link       | PR URL, deploy URL          |
+| `file`        | File artifact       | Path to file                |
 
 ---
 
 ## 6. Submit for Review
 
-После выполнения всех AC и DoD:
+After completing all AC and DoD:
 
 ```json
 // MCP: submit_task_for_review
-{ "task_id": "...", "summary": "CRUD реализован, тесты зелёные." }
+{ "task_id": "...", "summary": "CRUD implemented, all tests green." }
 ```
 
-**Требования:** Все DoD `passed`, нет blocking clarifications, хотя бы один evidence.
+**Requirements:** All DoD `passed`, no blocking clarifications, at least one evidence.
 
 ---
 
 ## 7. Review Flow
 
-Reviewer-агент создаёт findings:
+Reviewer agent creates findings:
 
 ```json
 // MCP: create_review_finding
@@ -182,68 +182,68 @@ Reviewer-агент создаёт findings:
 }
 ```
 
-Вердикт:
+Verdict:
 
 ```json
 // MCP: submit_review_verdict
 { "review_round_id": "...", "verdict": "needs_changes", "summary": "..." }
 ```
 
-По умолчанию вердикт агента — рекомендация. Финальное решение за человеком.
+By default, the agent's verdict is a recommendation. Final decision rests with the human.
 
 ---
 
-## 8. Обработка ошибок
+## 8. Error Handling
 
-| Код | HTTP | Действие |
-|-----|------|----------|
-| `UNAUTHENTICATED` | 401 | Проверьте токен |
-| `FORBIDDEN` | 403 | Проверьте scope |
-| `TASK_ALREADY_CLAIMED` | 409 | Выберите другую задачу |
-| `TASK_CLAIM_EXPIRED` | 410 | Повторите claim |
-| `TASK_NOT_CLAIMABLE` | 422 | Проверьте статус задачи |
-| `EVIDENCE_REQUIRED` | 422 | Прикрепите evidence |
-| `DOD_NOT_SATISFIED` | 422 | Выполните DoD items |
-| `CLARIFICATION_BLOCKING` | 422 | Дождитесь ответа |
-| `RATE_LIMITED` | 429 | Exponential backoff |
-
----
-
-## 9. Работа с секретами
-
-**Запрещено:** запрашивать секреты, включать ключи/пароли в evidence, логировать секреты.
-
-**Разрешено:** использовать env vars от runtime, ссылаться на secret provider.
-
-Секреты автоматически редачатся LLM-шлюзом.
+| Code                      | HTTP | Action                            |
+|---------------------------|------|-----------------------------------|
+| `UNAUTHENTICATED`         | 401  | Check your token                  |
+| `FORBIDDEN`               | 403  | Check your scope                  |
+| `TASK_ALREADY_CLAIMED`    | 409  | Choose a different task           |
+| `TASK_CLAIM_EXPIRED`      | 410  | Re-claim the task                 |
+| `TASK_NOT_CLAIMABLE`      | 422  | Check the task status             |
+| `EVIDENCE_REQUIRED`       | 422  | Attach evidence                   |
+| `DOD_NOT_SATISFIED`       | 422  | Complete DoD items                |
+| `CLARIFICATION_BLOCKING`  | 422  | Wait for the response             |
+| `RATE_LIMITED`            | 429  | Exponential backoff               |
 
 ---
 
-## 10. Что НЕЛЬЗЯ делать
+## 9. Working with Secrets
 
-1. Захватывать задачу без чтения context pack.
-2. Игнорировать heartbeat.
-3. Помечать done без evidence.
-4. Делать cross-context SQL-запросы.
-5. Создавать несколько claims на одну задачу.
-6. Ревьюить свои задачи (self-review запрещён).
-7. Хранить секреты в evidence/heartbeat/clarification.
-8. Retry без backoff.
+**Forbidden:** requesting secrets, including keys/passwords in evidence, logging secrets.
 
-## 11. Восстановление после сбоя
+**Allowed:** using env vars from the runtime, referencing the secret provider.
 
-1. `whoami` — токен активен?
-2. `get_agent_inbox` — незавершённые задачи?
-3. `task_get` для последней задачи — статус?
-4. Если claim истёк — повторите `claim_task`.
-5. Если `blocked` — проверьте clarification ответы.
-6. Отправьте `heartbeat` для подтверждения.
+Secrets are automatically redacted by the LLM gateway.
+
+---
+
+## 10. What You Must NOT Do
+
+1. Claim a task without reading the context pack.
+2. Ignore heartbeats.
+3. Mark tasks done without evidence.
+4. Make cross-context SQL queries.
+5. Create multiple claims on one task.
+6. Review your own tasks (self-review is forbidden).
+7. Store secrets in evidence/heartbeat/clarification.
+8. Retry without backoff.
+
+## 11. Recovery After Failure
+
+1. `whoami` — is the token active?
+2. `get_agent_inbox` — any unfinished tasks?
+3. `task_get` for the last task — what's the status?
+4. If the claim expired — re-claim with `claim_task`.
+5. If `blocked` — check clarification answers.
+6. Send a `heartbeat` to confirm.
 
 ## 12. Best Practices
 
-- Context pack **до** начала работы.
-- Heartbeat каждые 30–60 секунд.
-- Progress при достижении milestone.
-- Evidence по мере готовности.
-- `blocking: true` для критических уточнений.
-- Inbox при каждом запуске.
+- Context pack **before** starting work.
+- Heartbeat every 30–60 seconds.
+- Progress at each milestone.
+- Evidence as it becomes ready.
+- `blocking: true` for critical clarifications.
+- Check inbox on every startup.

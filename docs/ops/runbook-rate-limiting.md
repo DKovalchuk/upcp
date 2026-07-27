@@ -1,93 +1,93 @@
 # Runbook: Rate Limiting
 
-> Проект: UPCP | Хранилище: Redis | Фреймворк: FastAPI
+> Project: UPCP | Storage: Redis | Framework: FastAPI
 
-## 1. Обзор
+## 1. Overview
 
-Rate limiting защищает UPCP от abuse и перегрузки. Лимиты применяются на уровне API и агрегируются в Redis.
+Rate limiting protects UPCP from abuse and overload. Limits are applied at the API level and aggregated in Redis.
 
-## 2. Как работают лимиты
+## 2. How Limits Work
 
-### 2.1 Алгоритм
-- **Sliding window** — лимиты считаются за скользящее окно
-- Хранилище: Redis с TTL
-- Ключ: `rate_limit:{identity}:{endpoint_group}`
-- Identity: user_id (для JWT) или client_ip (для неавторизованных)
+### 2.1 Algorithm
+- **Sliding window** — limits are calculated over a sliding window
+- Storage: Redis with TTL
+- Key: `rate_limit:{identity}:{endpoint_group}`
+- Identity: user_id (for JWT) or client_ip (for unauthenticated)
 
-### 2.2 Конфигурация
+### 2.2 Configuration
 
-| Endpoint Group | Лимит | Окно | Описание |
+| Endpoint Group | Limit | Window | Description |
 |---------------|-------|------|----------|
-| `default` | 60 req | 1 min | Все обычные эндпоинты |
+| `default` | 60 req | 1 min | All standard endpoints |
 | `auth` | 10 req | 1 min | Login, register, refresh |
-| `task_claim` | 30 req | 1 min | Claim/release операции |
-| `heartbeat` | 120 req | 1 min | Heartbeat (частые вызовы) |
+| `task_claim` | 30 req | 1 min | Claim/release operations |
+| `heartbeat` | 120 req | 1 min | Heartbeat (frequent calls) |
 | `upload` | 10 req | 1 min | Evidence upload |
-| `admin` | 200 req | 1 min | Admin эндпоинты |
+| `admin` | 200 req | 1 min | Admin endpoints |
 
-### 2.3 Заголовки ответа
+### 2.3 Response Headers
 
 ```http
 X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 45
 X-RateLimit-Reset: 1690454400
-Retry-After: 30  # только при 429
+Retry-After: 30  # only on 429
 ```
 
-## 3. Когда срабатывают лимиты
+## 3. When Limits Trigger
 
-### 3.1 Признаки
-- Клиент получает HTTP 429
-- В логах: `Rate limit exceeded for {identity} on {endpoint}`
-- Метрика: `upcp_rate_limit_hits_total` увеличивается
+### 3.1 Signs
+- Client receives HTTP 429
+- In logs: `Rate limit exceeded for {identity} on {endpoint}`
+- Metric: `upcp_rate_limit_hits_total` is increasing
 
-### 3.2 Типичные причины
-- Скрипт без задержки между запросами
-- Несколько агентов используют один API-ключ
-- Повторные попытки при сетевых ошибках (retry storm)
-- Атака brute-force на auth endpoints
+### 3.2 Common Causes
+- Script with no delay between requests
+- Multiple agents using the same API key
+- Repeated retries on network errors (retry storm)
+- Brute-force attack on auth endpoints
 
-## 4. Как проверить текущие лимиты
+## 4. How to Check Current Limits
 
-### 4.1 Через Redis
+### 4.1 Via Redis
 
 ```bash
-# Текущее значение для пользователя
+# Current value for a user
 docker compose exec redis redis-cli GET "rate_limit:user:USER_ID:default"
 
-# Все ключи rate limit
+# All rate limit keys
 docker compose exec redis redis-cli KEYS "rate_limit:*"
 
-# TTL конкретного ключа
+# TTL of a specific key
 docker compose exec redis redis-cli TTL "rate_limit:user:USER_ID:default"
 ```
 
-### 4.2 Через API
+### 4.2 Via API
 
 ```bash
-# Отправить запрос и посмотреть заголовки
+# Send a request and inspect headers
 curl -sI -H "Authorization: Bearer TOKEN" http://localhost:38080/api/v1/tasks | grep -i ratelimit
 ```
 
-### 4.3 Через Grafana
+### 4.3 Via Grafana
 
-Dashboard: **Auth & Security** → Панель: **Rate Limit Hits**
+Dashboard: **Auth & Security** → Panel: **Rate Limit Hits**
 
-## 5. Как изменить лимиты
+## 5. How to Change Limits
 
-### 5.1 Глобально
+### 5.1 Globally
 
 ```bash
 # .env
-RATE_LIMIT_DEFAULT=120        # было 60
-RATE_LIMIT_AUTH=20            # было 10
-RATE_LIMIT_HEARTBEAT=300      # было 120
+RATE_LIMIT_DEFAULT=120        # was 60
+RATE_LIMIT_AUTH=20            # was 10
+RATE_LIMIT_HEARTBEAT=300      # was 120
 
-# Перезапустить
+# Restart
 docker compose restart app
 ```
 
-### 5.2 Для конкретного endpoint group
+### 5.2 For a specific endpoint group
 
 ```python
 # src/upcp/api/rate_limit.py
@@ -101,43 +101,43 @@ RATE_LIMITS = {
 }
 ```
 
-### 5.3 Временно (без перезапуска)
+### 5.3 Temporarily (without restart)
 
 ```bash
-# Увеличить лимит для конкретного пользователя через Redis
+# Increase the limit for a specific user via Redis
 docker compose exec redis redis-cli SET "rate_limit:user:USER_ID:default" 0
-# Это сбросит счётчик; TTL перезапустится при следующем запросе
+# This resets the counter; TTL will restart on the next request
 ```
 
-## 6. Как добавить whitelist
+## 6. How to Add a Whitelist
 
-### 6.1 По IP
+### 6.1 By IP
 
 ```bash
 # .env
 RATE_LIMIT_WHITELIST=10.0.0.0/8,192.168.1.0/24
 
-# Или конкретные IP
+# Or specific IPs
 RATE_LIMIT_WHITELIST=10.0.0.5,10.0.0.6
 ```
 
-### 6.2 По пользователю (VIP)
+### 6.2 By User (VIP)
 
 ```python
-# В БД: добавить поле is_rate_limit_exempt
-# В middleware: пропускать лимиты для exempt пользователей
+# In DB: add field is_rate_limit_exempt
+# In middleware: skip limits for exempt users
 ```
 
-### 6.3 Internal сервисы
+### 6.3 Internal Services
 
 ```bash
-# Internal health checks и мониторинг не должны лимитироваться
+# Internal health checks and monitoring should not be rate limited
 RATE_LIMIT_WHITELIST_PATHS=/health,/metrics,/ready
 ```
 
-## 7. Мониторинг
+## 7. Monitoring
 
-### 7.1 Алёрты
+### 7.1 Alerts
 
 ```yaml
 # alerting-rules.yml
@@ -170,39 +170,39 @@ Dashboard: **Auth & Security** → Panels:
 
 ## 8. Emergency Procedures
 
-### 8.1 Отключить rate limiting (аварийно)
+### 8.1 Disable Rate Limiting (Emergency)
 
 ```bash
 # .env
 RATE_LIMIT_ENABLED=false
 
-# Перезапустить
+# Restart
 docker compose restart app
 ```
 
-⚠️ **ОПАСНО**: открывает систему для abuse. Использовать только при критических проблемах.
+⚠️ **DANGER**: exposes the system to abuse. Use only during critical incidents.
 
-### 8.2 Заблокировать IP (ручной бан)
+### 8.2 Block an IP (Manual Ban)
 
 ```bash
-# Добавить IP в blacklist через Redis
+# Add IP to blacklist via Redis
 docker compose exec redis redis-cli SET "blocked_ip:ATTACKER_IP" "1" EX 3600
 
-# В приложении проверять blacklist перед rate limit
+# Check blacklist in the application before rate limit
 ```
 
-### 8.3 Сбросить все лимиты
+### 8.3 Reset All Limits
 
 ```bash
-# Удалить все ключи rate limit
+# Delete all rate limit keys
 docker compose exec redis redis-cli KEYS "rate_limit:*" | xargs -r docker compose exec redis redis-cli DEL
 ```
 
-⚠️ Только при необходимости. Все пользователи получат полные лимиты.
+⚠️ Only when necessary. All users will receive full limits.
 
-## 9. Предотвращение
+## 9. Prevention
 
-1. **Exponential backoff** — клиенты должны использовать backoff при 429
-2. **API key rotation** — регулярная ротация ключей агентов
-3. **Monitoring** — алерты на аномальные паттерны
-4. **Load testing** — проверять лимиты перед релизом
+1. **Exponential backoff** — clients must use backoff on 429
+2. **API key rotation** — regular rotation of agent keys
+3. **Monitoring** — alerts on anomalous patterns
+4. **Load testing** — verify limits before release

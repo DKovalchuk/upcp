@@ -1,6 +1,6 @@
 # Evidence and Review UI
 
-Спецификация интерфейса для evidence и review workflow.
+Interface specification for the evidence and review workflow.
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### 1.1 Location
 
-Вкладка **Evidence** в Task Detail.
+The **Evidence** tab in Task Detail.
 
 ### 1.2 Evidence Card
 
@@ -26,20 +26,20 @@
 └─────────────────────────────────────────────────────┘
 ```
 
-**Элементы:** Type badge, Author, Timestamp, Content preview (5 строк, expandable), URL link, Verified status, Actions.
+**Elements:** Type badge, Author, Timestamp, Content preview (5 lines, expandable), URL link, Verified status, Actions.
 
 ### 1.3 Attach Evidence
 
-Кнопка [+] → Dialog:
+[+] button → Dialog:
 
 - **Type:** select (test_output, screenshot, log, url, file)
 - **Content:** textarea
-- **URL:** input (для url-типа)
+- **URL:** input (for url type)
 
 ### 1.4 Verify / Reject
 
-- **Verify:** Статус → `verified`.
-- **Reject:** Требует reason. Статус → `rejected`.
+- **Verify:** Status → `verified`.
+- **Reject:** Requires a reason. Status → `rejected`.
 
 ### 1.5 States
 
@@ -58,22 +58,22 @@ All | Pending | Verified | Rejected
 
 ### 2.1 Location
 
-Вкладка **Reviews** в Task Detail.
+The **Reviews** tab in Task Detail.
 
 ### 2.2 Review Round
 
-Collapsible секция:
+Collapsible section:
 
 ```
 ▼ Round 1 · gpt-4-reviewer · needs_changes · 2 findings · 30m ago
 ```
 
 **Verdict badge colors:**
-| Verdict | Цвет |
-|---------|------|
-| `approve` | Зелёный |
-| `needs_changes` | Жёлтый |
-| `reject` | Красный |
+| Verdict | Color |
+|---------|-------|
+| `approve` | Green |
+| `needs_changes` | Yellow |
+| `reject` | Red |
 
 ### 2.3 Finding Card
 
@@ -113,7 +113,7 @@ by gpt-4-reviewer · 30m ago
 
 ### 2.5 Human Confirmation
 
-Для agent verdicts:
+For agent verdicts:
 
 ```
 Agent recommends: needs_changes
@@ -122,7 +122,7 @@ Agent recommends: needs_changes
 
 ### 2.6 Auto-round
 
-При `needs_changes` и повторной отправке → автоматически новый раунд.
+On `needs_changes` and resubmission → a new round is created automatically.
 
 ---
 
@@ -130,7 +130,7 @@ Agent recommends: needs_changes
 
 ### 3.1 Location
 
-Вкладка **DoD** в Task Detail + Quality page.
+The **DoD** tab in Task Detail + Quality page.
 
 ### 3.2 Gate UI
 
@@ -151,22 +151,22 @@ Gate: NOT PASSED
 
 ### 3.3 Gate States
 
-| Состояние | Условие | Цвет |
-|-----------|---------|------|
-| PASSED | Все `passed` | Зелёный |
-| NOT PASSED | Есть `pending`/`failed` | Красный |
-| IN PROGRESS | Часть выполнена | Серый |
+| State | Condition | Color |
+|-------|-----------|-------|
+| PASSED | All `passed` | Green |
+| NOT PASSED | Any `pending`/`failed` | Red |
+| IN PROGRESS | Partially complete | Gray |
 
 ### 3.4 Submit Button
 
-Доступна когда: gate PASSED + нет blocking clarifications + хотя бы один evidence. Disabled → tooltip с причиной.
+Available when: gate PASSED + no blocking clarifications + at least one evidence. Disabled → tooltip with the reason.
 
 ---
 
 ## 4. Empty States
 
-| Панель | Message |
-|--------|---------|
+| Panel | Message |
+|-------|---------|
 | Evidence | "No evidence attached. [Attach Evidence]" |
 | Reviews | "No reviews yet. Submit task for review to start." |
 | Quality Gate | "No DoD items defined. [Add Item]" |

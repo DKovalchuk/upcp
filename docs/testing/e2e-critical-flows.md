@@ -1,40 +1,40 @@
-# E2E Critical Flows — Спецификация
+# E2E Critical Flows — Specification
 
-> Проект: UPCP | Инструмент: Playwright (frontend) + httpx (backend) | Фреймворк: pytest
+> Project: UPCP | Tool: Playwright (frontend) + httpx (backend) | Framework: pytest
 
-## 1. Обзор
+## 1. Overview
 
-E2E тесты покрывают 3 критических flow, которые определяют основную ценность UPCP: от создания задачи до завершения, жизненный цикл агента, и контроль через attention dashboard.
+E2E tests cover 3 critical flows that define the core value of UPCP: from task creation to completion, the agent lifecycle, and control through the attention dashboard.
 
 ## 2. Flow 1: First-Run → Task Lifecycle
 
-**Цель:** Проверить полный цикл «нулевого пользователя» — от регистрации до завершённой задачи.
+**Goal:** Verify the full "zero user" lifecycle — from registration to completed task.
 
-### 2.1 Предусловия
-- Чистая БД (или test fixtures)
-- Браузер не авторизован
+### 2.1 Preconditions
+- Clean DB (or test fixtures)
+- Browser not authenticated
 
-### 2.2 Шаги
+### 2.2 Steps
 
-| # | Действие | Ожидаемый результат |
+| # | Action | Expected Result |
 |---|---------|-------------------|
-| 1 | Открыть `/` | Redirect на `/login` |
-| 2 | Нажать «Register» | Форма регистрации |
-| 3 | Заполнить email + password | Валидация проходит |
-| 4 | Submit | Redirect на `/setup` (first-run) |
-| 5 | Создать организацию | Org создана, redirect на `/projects` |
-| 6 | Создать проект | Проект создан, redirect на project page |
-| 7 | Создать задачу «Implement feature X» | Задача в статусе `open` |
-| 8 | Создать API-ключ для агента | Ключ отображается |
-| 9 | (API) Claim задачу агентом | Статус → `claimed` |
-| 10 | (API) Heartbeat | Задача остаётся `claimed` |
+| 1 | Open `/` | Redirect to `/login` |
+| 2 | Click "Register" | Registration form |
+| 3 | Fill in email + password | Validation passes |
+| 4 | Submit | Redirect to `/setup` (first-run) |
+| 5 | Create organization | Org created, redirect to `/projects` |
+| 6 | Create project | Project created, redirect to project page |
+| 7 | Create task "Implement feature X" | Task in status `open` |
+| 8 | Create API key for agent | Key is displayed |
+| 9 | (API) Claim task by agent | Status → `claimed` |
+| 10 | (API) Heartbeat | Task remains `claimed` |
 | 11 | (API) Upload evidence | Evidence attached |
-| 12 | (API) Submit review | Статус → `in_review` |
-| 13 | (UI) Увидеть задачу в «In Review» | Отображается на dashboard |
-| 14 | Approve review | Статус → `done` |
-| 15 | Проверить на dashboard | Задача в «Recent Done» |
+| 12 | (API) Submit review | Status → `in_review` |
+| 13 | (UI) See task in "In Review" | Displayed on dashboard |
+| 14 | Approve review | Status → `done` |
+| 15 | Verify on dashboard | Task in "Recent Done" |
 
-### 2.3 Тест
+### 2.3 Test
 
 ```python
 # tests/e2e/test_first_run_flow.py
@@ -106,28 +106,28 @@ class TestFirstRunFlow:
 
 ## 3. Flow 2: Agent Authentication → Clarification
 
-**Цель:** Проверить полный lifecycle агента с clarification flow.
+**Goal:** Verify the full agent lifecycle with clarification flow.
 
-### 3.1 Предусловия
-- Проект с задачей в статусе `open`
-- API-ключ агента создан
+### 3.1 Preconditions
+- Project with task in status `open`
+- Agent API key created
 
-### 3.2 Шаги
+### 3.2 Steps
 
-| # | Действие | Ожидаемый результат |
+| # | Action | Expected Result |
 |---|---------|-------------------|
-| 1 | (API) Claim задачу | Статус → `claimed` |
-| 2 | (API) Heartbeat с progress | Progress обновлён |
-| 3 | (API) Запрос clarification | Статус → `blocked` |
-| 4 | (UI) Уведомление о blocked | Toast notification |
-| 5 | (UI) Attention dashboard показывает blocked | Blocked секция |
-| 6 | (UI) Ответить на clarification | Clarification resolved |
-| 7 | (API) Получить inbox сообщение | Message с ответом |
-| 8 | (API) Resume работу | Статус → `in_progress` |
-| 9 | (API) Heartbeat | Stale timer сброшен |
-| 10 | (API) Submit review | Статус → `in_review` |
+| 1 | (API) Claim task | Status → `claimed` |
+| 2 | (API) Heartbeat with progress | Progress updated |
+| 3 | (API) Request clarification | Status → `blocked` |
+| 4 | (UI) Blocked notification | Toast notification |
+| 5 | (UI) Attention dashboard shows blocked | Blocked section |
+| 6 | (UI) Answer clarification | Clarification resolved |
+| 7 | (API) Get inbox message | Message with answer |
+| 8 | (API) Resume work | Status → `in_progress` |
+| 9 | (API) Heartbeat | Stale timer reset |
+| 10 | (API) Submit review | Status → `in_review` |
 
-### 3.3 Тест
+### 3.3 Test
 
 ```python
 # tests/e2e/test_agent_clarification_flow.py
@@ -185,26 +185,26 @@ class TestAgentClarificationFlow:
 
 ## 4. Flow 3: Attention Dashboard → Drill-Down
 
-**Цель:** Проверить, что attention dashboard корректно отображает проблемные задачи и позволяет быстро действовать.
+**Goal:** Verify that the attention dashboard correctly displays problematic tasks and allows quick action.
 
-### 4.1 Предусловия
-- Проект с несколькими задачами в разных статусах
-- Пользователь авторизован
+### 4.1 Preconditions
+- Project with multiple tasks in different statuses
+- User is authenticated
 
-### 4.2 Шаги
+### 4.2 Steps
 
-| # | Действие | Ожидаемый результат |
+| # | Action | Expected Result |
 |---|---------|-------------------|
-| 1 | Открыть `/` | Attention dashboard загружен |
-| 2 | Проверить «Blocked» секцию | Заблокированная задача отображается |
-| 3 | Проверить «Stale» секция | Stale задача отображается с heartbeat age |
-| 4 | Кликнуть на blocked задачу | Detail view открывается |
-| 5 | Ответить на clarification | Форма отправлена |
-| 6 | Кликнуть «Release» на stale задаче | Задача release → `open` |
-| 7 | Проверить, что stale задача исчезла из секции | Обновление в реальном времени |
-| 8 | Кликнуть «Audit Log» | Аудит показывает действия |
+| 1 | Open `/` | Attention dashboard loaded |
+| 2 | Check "Blocked" section | Blocked task is displayed |
+| 3 | Check "Stale" section | Stale task is displayed with heartbeat age |
+| 4 | Click on blocked task | Detail view opens |
+| 5 | Answer clarification | Form submitted |
+| 6 | Click "Release" on stale task | Task released → `open` |
+| 7 | Verify stale task disappeared from section | Real-time update |
+| 8 | Click "Audit Log" | Audit shows actions |
 
-### 4.3 Тест
+### 4.3 Test
 
 ```python
 # tests/e2e/test_attention_dashboard.py
@@ -254,7 +254,7 @@ class TestAttentionDashboard:
         await expect(page.locator("[data-testid='audit-entry']").first).to_contain_text("release")
 ```
 
-## 5. Fixtures и Setup
+## 5. Fixtures and Setup
 
 ### 5.1 Seeded Data
 
@@ -299,26 +299,26 @@ async def browser():
         await browser.close()
 ```
 
-## 6. Запуск
+## 6. Running
 
 ```bash
-# Все E2E тесты
+# All E2E tests
 make test-e2e
 
-# Только flow 1
+# Only flow 1
 pytest tests/e2e/test_first_run_flow.py -v
 
-# С видимым браузером (debug)
+# With visible browser (debug)
 HEADED=1 pytest tests/e2e/ -v
 
-# С видео (для CI)
+# With video (for CI)
 pytest tests/e2e/ --video=on
 
-# С скриншотами при падении
+# With screenshots on failure
 pytest tests/e2e/ --screenshot=on
 ```
 
-## 7. CI интеграция
+## 7. CI Integration
 
 ```yaml
 # .gitlab-ci.yml

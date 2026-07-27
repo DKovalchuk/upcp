@@ -1,14 +1,14 @@
 # Agent Workflow State Machines — UPCP v2
 
-## Обзор
+## Overview
 
-UPCP использует конечные автоматы для управления жизненным циклом задач, claims, clarification requests и review rounds. Все переходы строго определены и логируются в audit trail.
+UPCP uses finite state machines to manage the lifecycle of tasks, claims, clarification requests, and review rounds. All transitions are strictly defined and logged in the audit trail.
 
 ---
 
 ## 1. Task State Machine
 
-### Диаграмма
+### Diagram
 
 ```
                         ┌──────────────┐
@@ -69,40 +69,40 @@ UPCP использует конечные автоматы для управл�
               └──────────┘
 ```
 
-### Состояния
+### States
 
-| Состояние | Описание | Допустимые переходы |
-|-----------|----------|---------------------|
-| `backlog` | Задача создана, не готова к работе | → `ready` |
-| `ready` | Готова к claim агентом | → `claimed`, → `cancelled` |
-| `claimed` | Заclaimлена агентом, ещё не начата | → `in_progress`, → `ready` (release) |
-| `in_progress` | Агент работает | → `blocked`, → `needs_clarification`, → `ready_for_review`, → `ready` (release) |
-| `blocked` | Заблокирована внешним фактором | → `in_progress` (unblock) |
-| `needs_clarification` | Ожидает ответа от владельца | → `in_progress` (resolved), → `cancelled` |
-| `ready_for_review` | Отправлена на ревью | → `done`, → `changes_requested` |
-| `changes_requested` | Ревью потребовало доработок | → `in_progress` (rework) |
-| `done` | Задача завершена | — (финальное) |
-| `cancelled` | Отменена | — (финальное) |
+| State | Description | Allowed Transitions |
+|-------|-------------|---------------------|
+| `backlog` | Task created, not ready for work | → `ready` |
+| `ready` | Ready for agent claim | → `claimed`, → `cancelled` |
+| `claimed` | Claimed by agent, not yet started | → `in_progress`, → `ready` (release) |
+| `in_progress` | Agent is working | → `blocked`, → `needs_clarification`, → `ready_for_review`, → `ready` (release) |
+| `blocked` | Blocked by external factor | → `in_progress` (unblock) |
+| `needs_clarification` | Waiting for owner response | → `in_progress` (resolved), → `cancelled` |
+| `ready_for_review` | Submitted for review | → `done`, → `changes_requested` |
+| `changes_requested` | Review requires rework | → `in_progress` (rework) |
+| `done` | Task completed | — (terminal) |
+| `cancelled` | Cancelled | — (terminal) |
 
-### Правила переходов
+### Transition Rules
 
-1. **backlog → ready**: Только owner или admin
-2. **ready → claimed**: Атомарная операция, только через `claim_task`
-3. **claimed → in_progress**: Агент вызывает `start_work` (через первый heartbeat)
-4. **in_progress → ready**: Агент отпускает задачу (release)
-5. **in_progress → blocked**: Агент указывает причину блокировки
-6. **in_progress → needs_clarification**: Агент отправляет clarification request
-7. **in_progress → ready_for_review**: Агент подтверждает выполнение
-8. **ready_for_review → done**: Ревью approved
-9. **ready_for_review → changes_requested**: Ревью rejected
-10. **changes_requested → in_progress**: Агент приступает к доработке
-11. **Любое → cancelled**: Только owner/admin, кроме `done`
+1. **backlog → ready**: Owner or admin only
+2. **ready → claimed**: Atomic operation, only via `claim_task`
+3. **claimed → in_progress**: Agent calls `start_work` (via first heartbeat)
+4. **in_progress → ready**: Agent releases the task
+5. **in_progress → blocked**: Agent specifies blocking reason
+6. **in_progress → needs_clarification**: Agent sends a clarification request
+7. **in_progress → ready_for_review**: Agent confirms completion
+8. **ready_for_review → done**: Review approved
+9. **ready_for_review → changes_requested**: Review rejected
+10. **changes_requested → in_progress**: Agent begins rework
+11. **Any → cancelled**: Owner/admin only, except `done`
 
 ---
 
 ## 2. TaskClaim State Machine
 
-### Диаграмма
+### Diagram
 
 ```
           ┌──────────┐
@@ -124,27 +124,27 @@ UPCP использует конечные автоматы для управл�
          └──────────┘
 ```
 
-### Состояния
+### States
 
-| Состояние | Описание | Триггер |
-|-----------|----------|---------|
-| `active` | Claim активен | `claim_task` |
-| `released` | Агент добровольно отпустил | `release_task` |
-| `expired` | Heartbeat timeout | Автоматически |
-| `completed` | Задача завершена | `submit_for_review` → approved |
+| State | Description | Trigger |
+|-------|-------------|---------|
+| `active` | Claim is active | `claim_task` |
+| `released` | Agent voluntarily released | `release_task` |
+| `expired` | Heartbeat timeout | Automatic |
+| `completed` | Task completed | `submit_for_review` → approved |
 
 ### Heartbeat Timeout
 
-- Default: 120 секунд без heartbeat → claim expired
-- Конфигурируется per-project (`heartbeat_timeout_sec`)
-- Expired claim освобождает задачу → состояние `ready`
+- Default: 120 seconds without heartbeat → claim expired
+- Configurable per-project (`heartbeat_timeout_sec`)
+- Expired claim releases the task → state `ready`
 - Audit event: `claim.expired`
 
 ---
 
 ## 3. ClarificationRequest State Machine
 
-### Диаграмма
+### Diagram
 
 ```
           ┌──────────┐
@@ -165,27 +165,27 @@ UPCP использует конечные автоматы для управл�
      └──────────┘
 ```
 
-### Состояния
+### States
 
-| Состояние | Описание | Триггер |
-|-----------|----------|---------|
-| `open` | Вопрос задан, ожидает ответа | `request_clarification` |
-| `answered` | Владелец ответил | `answer_clarification` |
-| `resolved` | Агент подтвердил получение ответа | Агент вызывает `resolve_clarification` |
-| `cancelled` | Отменён (владельцем или если задача отменена) | `cancel_clarification` |
+| State | Description | Trigger |
+|-------|-------------|---------|
+| `open` | Question asked, awaiting response | `request_clarification` |
+| `answered` | Owner responded | `answer_clarification` |
+| `resolved` | Agent confirmed receipt of answer | Agent calls `resolve_clarification` |
+| `cancelled` | Cancelled (by owner or if task is cancelled) | `cancel_clarification` |
 
-### Правила
+### Rules
 
-1. Clarification request приостанавливает задачу (`in_progress` → `needs_clarification`)
-2. Ответ владельца возвращает задачу в `in_progress` (автоматически)
-3. Если задача отменяется — все open clarification requests → `cancelled`
-4. Агент может отменить свой own clarification request
+1. A clarification request pauses the task (`in_progress` → `needs_clarification`)
+2. Owner's answer returns the task to `in_progress` (automatically)
+3. If the task is cancelled — all open clarification requests → `cancelled`
+4. An agent can cancel its own clarification request
 
 ---
 
 ## 4. ReviewRound State Machine
 
-### Диаграмма
+### Diagram
 
 ```
           ┌───────────┐
@@ -204,40 +204,40 @@ UPCP использует конечные автоматы для управл�
      │ (approved)│ │ (rejected)│
      └──────────┘ └──────────┘
 
-    (Любое не-fинальное → cancelled)
+    (Any non-terminal → cancelled)
 ```
 
-### Состояния
+### States
 
-| Состояние | Описание | Триггер |
-|-----------|----------|---------|
-| `pending` | Ревью создано, ожидает ревьюера | `submit_task_for_review` |
-| `in_progress` | Ревьюер приступил | `start_review` |
-| `completed` | Ревью завершено с вердиктом | `submit_review_verdict` |
-| `cancelled` | Ревью отменено | `cancel_review` |
+| State | Description | Trigger |
+|-------|-------------|---------|
+| `pending` | Review created, awaiting reviewer | `submit_task_for_review` |
+| `in_progress` | Reviewer has started | `start_review` |
+| `completed` | Review completed with verdict | `submit_review_verdict` |
+| `cancelled` | Review cancelled | `cancel_review` |
 
 ### Verdicts
 
-| Вердикт | Действие | Следующее состояние задачи |
-|---------|----------|---------------------------|
-| `approved` | Задача считается done | `done` |
-| `rejected` | Задача возвращается на доработку | `changes_requested` |
+| Verdict | Action | Next Task State |
+|---------|--------|-----------------|
+| `approved` | Task considered done | `done` |
+| `rejected` | Task returned for rework | `changes_requested` |
 
-### Правила
+### Rules
 
-1. Review round создаётся автоматически при `submit_task_for_review`
-2. Ревьюер определяется политикой проекта
-3. Agent-ревьюер может review только если политика = `agent_review_then_human` или `agent_auto_close_if_allowed`
-4. При `agent_auto_close_if_allowed`: агент может approve без human review (если задача low/medium priority)
-5. При `agent_review_then_human`: после agent review требуется human confirmation
-6. Human может в любой момент переопределить вердикт агента
-7. Новый review round создаётся при rework (changes_requested → in_progress → ready_for_review)
+1. A review round is created automatically on `submit_task_for_review`
+2. The reviewer is determined by the project policy
+3. An agent reviewer can review only if the policy = `agent_review_then_human` or `agent_auto_close_if_allowed`
+4. With `agent_auto_close_if_allowed`: the agent can approve without human review (if task is low/medium priority)
+5. With `agent_review_then_human`: human confirmation is required after agent review
+6. A human can override the agent's verdict at any time
+7. A new review round is created on rework (changes_requested → in_progress → ready_for_review)
 
 ---
 
 ## Audit Trail
 
-Каждый переход state machine записывает audit event:
+Each state machine transition writes an audit event:
 
 ```json
 {
@@ -256,25 +256,25 @@ UPCP использует конечные автоматы для управл�
 
 ---
 
-## Timeout и Auto-Recovery
+## Timeouts and Auto-Recovery
 
-| Ситуация | Timeout | Действие |
-|----------|---------|----------|
-| Heartbeat отсутствует | 120 сек | Claim expired → задача в `ready` |
-| Clarification без ответа | 7 дней | Notification → owner |
-| Review pending | 3 дня | Notification → reviewer |
-| Task in progress | 14 дней | Notification → owner (configurable) |
+| Situation | Timeout | Action |
+|-----------|---------|--------|
+| Heartbeat missing | 120 sec | Claim expired → task goes to `ready` |
+| Clarification unanswered | 7 days | Notification → owner |
+| Review pending | 3 days | Notification → reviewer |
+| Task in progress | 14 days | Notification → owner (configurable) |
 
 ---
 
-## Реализация
+## Implementation
 
-State machine реализована в `agent_workflow` bounded context:
+The state machine is implemented in the `agent_workflow` bounded context:
 
 ```
 src/upcp/contexts/agent_workflow/
-├── state_machine.py          # Определение переходов
-├── transitions.py            # Guards и actions
+├── state_machine.py          # Transition definitions
+├── transitions.py            # Guards and actions
 ├── services/
 │   ├── claim_service.py      # Claim/release/expiry
 │   ├── heartbeat_service.py  # Heartbeat recording

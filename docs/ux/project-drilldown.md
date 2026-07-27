@@ -1,10 +1,10 @@
 # Project Drill-Down UX
 
-Иерархическая навигация: Portfolio → Project → Component → Module → Feature → Task.
+Hierarchical navigation: Portfolio → Project → Component → Module → Feature → Task.
 
 ---
 
-## 1. Иерархия
+## 1. Hierarchy
 
 ```
 Portfolio (/projects)
@@ -28,50 +28,50 @@ Portfolio (/projects)
 
 ### 2.1 Breadcrumbs
 
-Всегда видимы в BreadcrumbBar:
+Always visible in BreadcrumbBar:
 
 ```
 Dashboard > Projects > UPCP v2 > Delivery > TASK-0042
 ```
 
-- Каждый элемент кликабелен.
-- Последний — текущая страница (не ссылка).
-- На мобильных: последние 3 уровня + "..." для остальных.
+- Each element is clickable.
+- The last one is the current page (not a link).
+- On mobile: last 3 levels + "..." for the rest.
 
 ### 2.2 Deep Links
 
-| Ресурс | URL | Тип |
+| Resource | URL | Type |
 |--------|-----|-----|
-| Проект overview | `/projects/:id` | page |
-| Проект + tab | `/projects/:id?tab=delivery` | page + tab |
-| Компонент | `/projects/:id/structure?component=:cid` | expand |
-| Модуль | `/projects/:id/structure?component=:cid&module=:mid` | expand |
+| Project overview | `/projects/:id` | page |
+| Project + tab | `/projects/:id?tab=delivery` | page + tab |
+| Component | `/projects/:id/structure?component=:cid` | expand |
+| Module | `/projects/:id/structure?component=:cid&module=:mid` | expand |
 | Feature | `/projects/:id/delivery?feature=:fid` | expand |
 | Task (sheet) | `/projects/:id/delivery?task=:tid` | sheet |
 | Task (page) | `/projects/:id/tasks/:tid` | page |
 
 ### 2.3 URL State Sync
 
-Все UI-состояния синхронизируются с URL search params:
+All UI states are synchronized with URL search params:
 
-| Param | Тип | Описание |
-|-------|-----|----------|
-| `tab` | string | Активная вкладка проекта |
-| `component` | UUID | Раскрытый компонент |
-| `module` | UUID | Раскрытый модуль |
-| `feature` | UUID | Раскрытая feature |
-| `task` | UUID | Открытый task detail sheet |
-| `view` | `list` \| `board` | Режим delivery |
-| `page` | int | Номер страницы |
-| `pageSize` | int | Размер страницы |
-| `search` | string | Поисковый запрос |
-| `status` | string | Фильтр статуса |
-| `sort` | string | Сортировка |
+| Param | Type | Description |
+|-------|------|-------------|
+| `tab` | string | Active project tab |
+| `component` | UUID | Expanded component |
+| `module` | UUID | Expanded module |
+| `feature` | UUID | Expanded feature |
+| `task` | UUID | Open task detail sheet |
+| `view` | `list` \| `board` | Delivery mode |
+| `page` | int | Page number |
+| `pageSize` | int | Page size |
+| `search` | string | Search query |
+| `status` | string | Status filter |
+| `sort` | string | Sorting |
 
-**Поведение:**
-- Навигация назад/вперёд восстанавливает состояние.
-- Share URL открывает ту же view.
-- Cmd+click открывает в новой вкладке.
+**Behavior:**
+- Back/forward navigation restores state.
+- Share URL opens the same view.
+- Cmd+click opens in a new tab.
 
 ---
 
@@ -79,9 +79,9 @@ Dashboard > Projects > UPCP v2 > Delivery > TASK-0042
 
 ### Project Table
 
-**Колонки:** Name, Status, Components, Tasks (total), Active Tasks, Last Activity.
+**Columns:** Name, Status, Components, Tasks (total), Active Tasks, Last Activity.
 
-**Функции:** Поиск, фильтр по статусу, сортировка, пагинация (URL-synced), клик → project detail.
+**Features:** Search, status filter, sorting, pagination (URL-synced), click → project detail.
 
 ---
 
@@ -89,25 +89,25 @@ Dashboard > Projects > UPCP v2 > Delivery > TASK-0042
 
 ### Tabs
 
-| Tab | Контент |
+| Tab | Content |
 |-----|---------|
-| Overview | Статус, описание, stats cards |
+| Overview | Status, description, stats cards |
 | Structure | Components → Modules |
 | Delivery | Features → Tasks |
-| Quality | AC/DoD статистика |
-| Agents | Назначенные агенты |
+| Quality | AC/DoD statistics |
+| Agents | Assigned agents |
 | Evidence & Reviews | Evidence list, review rounds |
 | Git | Providers, branches, commits, links |
 | Audit | Timeline |
-| Settings | Настройки проекта |
+| Settings | Project settings |
 
-Tab state synced с `?tab=` URL param.
+Tab state synced with the `?tab=` URL param.
 
 ---
 
 ## 5. Component Level (Structure tab)
 
-Card grid для компонентов. Клик → expand с таблицей модулей.
+Card grid for components. Click → expand with module table.
 
 ```
 ┌─────────────────────────────────┐
@@ -125,13 +125,13 @@ Card grid для компонентов. Клик → expand с таблицей
 
 ## 6. Module Level (expand inside Component)
 
-Таблица модулей: Name, Status, Features count, Tasks count. Клик → фильтрует Delivery tab.
+Module table: Name, Status, Features count, Tasks count. Click → filters the Delivery tab.
 
 ---
 
 ## 7. Feature Level (Delivery tab)
 
-Features — collapsible группы задач.
+Features are collapsible task groups.
 
 ```
 ▼ Auth System (feat_001) — 8 tasks · 3 done · 2 in progress
@@ -148,17 +148,17 @@ Features — collapsible группы задач.
 
 ### Sheet (slide-over)
 
-По умолчанию. См. [task-detail.md](./task-detail.md).
+Default. See [task-detail.md](./task-detail.md).
 
 ### Full Page (`/projects/:id/tasks/:tid`)
 
-По deep link. Тот же контент в полноэкранном макете.
+Via deep link. Same content in a full-screen layout.
 
 ---
 
 ## 9. Saved Views
 
-Пользователь сохраняет комбинацию фильтров:
+User saves a combination of filters:
 
 ```
 Saved View: "My blocked tasks"
@@ -167,13 +167,13 @@ Saved View: "My blocked tasks"
   - project: UPCP v2
 ```
 
-**Хранение:** localStorage + optional server-side. **UI:** Dropdown "Saved Views" в toolbar.
+**Storage:** localStorage + optional server-side. **UI:** "Saved Views" dropdown in the toolbar.
 
 ---
 
 ## 10. Keyboard Navigation
 
-| Key | Действие |
+| Key | Action |
 |-----|----------|
 | `Cmd+K` | Command palette |
 | `[` / `]` | Previous / next tab |

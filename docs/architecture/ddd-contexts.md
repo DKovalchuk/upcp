@@ -1,12 +1,12 @@
 # Bounded Contexts — UPCP v2
 
-## Обзор
+## Overview
 
-UPCP организован как модульный монолит с чёткими границами bounded contexts. Каждый контекст — автономный модуль со своей доменной моделью, сервисами и портами. Контексты общаются через явные интерфейсы (сервисы, события, ACL).
+UPCP is organized as a modular monolith with clear bounded context boundaries. Each context is an autonomous module with its own domain model, services, and ports. Contexts communicate through explicit interfaces (services, events, ACL).
 
 ---
 
-## Карта контекстов
+## Context Map
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -37,63 +37,63 @@ UPCP организован как модульный монолит с чётк
 
 ---
 
-## Описание контекстов
+## Context Descriptions
 
 ### 1. Identity & Access (`identity_access`)
 
-**Назначение:** Аутентификация, авторизация, управление пользователями, ролями и организациями.
+**Purpose:** Authentication, authorization, user, role, and organization management.
 
-**Ключевые сущности:**
-- `Organization` — мультитенантная единица
-- `User` — аутентифицированный пользователь
-- `Membership` — связь User ↔ Organization с ролью
-- `Session` — активная сессия (JWT)
-- `Role`, `Permission`, `RoleBinding` — RBAC-модель
+**Key entities:**
+- `Organization` — multi-tenant unit
+- `User` — authenticated user
+- `Membership` — User ↔ Organization link with role
+- `Session` — active session (JWT)
+- `Role`, `Permission`, `RoleBinding` — RBAC model
 
-**Публичный интерфейс:**
+**Public interface:**
 - `AuthService` — login, refresh, revoke
-- `UserService` — CRUD пользователей
-- `OrgService` — управление организациями
-- `RBACService` — проверка权限
+- `UserService` — user CRUD
+- `OrgService` — organization management
+- `RBACService` — permission checks
 
-**ACL:** Нет входящих зависимостей от других контекстов.
+**ACL:** No inbound dependencies from other contexts.
 
 ---
 
 ### 2. Agent Management (`agent_management`)
 
-**Назначение:** Управление ИИ-агентами, их токенами, scope и назначением на проекты.
+**Purpose:** Managing AI agents, their tokens, scopes, and project assignments.
 
-**Ключевые сущности:**
-- `Agent` — зарегистрированный агент (имя, тип, capabilities)
-- `AgentToken` — аутентификационный токен (MCP)
-- `AgentScope` — ограничения агента (проекты, операции)
-- `AgentProjectAssignment` — привязка агента к проекту
+**Key entities:**
+- `Agent` — registered agent (name, type, capabilities)
+- `AgentToken` — authentication token (MCP)
+- `AgentScope` — agent restrictions (projects, operations)
+- `AgentProjectAssignment` — agent-to-project binding
 
-**Публичный интерфейс:**
-- `AgentService` — CRUD агентов
-- `AgentTokenService` — выпуск/отзыв токенов
-- `AgentScopeService` — управление scope
+**Public interface:**
+- `AgentService` — agent CRUD
+- `AgentTokenService` — token issuance/revocation
+- `AgentScopeService` — scope management
 
-**ACL:** → `identity_access` (верификация владельца)
+**ACL:** → `identity_access` (owner verification)
 
 ---
 
 ### 3. Agent Workflow (`agent_workflow`)
 
-**Назначение:** State machine задач, heartbeat, claim/release, clarification flow.
+**Purpose:** Task state machine, heartbeat, claim/release, clarification flow.
 
-**Ключевые сущности:**
-- `TaskClaim` — активный claim на задачу
-- `Heartbeat` — периодический сигнал жизни
-- `ClarificationRequest` — запрос уточнения от агента
-- `Subtask` — подзадача в рамках Task
+**Key entities:**
+- `TaskClaim` — active claim on a task
+- `Heartbeat` — periodic liveness signal
+- `ClarificationRequest` — clarification request from an agent
+- `Subtask` — subtask within a Task
 
-**Публичный интерфейс:**
-- `TaskStateMachineService` — переходы состояний
-- `ClaimService` — claim/release с атомарностью
-- `HeartbeatService` — запись и проверка heartbeat
-- `ClarificationService` — управление clarification flow
+**Public interface:**
+- `TaskStateMachineService` — state transitions
+- `ClaimService` — claim/release with atomicity
+- `HeartbeatService` — heartbeat recording and validation
+- `ClarificationService` — clarification flow management
 
 **ACL:** → `delivery_management` (Task), → `agent_management` (Agent)
 
@@ -101,40 +101,40 @@ UPCP организован как модульный монолит с чётк
 
 ### 4. Delivery Management (`delivery_management`)
 
-**Назначение:** Управление проектами, компонентами, модулями, фичами и задачами.
+**Purpose:** Managing projects, components, modules, features, and tasks.
 
-**Ключевые сущности:**
-- `Project` — корневая единица работы
-- `Component` — структурная единица проекта
-- `Module` — модуль внутри компонента
-- `Feature` — фича/задача бизнес-уровня
-- `Task` — конкретная единица работы для агента
-- `AcceptanceCriterion` — критерий приёмки
-- `DoDItem` — Definition of Done элемент
+**Key entities:**
+- `Project` — root work unit
+- `Component` — structural unit of a project
+- `Module` — module within a component
+- `Feature` — business-level feature/task
+- `Task` — specific work unit for an agent
+- `AcceptanceCriterion` — acceptance criterion
+- `DoDItem` — Definition of Done item
 
-**Публичный интерфейс:**
-- `ProjectService` — CRUD проектов
-- `ComponentService`, `ModuleService`, `FeatureService` — CRUD иерархии
-- `TaskService` — CRUD задач, управление жизненным циклом
+**Public interface:**
+- `ProjectService` — project CRUD
+- `ComponentService`, `ModuleService`, `FeatureService` — hierarchy CRUD
+- `TaskService` — task CRUD, lifecycle management
 
-**ACL:** → `identity_access` (проверка membership)
+**ACL:** → `identity_access` (membership check)
 
 ---
 
 ### 5. Quality & Evidence (`quality_evidence`)
 
-**Назначение:** Управление evidence, review rounds, review findings, DoD verification.
+**Purpose:** Managing evidence, review rounds, review findings, DoD verification.
 
-**Ключевые сущности:**
-- `Evidence` — артефакт доказательства (тип, URL, содержимое)
-- `ReviewRound` — раунд ревью
-- `ReviewFinding` — находка в ревью (severity, status)
-- `ContextSnapshot` — снимок контекста агента в момент выполнения
+**Key entities:**
+- `Evidence` — proof artifact (type, URL, content)
+- `ReviewRound` — review round
+- `ReviewFinding` — review finding (severity, status)
+- `ContextSnapshot` — agent context snapshot at time of execution
 
-**Публичный интерфейс:**
-- `EvidenceService` — CRUD evidence
-- `ReviewService` — управление раундами ревью
-- `ReviewPolicyService` — применение политик ревью
+**Public interface:**
+- `EvidenceService` — evidence CRUD
+- `ReviewService` — review round management
+- `ReviewPolicyService` — review policy enforcement
 
 **ACL:** → `delivery_management` (Task, Feature), → `agent_management` (Agent)
 
@@ -142,90 +142,90 @@ UPCP организован как модульный монолит с чётк
 
 ### 6. Runtime Platform (`runtime_platform`)
 
-**Назначение:** Инфраструктурные сервисы — БД, кэш, очереди, rate limiting, health checks.
+**Purpose:** Infrastructure services — DB, cache, queues, rate limiting, health checks.
 
-**Ключевые компоненты:**
+**Key components:**
 - Database connection pool (asyncpg)
 - Redis pool (redis-py async)
 - Rate limiter (sliding window)
 - Health check aggregation
 - Background task scheduler
 
-**Публичный интерфейс:**
+**Public interface:**
 - `HealthService` — readiness/liveness
-- `RateLimiter` — проверка лимитов
-- `CacheService` — операции с кэшем
+- `RateLimiter` — limit checking
+- `CacheService` — cache operations
 
-**ACL:** Нет доменных зависимостей.
+**ACL:** No domain dependencies.
 
 ---
 
 ### 7. Observability (`observability`)
 
-**Назначение:** Сбор метрик, трассировок, логов, аудит-событий.
+**Purpose:** Collecting metrics, traces, logs, and audit events.
 
-**Ключевые сущности:**
-- `AuditEvent` — запись аудита (actor, action, entity, timestamp)
+**Key entities:**
+- `AuditEvent` — audit record (actor, action, entity, timestamp)
 
-**Ключевые компоненты:**
-- OpenTelemetry SDK интеграция
+**Key components:**
+- OpenTelemetry SDK integration
 - Structured logging (structlog)
 - Audit trail writer
 - Prometheus metrics registry
 
-**Публичный интерфейс:**
-- `AuditService` — запись аудит-событий
-- `MetricsService` — кастомные метрики
+**Public interface:**
+- `AuditService` — audit event recording
+- `MetricsService` — custom metrics
 
-**ACL:** → все контексты (аудит)
+**ACL:** → all contexts (audit)
 
 ---
 
 ### 8. Secrets & Config (`secrets_config`)
 
-**Назначение:** Управление секретами, конфигурацией, зашифрованными полями.
+**Purpose:** Managing secrets, configuration, and encrypted fields.
 
-**Ключевые компоненты:**
-- `SecretProvider` — абстракция для чтения секретов
-- `ConfigProvider` — управление конфигурацией
-- `EncryptionService` — шифрование/дешифрование полей
+**Key components:**
+- `SecretProvider` — secret reading abstraction
+- `ConfigProvider` — configuration management
+- `EncryptionService` — field encryption/decryption
 
-**Публичный интерфейс:**
-- `SecretService` — получение секретов
-- `ConfigService` — CRUD конфигурации
+**Public interface:**
+- `SecretService` — secret retrieval
+- `ConfigService` — configuration CRUD
 
-**ACL:** Нет доменных зависимостей.
+**ACL:** No domain dependencies.
 
 ---
 
 ### 9. MCP, API & CLI (`mcp_api_cli`)
 
-**Назначение:** Транспортный слой — MCP tools, REST endpoints, CLI commands. Оркестрация вызовов к доменным сервисам.
+**Purpose:** Transport layer — MCP tools, REST endpoints, CLI commands. Orchestration of calls to domain services.
 
-**Ключевые компоненты:**
+**Key components:**
 - MCP tool handlers (read/write/admin)
 - FastAPI route handlers
 - CLI command handlers
 - Request/response serialization
 - Idempotency middleware
 
-**Публичный интерфейс:**
-- MCP tools (см. `mcp-tools.md`)
-- REST endpoints (см. `api-design.md`)
+**Public interface:**
+- MCP tools (see `mcp-tools.md`)
+- REST endpoints (see `api-design.md`)
 
-**ACL:** → все доменные контексты (транспортный слой)
+**ACL:** → all domain contexts (transport layer)
 
 ---
 
 ### 10. Frontend UI (`frontend_ui`)
 
-**Назначение:** React 19 SPA — дашборды, управление проектами, ревью, агентами.
+**Purpose:** React 19 SPA — dashboards, project management, reviews, agents.
 
-**Ключевые компоненты:**
+**Key components:**
 - React 19 + TypeScript
 - TanStack Router + Query
 - Tailwind CSS + shadcn/ui
-- WebSocket для real-time обновлений
+- WebSocket for real-time updates
 
 **ACL:** → REST API (http client)
 
@@ -233,14 +233,14 @@ UPCP организован как модульный монолит с чётк
 
 ### 11. Reporting & Insights (`reporting_insights`)
 
-**Назначение:** Генерация отчётов, аналитика, экспорт данных.
+**Purpose:** Report generation, analytics, data export.
 
-**Ключевые сущности:**
-- `Report` — сгенерированный отчёт (тип, период, формат)
+**Key entities:**
+- `Report` — generated report (type, period, format)
 
-**Публичный интерфейс:**
-- `ReportService` — генерация отчётов
-- `AnalyticsService` — агрегация данных
+**Public interface:**
+- `ReportService` — report generation
+- `AnalyticsService` — data aggregation
 
 **ACL:** → `delivery_management`, `quality_evidence`, `agent_workflow`
 
@@ -248,55 +248,55 @@ UPCP организован как модульный монолит с чётк
 
 ### 12. Git Integration (`git_integration`)
 
-**Назначение:** Read-only интеграция с Git-провайдерами. Синхронизация коммитов, веток, MR/PR.
+**Purpose:** Read-only integration with Git providers. Synchronizing commits, branches, MR/PR.
 
-**Ключевые сущности:**
-- `GitProvider` — подключённый провайдер (GitLab, GitHub)
-- `GitBranch` — отслеживаемая ветка
-- `GitCommit` — синхронизированный коммит
-- `GitLink` — связь коммита с задачей/фичей
+**Key entities:**
+- `GitProvider` — connected provider (GitLab, GitHub)
+- `GitBranch` — tracked branch
+- `GitCommit` — synchronized commit
+- `GitLink` — commit-to-task/feature link
 
-**Публичный интерфейс:**
-- `GitSyncService` — синхронизация с провайдером
-- `WebhookService` — обработка webhook-ов
-- `GitLinkService` — управление связями
+**Public interface:**
+- `GitSyncService` — provider synchronization
+- `WebhookService` — webhook processing
+- `GitLinkService` — link management
 
-**ACL:** Нет внутренних зависимостей (внешний API)
+**ACL:** No internal dependencies (external API)
 
 ---
 
 ### 13. Notifications (`notifications`)
 
-**Назначение:** Уведомления для пользователей и агентов.
+**Purpose:** Notifications for users and agents.
 
-**Ключевые сущности:**
-- `Notification` — уведомление (тип, recipient, channel, status)
+**Key entities:**
+- `Notification` — notification (type, recipient, channel, status)
 
-**Публичный интерфейс:**
-- `NotificationService` — создание и доставка уведомлений
-- `NotificationPreferenceService` — настройки доставки
+**Public interface:**
+- `NotificationService` — notification creation and delivery
+- `NotificationPreferenceService` — delivery settings
 
-**ACL:** → `identity_access` (получатели), ← все контексты (источники событий)
+**ACL:** → `identity_access` (recipients), ← all contexts (event sources)
 
 ---
 
 ## Shared Kernel
 
-Общие компоненты, используемые всеми контекстами:
+Common components used by all contexts:
 
-- `BaseModel` — базовая ORM-модель (id, created_at, updated_at)
-- `PaginationParams`, `PaginatedResponse` — пагинация
-- `DomainEvent` — базовый класс доменных событий
-- `DomainError`, `NotFoundError`, `ConflictError` — ошибки
-- `IdempotencyKey` — идемпотентность
-- `UUID` — генерация и валидация UUID
+- `BaseModel` — base ORM model (id, created_at, updated_at)
+- `PaginationParams`, `PaginatedResponse` — pagination
+- `DomainEvent` — base domain event class
+- `DomainError`, `NotFoundError`, `ConflictError` — errors
+- `IdempotencyKey` — idempotency
+- `UUID` — UUID generation and validation
 
 ---
 
-## Правила взаимодействия
+## Interaction Rules
 
-1. Контексты НЕ делают прямые SQL-запросы к таблицам друг друга
-2. Общение через публичные сервисы или доменные события
-3. ACL (Anti-Corruption Layer) транслирует модели одного контекста в DTO другого
-4. Shared Kernel содержит только примитивы, не бизнес-логику
-5. Изменение публичного интерфейса контекста требует обновления всех потребителей
+1. Contexts do NOT make direct SQL queries to each other's tables
+2. Communication is through public services or domain events
+3. ACL (Anti-Corruption Layer) translates models from one context into DTOs for another
+4. Shared Kernel contains only primitives, no business logic
+5. Changing a context's public interface requires updating all consumers

@@ -1,44 +1,44 @@
-# Permission Matrix Tests — Спецификация
+# Permission Matrix Tests — Specification
 
-> Проект: UPCP | Фреймворк: pytest | RBAC: owner, admin, member, viewer, agent
+> Project: UPCP | Framework: pytest | RBAC: owner, admin, member, viewer, agent
 
-## 1. Обзор
+## 1. Overview
 
-Permission matrix tests проверяют, что каждая роль имеет ровно те права, которые ей положено, и не имеет доступа к тому, что запрещено.
+Permission matrix tests verify that each role has exactly the permissions it should have, and does not have access to what is forbidden.
 
-## 2. Роли и их права
+## 2. Roles and Their Permissions
 
 ### 2.1 Owner
-- Всё в своей организации
-- Управление billing (future)
-- Удаление организации
-- Назначение admin
+- Full access within their organization
+- Billing management (future)
+- Organization deletion
+- Admin assignment
 
 ### 2.2 Admin
-- CRUD проектов в организации
-- Управление участниками (кроме owner)
-- Настройка проектов
-- Просмотр audit log
+- CRUD for projects in the organization
+- Member management (except owner)
+- Project configuration
+- Audit log viewing
 - Force release claims
 
 ### 2.3 Member
-- CRUD задач в своих проектах
-- Просмотр задач, evidence, reviews
-- Создание review
-- Отправка сообщений агентам
+- CRUD for tasks in their own projects
+- Viewing tasks, evidence, reviews
+- Creating reviews
+- Sending messages to agents
 
 ### 2.4 Viewer
-- Только чтение: проекты, задачи, evidence
-- Не может создавать/изменять/удалять
+- Read-only access: projects, tasks, evidence
+- Cannot create/update/delete
 
 ### 2.5 Agent
-- Claim/release задач (назначенных)
+- Claim/release tasks (assigned)
 - Heartbeat
-- Evidence upload (к своей задаче)
-- Inbox чтение
-- Не может: создавать проекты, управлять пользователями
+- Evidence upload (to their own task)
+- Inbox reading
+- Cannot: create projects, manage users
 
-## 3. Матрица разрешений
+## 3. Permission Matrix
 
 | Resource / Action | Owner | Admin | Member | Viewer | Agent |
 |-------------------|-------|-------|--------|--------|-------|
@@ -84,11 +84,11 @@ Permission matrix tests проверяют, что каждая роль име�
 | **Settings** |
 | settings.update | ✅ | ✅ | ❌ | ❌ | ❌ |
 
-> *Admin не может менять роль owner
-> **Agent может evidence.create только для своей claimed задачи
-> ***Agent может review.submit только для своей задачи с полным evidence
+> *Admin cannot change the owner role
+> **Agent can evidence.create only for their own claimed task
+> ***Agent can review.submit only for their own task with complete evidence
 
-## 4. Структура тестов
+## 4. Test Structure
 
 ```python
 # tests/permissions/test_permission_matrix.py
@@ -98,7 +98,7 @@ from httpx import AsyncClient
 ROLES = ["owner", "admin", "member", "viewer", "agent"]
 
 class PermissionTest:
-    """Базовый класс для matrix тестов."""
+    """Base class for matrix tests."""
 
     @pytest.fixture(params=ROLES)
     def role(self, request):
@@ -141,7 +141,7 @@ class TestOrganizationPermissions(PermissionTest):
             assert resp.status_code in (403, 401)
 ```
 
-## 5. Тесты для каждой группы ресурсов
+## 5. Tests for Each Resource Group
 
 ### 5.1 Organization Tests
 ```
@@ -177,7 +177,7 @@ test_evidence_accept_by_agent → 403
 test_evidence_read_by_viewer → 200
 ```
 
-## 6. Cross-project Isolation
+## 6. Cross-Project Isolation
 
 ```python
 class TestCrossProjectIsolation:
@@ -218,25 +218,25 @@ class TestUnauthenticated:
         assert resp.status_code == 401
 ```
 
-## 8. Запуск
+## 8. Running
 
 ```bash
-# Все permission тесты
+# All permission tests
 make test-permissions
 
-# Только определённую роль
+# Specific role only
 pytest tests/permissions/ -k "owner" -v
 
-# Только определённый ресурс
+# Specific resource only
 pytest tests/permissions/ -k "task" -v
 
-# С отчётом покрытия
+# With coverage report
 pytest tests/permissions/ --cov=src/upcp/api/permissions --cov-report=html
 ```
 
 ## 9. Coverage Matrix Report
 
-Тест генерирует отчёт в формате матрицы:
+The test generates a report in matrix format:
 
 ```
 Permission Matrix Report

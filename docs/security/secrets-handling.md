@@ -1,18 +1,18 @@
-# Управление секретами — UPCP v2
+# Secrets Management — UPCP v2
 
-> Область: `security` | Версия: 2.0.0
+> Scope: `security` | Version: 2.0.0
 
-## 1. Принципы
+## 1. Principles
 
-1. Секреты **никогда** не попадают в логи, ответы API, ошибки, аудит-события
-2. Секреты хранятся только через `SecretProvider`
-3. В БД — только зашифрованные значения
-4. Все секреты валидируются при старте приложения
-5. Ротация секретов — штатная операция
+1. Secrets **never** appear in logs, API responses, errors, audit events
+2. Secrets are stored only via `SecretProvider`
+3. In the database — encrypted values only
+4. All secrets are validated on application startup
+5. Secret rotation is a routine operation
 
 ## 2. SecretProvider
 
-Абстракция для получения секретов. Единый интерфейс, несколько реализаций.
+Abstraction for retrieving secrets. Single interface, multiple implementations.
 
 ```python
 class SecretProvider(Protocol):
@@ -23,41 +23,41 @@ class SecretProvider(Protocol):
     def list_keys(self, prefix: str = "") -> list[str]: ...
 ```
 
-### 2.1 Реализации
+### 2.1 Implementations
 
-| Провайдер              | Использование                     |
-|-----------------------|-----------------------------------|
-| `EnvSecretProvider`   | Переменные окружения (dev/stage)  |
-| `VaultSecretProvider` | HashiCorp Vault (production)      |
-| `FileSecretProvider`  | Зашифрованный файл (self-hosted)  |
+| Provider                | Use Case                        |
+|------------------------|---------------------------------|
+| `EnvSecretProvider`    | Environment variables (dev/stage)|
+| `VaultSecretProvider`  | HashiCorp Vault (production)    |
+| `FileSecretProvider`   | Encrypted file (self-hosted)    |
 
-### 2.2 Выбор провайдера
+### 2.2 Provider Selection
 
 ```python
 # app/config.py
 SECRET_BACKEND = os.getenv("SECRET_BACKEND", "env")  # env | vault | file
 ```
 
-### 2.3 Обязательные ключи
+### 2.3 Required Keys
 
-| Ключ                           | Описание                           |
-|-------------------------------|-----------------------------------|
-| `DATABASE_URL`                | URL подключения к PostgreSQL       |
-| `REDIS_URL`                   | URL подключения к Redis            |
-| `JWT_PRIVATE_KEY`             | RS256 приватный ключ              |
-| `JWT_PUBLIC_KEY`              | RS256 публичный ключ              |
-| `ENCRYPTION_KEY`              | AES-256 ключ шифрования полей     |
-| `SECRET_KEY`                  | Общий ключ приложения (HMAC)       |
+| Key                            | Description                        |
+|--------------------------------|------------------------------------|
+| `DATABASE_URL`                 | PostgreSQL connection URL          |
+| `REDIS_URL`                    | Redis connection URL               |
+| `JWT_PRIVATE_KEY`              | RS256 private key                 |
+| `JWT_PUBLIC_KEY`               | RS256 public key                  |
+| `ENCRYPTION_KEY`               | AES-256 field encryption key      |
+| `SECRET_KEY`                   | Application shared key (HMAC)     |
 
-## 3. Запрет на утечки секретов
+## 3. Secret Leakage Prevention
 
-### 3.1 Логирование
+### 3.1 Logging
 
-- Все логи проходят через `RedactingLogger`
-- Автоматическое удаление паттернов: API keys, tokens, passwords, connection strings
-- Ручная проверка при добавлении новых полей в логи
+- All logs pass through `RedactingLogger`
+- Automatic removal of patterns: API keys, tokens, passwords, connection strings
+- Manual review required when adding new fields to logs
 
-Запрещённые паттерны в логах:
+Forbidden patterns in logs:
 
 ```
 password, secret, token, api_key, private_key,
@@ -67,46 +67,46 @@ REDIS_URL, ENCRYPTION_KEY
 
 ### 3.2 API Responses
 
-- Ни одно поле, содержащее секрет, не возвращается в API
-- Даже в `500 Internal Server Error` — нет деталей конфигурации
-- Debug endpoints отключены в production
+- No field containing a secret is returned in the API
+- Even in `500 Internal Server Error` — no configuration details
+- Debug endpoints are disabled in production
 
-### 3.3 Обработка ошибок
+### 3.3 Error Handling
 
 ```python
-# ✅ Правильно
+# ✅ Correct
 raise AppError("Database connection failed")
 
-# ❌ Неправильно
+# ❌ Incorrect
 raise AppError(f"Cannot connect to {DATABASE_URL}")
 ```
 
-## 4. Шифрованные поля в БД
+## 4. Encrypted Fields in the Database
 
-### 4.1 Механизм
+### 4.1 Mechanism
 
-- Алгоритм: AES-256-GCM
-- Ключ: `ENCRYPTION_KEY` из SecretProvider
-- Каждое значение шифруется с уникальным IV
-- Формат: `v1:{base64_iv}:{base64_ciphertext}:{base64_tag}`
+- Algorithm: AES-256-GCM
+- Key: `ENCRYPTION_KEY` from SecretProvider
+- Each value is encrypted with a unique IV
+- Format: `v1:{base64_iv}:{base64_ciphertext}:{base64_tag}`
 
-### 4.2 Зашифрованные поля
+### 4.2 Encrypted Fields
 
-| Таблица           | Поле                      | Причина                  |
-|------------------|--------------------------|--------------------------|
-| `agent_tokens`    | `token_hash`             | Токен агента             |
-| `refresh_tokens`  | `token_hash`             | Refresh token            |
-| `integrations`    | `credentials_encrypted`  | API keys интеграций      |
-| `projects`        | `settings_encrypted`     | Настройки с секретами    |
-| `users`           | `password_hash`          | Пароль (bcrypt, не AES)  |
+| Table             | Field                     | Reason                   |
+|-------------------|---------------------------|--------------------------|
+| `agent_tokens`    | `token_hash`              | Agent token              |
+| `refresh_tokens`  | `token_hash`              | Refresh token            |
+| `integrations`    | `credentials_encrypted`   | Integration API keys     |
+| `projects`        | `settings_encrypted`      | Settings with secrets    |
+| `users`           | `password_hash`           | Password (bcrypt, not AES)|
 
-### 4.3 Индексация
+### 4.3 Indexing
 
-Зашифрованные поля нельзя индексировать напрямую.
-Для поиска: хеш-индекс (SHA-256 от plaintext) хранится отдельно.
+Encrypted fields cannot be indexed directly.
+For search: a hash index (SHA-256 of plaintext) is stored separately.
 
 ```sql
--- token_hash_index для быстрого поиска refresh tokens
+-- token_hash_index for fast refresh token lookups
 CREATE INDEX idx_refresh_tokens_hash
 ON refresh_tokens (token_hash_index);
 ```
@@ -115,7 +115,7 @@ ON refresh_tokens (token_hash_index);
 
 ### 5.1 RedactingSerializer
 
-Все объекты перед отправкой в лог/API проходят через redaction:
+All objects pass through redaction before being sent to logs/API:
 
 ```python
 REDACTED_FIELDS = {
@@ -132,63 +132,63 @@ REDACTED_PATTERNS = [
 ]
 ```
 
-### 5.2 Применение
+### 5.2 Application
 
-- Все логи → `RedactingHandler`
-- Все API error responses → `redact_error()`
-- Все audit events → `redact_audit_event()`
-- Все debug output → `redact_debug()`
+- All logs → `RedactingHandler`
+- All API error responses → `redact_error()`
+- All audit events → `redact_audit_event()`
+- All debug output → `redact_debug()`
 
-## 6. Ротация секретов
+## 6. Secret Rotation
 
-### 6.1 Ротация ENCRYPTION_KEY
+### 6.1 ENCRYPTION_KEY Rotation
 
-1. Новый ключ генерируется
-2. Все зашифрованные поля перешифровываются (background migration)
-3. Старый ключ помечается как `previous`
-4. После завершения миграции старый ключ удаляется
+1. New key is generated
+2. All encrypted fields are re-encrypted (background migration)
+3. Old key is marked as `previous`
+4. After migration completes, old key is deleted
 
-### 6.2 Ротация JWT ключей
+### 6.2 JWT Key Rotation
 
-1. Новая пара RS256 генерируется
-2. Публикуется JWKS endpoint с обоими ключами (kid)
-3. Новые токены подписываются новым ключом
-4. Через 24 часа старый ключ удаляется из JWKS
+1. New RS256 key pair is generated
+2. JWKS endpoint is published with both keys (kid)
+3. New tokens are signed with the new key
+4. After 24 hours, the old key is removed from JWKS
 
-### 6.3 Ротация паролей сервисов
+### 6.3 Service Password Rotation
 
-- PostgreSQL: через SecretProvider + перезапуск приложения
-- Redis: через SecretProvider + перезапуск приложения
-- Graceful shutdown позволяет завершить активные запросы
+- PostgreSQL: via SecretProvider + application restart
+- Redis: via SecretProvider + application restart
+- Graceful shutdown allows active requests to complete
 
-## 7. Валидация при старте
+## 7. Startup Validation
 
 ```python
-# Приложение НЕ СТАРТУЕТ без валидных секретов
+# Application does NOT START without valid secrets
 async def validate_secrets_on_startup():
     provider = get_secret_provider()
 
-    # Проверяем наличие обязательных ключей
+    # Verify required keys exist
     for key in REQUIRED_SECRETS:
         value = provider.get_required(key)
         validate_format(key, value)
 
-    # Проверяем подключение к БД
+    # Verify database connection
     await check_database_connection()
 
-    # Проверяем подключение к Redis
+    # Verify Redis connection
     await check_redis_connection()
 
-    # Проверяем JWT ключи
+    # Verify JWT keys
     validate_jwt_keypair()
 ```
 
-## 8. Обработка компрометации
+## 8. Compromise Handling
 
-При обнаружении утечки секрета:
+When a secret leak is detected:
 
-1. **Немедленно** отзываются все затронутые токены
-2. Секрет ротируется через SecretProvider
-3. Инцидент логируется в аудит-систему
-4. Уведомляется владелец проекта/организации
-5. Проводится ревью логов на предмет несанкционированного доступа
+1. **Immediately** revoke all affected tokens
+2. Rotate the secret via SecretProvider
+3. Log the incident to the audit system
+4. Notify the project/organization owner
+5. Review logs for unauthorized access

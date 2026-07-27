@@ -1,20 +1,20 @@
-# Аутентификация и RBAC — UPCP v2
+# Authentication and RBAC — UPCP v2
 
-> Область: `auth` | Владелец: security-team | Версия: 2.0.0
+> Scope: `auth` | Owner: security-team | Version: 2.0.0
 
-## 1. Обзор
+## 1. Overview
 
-UPCP использует JWT access tokens + rotating refresh tokens для аутентификации.
-RBAC реализован на трёх уровнях: global, organization, project.
+UPCP uses JWT access tokens + rotating refresh tokens for authentication.
+RBAC is implemented at three levels: global, organization, project.
 
-## 2. Токены
+## 2. Tokens
 
 ### 2.1 Access Token
 
-- Формат: JWT (RS256)
-- TTL: 15 минут
+- Format: JWT (RS256)
+- TTL: 15 minutes
 - Claims: `sub`, `roles`, `scopes`, `iat`, `exp`, `jti`
-- Хранение: только в памяти клиента (не localStorage)
+- Storage: client memory only (not localStorage)
 
 ```json
 {
@@ -29,23 +29,23 @@ RBAC реализован на трёх уровнях: global, organization, pr
 
 ### 2.2 Refresh Token
 
-- Формат: opaque rotating token
-- TTL: 7 дней
-- Rotation: каждый refresh инвалидирует предыдущий токен и выдаёт новую пару
-- Хранение: httpOnly, Secure, SameSite=Strict cookie
-- Reuse detection: если использован уже инвалидированный refresh token — отзывается вся цепочка
+- Format: opaque rotating token
+- TTL: 7 days
+- Rotation: each refresh invalidates the previous token and issues a new pair
+- Storage: httpOnly, Secure, SameSite=Strict cookie
+- Reuse detection: if an already-invalidated refresh token is used, the entire chain is revoked
 
 ### 2.3 Token Lifecycle
 
 ```
 Login → (access + refresh)
   ↓ (15 min)
-Refresh → (new access + new refresh, старый refresh инвалидирован)
+Refresh → (new access + new refresh, old refresh invalidated)
   ↓ (7 days max)
 Re-login required
 ```
 
-## 3. Аутентификация
+## 3. Authentication
 
 ### 3.1 First-Run Setup
 
@@ -53,10 +53,10 @@ Re-login required
 POST /api/v1/auth/setup
 ```
 
-- Вызывается только когда в системе нет ни одного пользователя
-- Создаёт первого Owner глобального уровня
-- Требует: `email`, `password`, `display_name`
-- После создания первого пользователя эндпоинт возвращает `410 Gone`
+- Called only when no users exist in the system
+- Creates the first global-level Owner
+- Requires: `email`, `password`, `display_name`
+- After the first user is created, the endpoint returns `410 Gone`
 
 ### 3.2 Login
 
@@ -66,9 +66,9 @@ Body: { "email": "...", "password": "..." }
 Response: { "access_token": "...", "refresh_token": "...", "expires_in": 900 }
 ```
 
-- Rate limit: 5 попыток/мин/IP, блокировка на 15 мин после 5 неудачных
-- Логирует: `auth.login.success` / `auth.login.failed`
-- Запрещён для деактивированных аккаунтов
+- Rate limit: 5 attempts/min/IP, lockout for 15 min after 5 failures
+- Logs: `auth.login.success` / `auth.login.failed`
+- Disabled for deactivated accounts
 
 ### 3.3 Logout
 
@@ -77,8 +77,8 @@ POST /api/v1/auth/logout
 Authorization: Bearer <access_token>
 ```
 
-- Инвалидирует текущий refresh token
-- Логирует: `auth.logout`
+- Invalidates the current refresh token
+- Logs: `auth.logout`
 
 ### 3.4 Password Change
 
@@ -87,83 +87,83 @@ POST /api/v1/auth/password/change
 Body: { "current_password": "...", "new_password": "..." }
 ```
 
-- Требует текущий пароль
-- Инвалидирует все refresh tokens пользователя
-- Логирует: `auth.password.changed`
+- Requires the current password
+- Invalidates all of the user's refresh tokens
+- Logs: `auth.password.changed`
 
 ### 3.5 Password Reset
 
 ```
-POST /api/v1/auth/password/reset/request   — отправка email
-POST /api/v1/auth/password/reset/confirm   — сброс по токену
+POST /api/v1/auth/password/reset/request   — sends email
+POST /api/v1/auth/password/reset/confirm   — reset via token
 ```
 
-- Токен сброса: одноразовый, TTL 1 час
-- Rate limit: 3 запроса/час/email
+- Reset token: one-time use, TTL 1 hour
+- Rate limit: 3 requests/hour/email
 
 ## 4. RBAC
 
-### 4.1 Уровни (Scopes)
+### 4.1 Levels (Scopes)
 
-| Уровень         | Описание                     | Контекст          |
-|----------------|------------------------------|-------------------|
-| `global`        | Глобальные права админа      | Вся система       |
-| `organization`  | Права в рамках организации   | `org_{id}`        |
-| `project`       | Права в рамках проекта       | `proj_{id}`       |
+| Level         | Description                    | Context           |
+|---------------|--------------------------------|-------------------|
+| `global`      | Global admin permissions       | Entire system     |
+| `organization`| Permissions within an org      | `org_{id}`        |
+| `project`     | Permissions within a project   | `proj_{id}`       |
 
-### 4.2 Роли
+### 4.2 Roles
 
-| Роль       | Описание                                      |
-|-----------|----------------------------------------------|
-| `Owner`    | Полный контроль, включая удаление            |
-| `Admin`    | Управление участниками, настройками           |
-| `Member`   | Работа с задачами, агентами, файлами          |
-| `Viewer`   | Только чтение                                 |
+| Role      | Description                                     |
+|-----------|------------------------------------------------|
+| `Owner`   | Full control, including deletion              |
+| `Admin`   | Manage members, settings                      |
+| `Member`  | Work with tasks, agents, files                |
+| `Viewer`  | Read-only access                              |
 
-### 4.3 Матрица разрешений
+### 4.3 Permission Matrix
 
-| Действие                          | Owner | Admin | Member | Viewer |
+| Action                            | Owner | Admin | Member | Viewer |
 |-----------------------------------|:-----:|:-----:|:------:|:------:|
-| Просмотр проектов                | ✅    | ✅    | ✅     | ✅     |
-| Создание/редактирование задач    | ✅    | ✅    | ✅     | ❌     |
-| Управление агентами              | ✅    | ✅    | ✅     | ❌     |
-| Просмотр аудита                  | ✅    | ✅    | ❌     | ❌     |
-| Управление участниками           | ✅    | ✅    | ❌     | ❌     |
-| Настройки проекта                | ✅    | ✅    | ❌     | ❌     |
-| Удаление проекта                 | ✅    | ❌    | ❌     | ❌     |
-| Управление организацией          | ✅    | ❌    | ❌     | ❌     |
-| Глобальные настройки             | ✅*   | ❌    | ❌     | ❌     |
+| View projects                     | ✅    | ✅    | ✅     | ✅     |
+| Create/edit tasks                 | ✅    | ✅    | ✅     | ❌     |
+| Manage agents                     | ✅    | ✅    | ✅     | ❌     |
+| View audit logs                   | ✅    | ✅    | ❌     | ❌     |
+| Manage members                    | ✅    | ✅    | ❌     | ❌     |
+| Project settings                  | ✅    | ✅    | ❌     | ❌     |
+| Delete project                    | ✅    | ❌    | ❌     | ❌     |
+| Manage organization               | ✅    | ❌    | ❌     | ❌     |
+| Global settings                   | ✅*   | ❌    | ❌     | ❌     |
 
-\* Только для глобального Owner
+\* Global Owner only
 
-### 4.4 Разрешение доступа
+### 4.4 Access Resolution
 
-1. Проверка аутентификации (валидный access token)
-2. Определение контекста (global/org/project)
-3. Проверка роли в контексте
-4. Проверка конкретного разрешения для роли
-5. Если нет разрешения → `403 Forbidden`
+1. Check authentication (valid access token)
+2. Determine context (global/org/project)
+3. Check role within context
+4. Check specific permission for the role
+5. If no permission → `403 Forbidden`
 
-### 4.5 Наследование
+### 4.5 Inheritance
 
 ```
-global:Owner → все права на всё
-global:Admin → управление организациями (не удаление)
-org:Owner → все права в организации
-org:Admin → управление участниками организации
-proj:Owner → все права в проекте
-proj:Member → CRUD задач, работа с агентами
-proj:Viewer → только чтение
+global:Owner → all permissions on everything
+global:Admin → manage organizations (no deletion)
+org:Owner → all permissions within the organization
+org:Admin → manage organization members
+proj:Owner → all permissions within the project
+proj:Member → task CRUD, work with agents
+proj:Viewer → read-only
 ```
 
-Права не наследуются автоматически между уровнями.
-Owner организации не имеет прав в проектах, где не добавлен.
+Permissions do not auto-inherit between levels.
+An organization Owner has no permissions in projects they are not added to.
 
-## 5. Безопасность
+## 5. Security
 
-- Пароли: bcrypt, min 12 символов
-- JWT подпись: RS256, ключи хранятся в SecretProvider
-- Refresh tokens хранятся в БД с хешем (не plaintext)
-- Все эндпоинты аутентификации — HTTPS only
-- Account lockout: 5 неудачных попыток → блокировка 15 мин
-- Отзыв всех токенов при смене пароля / деактивации
+- Passwords: bcrypt, min 12 characters
+- JWT signature: RS256, keys stored in SecretProvider
+- Refresh tokens stored in DB with hash (not plaintext)
+- All authentication endpoints — HTTPS only
+- Account lockout: 5 failed attempts → 15 min lockout
+- All tokens revoked on password change / deactivation

@@ -1,19 +1,19 @@
-# Безопасное развёртывание — UPCP v2
+# Secure Deployment — UPCP v2
 
-> Область: `security` / `devops` | Версия: 2.0.0
+> Scope: `security` / `devops` | Version: 2.0.0
 
-## 1. Чеклист безопасности
+## 1. Security Checklist
 
 **Pre-deployment:**
-- [ ] Секреты через SecretProvider (не env файлы)
-- [ ] JWT ключи (RS256, 2048+ bit) и `ENCRYPTION_KEY` (AES-256) сгенерированы
-- [ ] Database user с минимальными привилегиями
-- [ ] CORS на конкретные домены, security headers, rate limiting, audit logging
-- [ ] TLS termination, debug endpoints отключены
+- [ ] Secrets via SecretProvider (not env files)
+- [ ] JWT keys (RS256, 2048+ bit) and `ENCRYPTION_KEY` (AES-256) generated
+- [ ] Database user with minimal privileges
+- [ ] CORS set to specific domains, security headers, rate limiting, audit logging
+- [ ] TLS termination, debug endpoints disabled
 
 **Post-deployment:**
-- [ ] Healthcheck, login, rate limiting (429), audit events работают
-- [ ] Логи не содержат секретов, API не возвращает секреты, backup работает
+- [ ] Healthcheck, login, rate limiting (429), audit events working
+- [ ] Logs contain no secrets, API returns no secrets, backup working
 
 ## 2. Docker Security
 
@@ -27,7 +27,7 @@ USER upcp
 ```
 
 ```yaml
-# docker-compose.yml (ключевые параметры)
+# docker-compose.yml (key settings)
 services:
   app:
     read_only: true
@@ -41,18 +41,18 @@ services:
         reservations: { cpus: '0.5', memory: 512M }
 ```
 
-Правила: только official/pinned образы, сканирование `docker scout cves`, multi-stage builds.
+Rules: official/pinned images only, `docker scout cves` scanning, multi-stage builds.
 
 ## 3. Environment Variables
 
 ```bash
-APP_ENV=production          # обязательно
-APP_DEBUG=false             # обязательно
+APP_ENV=production          # required
+APP_DEBUG=false             # required
 CORS_ORIGINS=https://app.example.com
-# Остальные (DATABASE_URL, REDIS_URL, JWT_*, ENCRYPTION_KEY) — через SecretProvider
+# Remaining (DATABASE_URL, REDIS_URL, JWT_*, ENCRYPTION_KEY) — via SecretProvider
 ```
 
-Запрещено в production: `APP_DEBUG=true`, `PYTHONDEVMODE=1`, hardcoded credentials.
+Forbidden in production: `APP_DEBUG=true`, `PYTHONDEVMODE=1`, hardcoded credentials.
 
 ## 4. Secret Management
 
@@ -81,11 +81,11 @@ networks:
 
 services:
   app:      { networks: [frontend, backend] }
-  postgres: { networks: [backend] }    # только внутренняя сеть
-  redis:    { networks: [backend] }    # только внутренняя сеть
+  postgres: { networks: [backend] }    # internal network only
+  redis:    { networks: [backend] }    # internal network only
 ```
 
-PostgreSQL и Redis доступны **только** из backend сети. Нет прямого доступа к БД извне. Reverse proxy (nginx/Caddy) → App.
+PostgreSQL and Redis are accessible **only** from the backend network. No direct database access from outside. Reverse proxy (nginx/Caddy) → App.
 
 ## 6. TLS Termination (Nginx)
 
@@ -151,16 +151,16 @@ SECURITY_HEADERS = {
 ## 9. Database Security (PostgreSQL)
 
 ```sql
--- Отдельный пользователь с минимальными правами
+-- Dedicated user with minimal privileges
 CREATE USER upcp_app WITH PASSWORD '...';
 GRANT CONNECT ON DATABASE upcp TO upcp_app;
 GRANT USAGE ON SCHEMA public TO upcp_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO upcp_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO upcp_app;
-REVOKE CREATE ON SCHEMA public FROM upcp_app;  -- миграции отдельным пользователем
+REVOKE CREATE ON SCHEMA public FROM upcp_app;  -- migrations via separate user
 ```
 
-Подключение:
+Connection:
 ```python
 engine = create_async_engine(
     DATABASE_URL, pool_size=10, max_overflow=5, pool_timeout=30,
@@ -183,17 +183,17 @@ rename-command DEBUG ""
 rename-command CONFIG "CONFIG_b82a3f..."
 ```
 
-Подключение в приложении: SSL, password, таймауты 5 сек, `retry_on_timeout=True`.
+Application connection: SSL, password, 5 sec timeouts, `retry_on_timeout=True`.
 
-## 11. Monitoring и Alerting
+## 11. Monitoring and Alerting
 
-| Метрика                    | Порог              | Действие           |
-|---------------------------|--------------------|--------------------|
-| Failed login attempts     | > 50/min           | Alert + auto-block |
-| 5xx error rate            | > 1%               | Alert on-call      |
-| Disk / Memory usage       | > 80% / > 85%      | Alert              |
-| Audit event count drop    | > 50% от baseline  | Alert              |
-| Certificate expiry        | < 30 days          | Alert              |
-| Dependency CVE             | Critical           | Alert              |
+| Metric                      | Threshold            | Action               |
+|-----------------------------|----------------------|----------------------|
+| Failed login attempts       | > 50/min             | Alert + auto-block   |
+| 5xx error rate              | > 1%                 | Alert on-call        |
+| Disk / Memory usage         | > 80% / > 85%        | Alert                |
+| Audit event count drop      | > 50% from baseline  | Alert                |
+| Certificate expiry          | < 30 days            | Alert                |
+| Dependency CVE              | Critical             | Alert                |
 
-**Healthcheck** (`GET /health`): не раскрывает конфигурацию, не требует аутентификации, rate limit 60 req/min.
+**Healthcheck** (`GET /health`): does not expose configuration, does not require authentication, rate limit 60 req/min.

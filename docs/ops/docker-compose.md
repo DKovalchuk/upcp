@@ -1,8 +1,8 @@
-# Docker Compose — Конфигурация
+# Docker Compose — Configuration
 
-> Проект: UPCP | Стек: PostgreSQL 16, FastAPI, Redis 7, React 19, Nginx
+> Project: UPCP | Stack: PostgreSQL 16, FastAPI, Redis 7, React 19, Nginx
 
-## 1. Архитектура развёртывания
+## 1. Deployment Architecture
 
 ```
 ┌─────────┐     ┌─────────┐     ┌─────────┐
@@ -16,7 +16,7 @@
 └─────────┘     └─────────┘
 ```
 
-## 2. Сервисы
+## 2. Services
 
 ### 2.1 db (PostgreSQL 16)
 
@@ -142,9 +142,9 @@ grafana:
     - observability
 ```
 
-## 3. Порты
+## 3. Ports
 
-| Сервис | Хост | Контейнер | Назначение |
+| Service | Host | Container | Purpose |
 |--------|------|-----------|-----------|
 | nginx | 38080 | 80 | Reverse proxy (API + frontend) |
 | db | 35432 | 5432 | PostgreSQL (debug access) |
@@ -153,7 +153,7 @@ grafana:
 | prometheus | 39090 | 9090 | Prometheus UI |
 | grafana | 33000 | 3000 | Grafana UI |
 
-## 4. Переменные окружения
+## 4. Environment Variables
 
 ### .env.example
 
@@ -169,41 +169,41 @@ ENVIRONMENT=production
 LOG_LEVEL=INFO
 ```
 
-### Переменные приложения
+### Application Variables
 
-| Переменная | Описание | По умолчанию |
-|-----------|----------|-------------|
+| Variable | Description | Default |
+|----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | — |
 | `REDIS_URL` | Redis connection string | — |
-| `JWT_SECRET` | Секрет для подписи JWT | — |
-| `API_KEY_SALT` | Соль для хеширования API-ключей | — |
+| `JWT_SECRET` | Secret for signing JWT | — |
+| `API_KEY_SALT` | Salt for hashing API keys | — |
 | `ENVIRONMENT` | `production` / `development` / `testing` | `production` |
 | `LOG_LEVEL` | `DEBUG` / `INFO` / `WARNING` / `ERROR` | `INFO` |
-| `CORS_ORIGINS` | Разрешённые CORS origins | `http://localhost:35173` |
-| `RATE_LIMIT_DEFAULT` | Лимит запросов/мин | `60` |
+| `CORS_ORIGINS` | Allowed CORS origins | `http://localhost:35173` |
+| `RATE_LIMIT_DEFAULT` | Request limit per minute | `60` |
 
 ## 5. Volumes
 
-| Volume | Сервис | Назначение |
+| Volume | Service | Purpose |
 |--------|--------|-----------|
 | `pgdata` | db | PostgreSQL data |
 | `redisdata` | redis | Redis AOF persistence |
 | `promdata` | prometheus | Metrics storage |
 | `grafanadata` | grafana | Dashboard config |
 
-## 6. Команды запуска
+## 6. Launch Commands
 
 ```bash
 # Production
 docker compose up -d
 
-# Development (с hot-reload)
+# Development (with hot-reload)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-# С мониторингом
+# With monitoring
 docker compose --profile observability up -d
 
-# Тесты
+# Tests
 docker compose -f docker-compose.test.yml up --abort-on-container-exit
 
 # Staging
@@ -212,15 +212,15 @@ docker compose -f docker-compose.stage.yml up -d
 
 ## 7. Health Checks
 
-Все сервисы имеют health checks. Порядок запуска:
+All services have health checks. Startup order:
 
-1. `db` (PostgreSQL) — ждёт `pg_isready`
-2. `redis` — ждёт `redis-cli ping`
-3. `app` (FastAPI) — ждёт `/health` endpoint (зависит от db, redis)
-4. `frontend` — запускается параллельно
-5. `nginx` — запускается после app и frontend
+1. `db` (PostgreSQL) — waits for `pg_isready`
+2. `redis` — waits for `redis-cli ping`
+3. `app` (FastAPI) — waits for `/health` endpoint (depends on db, redis)
+4. `frontend` — starts in parallel
+5. `nginx` — starts after app and frontend
 
-## 8. Сети
+## 8. Networks
 
 ```yaml
 networks:
@@ -228,9 +228,9 @@ networks:
     driver: bridge
 ```
 
-Все сервисы в одной bridge network. DNS resolution по имени сервиса.
+All services are in a single bridge network. DNS resolution by service name.
 
-## 9. Ограничения ресурсов (production)
+## 9. Resource Limits (production)
 
 ```yaml
 deploy:

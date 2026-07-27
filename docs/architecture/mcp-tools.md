@@ -1,17 +1,17 @@
 # MCP Tools — UPCP v2
 
-## Обзор
+## Overview
 
-UPCP предоставляет ИИ-агентам доступ через Model Context Protocol (MCP). Все MCP tools разделены на три категории: **read** (чтение данных), **write** (модификация) и **admin** (управление). Права доступа определяются scope агента.
+UPCP provides AI agents access through the Model Context Protocol (MCP). All MCP tools are divided into three categories: **read** (data retrieval), **write** (modification), and **admin** (management). Access permissions are determined by the agent's scope.
 
 ---
 
-## Аутентификация
+## Authentication
 
-Агенты аутентифицируются через `AgentToken`, передаваемый в MCP handshake. Токен определяет:
-- Организацию агента
-- Scope (разрешённые операции, проекты)
-- Лимиты (max_tasks, heartbeat_interval)
+Agents authenticate via `AgentToken`, passed in the MCP handshake. The token determines:
+- Agent's organization
+- Scope (allowed operations, projects)
+- Limits (max_tasks, heartbeat_interval)
 
 ---
 
@@ -19,7 +19,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `whoami`
 
-Возвращает информацию о текущем агенте и его capabilities.
+Returns information about the current agent and its capabilities.
 
 ```
 → {}
@@ -35,7 +35,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `get_capabilities`
 
-Возвращает полный список доступных операций для текущего агента.
+Returns the full list of available operations for the current agent.
 
 ```
 → {}
@@ -48,7 +48,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `get_agent_playbook`
 
-Возвращает playbook/инструкции для агента в контексте проекта.
+Returns the playbook/instructions for the agent in the project context.
 
 ```
 → { "project_id": "01934b2c-..." }
@@ -63,7 +63,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `list_projects`
 
-Список проектов, назначенных агенту.
+List of projects assigned to the agent.
 
 ```
 → { "offset": 0, "limit": 20 }
@@ -82,7 +82,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `get_project`
 
-Детали проекта с настройками.
+Project details with settings.
 
 ```
 → { "project_id": "01934b2c-..." }
@@ -97,7 +97,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `list_components`
 
-Компоненты проекта.
+Project components.
 
 ```
 → { "project_id": "01934b2c-...", "offset": 0, "limit": 50 }
@@ -106,7 +106,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `list_modules`
 
-Модули компонента.
+Component modules.
 
 ```
 → { "component_id": "01934b30-...", "offset": 0, "limit": 50 }
@@ -115,7 +115,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `list_features`
 
-Фичи модуля или проекта.
+Module or project features.
 
 ```
 → {
@@ -129,7 +129,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `list_tasks`
 
-Задачи с фильтрацией. Основной инструмент для поиска работы.
+Tasks with filtering. The primary tool for finding work.
 
 ```
 → {
@@ -146,7 +146,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `get_task`
 
-Полная информация о задаче с relationships.
+Full task information with relationships.
 
 ```
 → { "task_id": "01934b35-..." }
@@ -170,7 +170,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `get_context_pack`
 
-Контекстный пакет для задачи — вся информация, необходимая агенту для работы.
+Context package for a task — all information needed by the agent to work.
 
 ```
 → { "task_id": "01934b35-..." }
@@ -186,7 +186,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `get_agent_inbox`
 
-Входящие сообщения для агента: ответы на clarification, уведомления.
+Incoming messages for the agent: clarification answers, notifications.
 
 ```
 → { "project_id": null, "unreadOnly": true }
@@ -205,7 +205,7 @@ UPCP предоставляет ИИ-агентам доступ через Mode
 
 ### `list_evidence`
 
-Evidence для задачи.
+Evidence for a task.
 
 ```
 → { "task_id": "01934b35-...", "offset": 0, "limit": 20 }
@@ -214,7 +214,7 @@ Evidence для задачи.
 
 ### `list_review_rounds`
 
-Раунды ревью для задачи.
+Review rounds for a task.
 
 ```
 → { "task_id": "01934b35-..." }
@@ -320,7 +320,7 @@ Evidence для задачи.
 ← { "data": { ... } }
 ```
 
-**Ограничения:** Нельзя менять `state` напрямую (используйте state machine tools).
+**Constraints:** You cannot change `state` directly (use state machine tools instead).
 
 ### `create_subtask`
 
@@ -331,7 +331,7 @@ Evidence для задачи.
 
 ### `claim_task`
 
-Атомарный claim задачи. Если задача уже заclaimлена — ошибка.
+Atomic task claim. If the task is already claimed — an error is returned.
 
 ```
 → { "task_id": "..." }
@@ -346,13 +346,13 @@ Evidence для задачи.
 }
 ```
 
-**Ошибки:**
-- `409 TASK_ALREADY_CLAIMED` — задача уже заclaimлена другим агентом
-- `422 TASK_NOT_CLAIMABLE` — задача не в состоянии ready
+**Errors:**
+- `409 TASK_ALREADY_CLAIMED` — task already claimed by another agent
+- `422 TASK_NOT_CLAIMABLE` — task is not in the `ready` state
 
 ### `release_task`
 
-Освобождение задачи (агент не может продолжить).
+Release a task (agent cannot continue).
 
 ```
 → { "task_id": "...", "reason": "Need more context" }
@@ -361,7 +361,7 @@ Evidence для задачи.
 
 ### `heartbeat_task`
 
-Периодический сигнал жизни. Обязателен каждые 30-60 секунд.
+Periodic liveness signal. Required every 30-60 seconds.
 
 ```
 → { "task_id": "...", "message": "Running tests..." }
@@ -370,7 +370,7 @@ Evidence для задачи.
 
 ### `add_task_note`
 
-Добавление заметки к задаче.
+Add a note to a task.
 
 ```
 → { "task_id": "...", "note": "Found edge case in auth flow..." }
@@ -379,7 +379,7 @@ Evidence для задачи.
 
 ### `request_clarification`
 
-Запрос уточнения у владельца проекта.
+Request clarification from the project owner.
 
 ```
 → {
@@ -391,7 +391,7 @@ Evidence для задачи.
 
 ### `answer_clarification`
 
-Ответ на clarification (для owner через MCP или UI).
+Answer a clarification (for owner via MCP or UI).
 
 ```
 → {
@@ -403,7 +403,7 @@ Evidence для задачи.
 
 ### `attach_evidence`
 
-Прикрепление evidence к задаче.
+Attach evidence to a task.
 
 ```
 → {
@@ -418,7 +418,7 @@ Evidence для задачи.
 
 ### `submit_task_for_review`
 
-Отправка задачи на ревью. Меняет state на `ready_for_review`.
+Submit a task for review. Changes state to `ready_for_review`.
 
 ```
 → {
@@ -430,7 +430,7 @@ Evidence для задачи.
 
 ### `request_agent_review`
 
-Запрос ревью от другого агента (если политика позволяет).
+Request a review from another agent (if policy allows).
 
 ```
 → {
@@ -443,7 +443,7 @@ Evidence для задачи.
 
 ### `submit_review_verdict`
 
-Отправка вердикта ревью (для agent-ревьюеров).
+Submit a review verdict (for agent reviewers).
 
 ```
 → {
@@ -484,7 +484,7 @@ Evidence для задачи.
 ← { "data": { "id": "...", "token": "mcp_...", "token_plaintext": "..." } }
 ```
 
-**Важно:** `token_plaintext` возвращается ТОЛЬКО при создании.
+**Important:** `token_plaintext` is returned ONLY upon creation.
 
 ### `revoke_agent_token`
 
@@ -533,28 +533,28 @@ Evidence для задачи.
 
 ---
 
-## Scope и Permissions
+## Scope and Permissions
 
-### Операции
+### Operations
 
-| Операция | Описание | Read Tools | Write Tools | Admin Tools |
-|----------|----------|------------|-------------|-------------|
-| `project.read` | Чтение проектов | ✅ | — | — |
-| `task.read` | Чтение задач | ✅ | — | — |
-| `task.write` | Создание/claim задач | ✅ | ✅ | — |
-| `evidence.create` | Создание evidence | ✅ | ✅ | — |
-| `review.submit` | Отправка на ревью | ✅ | ✅ | — |
-| `review.review` | Проведение ревью | ✅ | ✅ | — |
+| Operation | Description | Read Tools | Write Tools | Admin Tools |
+|-----------|-------------|------------|-------------|-------------|
+| `project.read` | Read projects | ✅ | — | — |
+| `task.read` | Read tasks | ✅ | — | — |
+| `task.write` | Create/claim tasks | ✅ | ✅ | — |
+| `evidence.create` | Create evidence | ✅ | ✅ | — |
+| `review.submit` | Submit for review | ✅ | ✅ | — |
+| `review.review` | Conduct review | ✅ | ✅ | — |
 | `clarification.*` | Clarification flow | ✅ | ✅ | — |
-| `structure.write` | CRUD компонентов/модулей | ✅ | ✅ | — |
-| `agent.manage` | Управление агентами | ✅ | ✅ | ✅ |
-| `admin.*` | Администрирование | ✅ | ✅ | ✅ |
+| `structure.write` | CRUD components/modules | ✅ | ✅ | — |
+| `agent.manage` | Manage agents | ✅ | ✅ | ✅ |
+| `admin.*` | Administration | ✅ | ✅ | ✅ |
 
-### Правила
+### Rules
 
-1. Агент может работать только с назначенными проектами
-2. Claim возможен только если state = `ready`
-3. Heartbeat обязателен, иначе claim истекает
-4. Clarification приостанавливает задачу
-5. Evidence привязана к текущему claim
-6. Review submit возможен только из состояния `in_progress`
+1. An agent can only work with assigned projects
+2. Claim is only possible when state = `ready`
+3. Heartbeat is mandatory, otherwise the claim expires
+4. Clarification pauses the task
+5. Evidence is bound to the current claim
+6. Review submit is only possible from the `in_progress` state

@@ -1,25 +1,25 @@
 # Agent Onboarding
 
-Руководство по регистрации и настройке ИИ-агента в UPCP.
+Guide to registering and setting up an AI agent in UPCP.
 
 ---
 
-## 1. Обзор
+## 1. Overview
 
-Агент — программный участник проекта с профилем, токеном, scope и назначениями. Взаимодействие: MCP, REST API, CLI.
+An agent is a software participant in the project with a profile, token, scope, and assignments. Interaction: MCP, REST API, CLI.
 
-### Роли
+### Roles
 
-| Роль | Описание | Операции |
-|------|----------|----------|
-| `reader` | Чтение | Просмотр задач, context pack |
-| `contributor` | Чтение + запись | Claim, heartbeat, evidence, clarification |
-| `builder` | Полная запись | CRUD задач, features, evidence |
-| `reviewer` | Ревью | Findings + verdicts |
+| Role           | Description               | Operations                           |
+|----------------|---------------------------|--------------------------------------|
+| `reader`       | Read-only                 | View tasks, context pack            |
+| `contributor`  | Read + write              | Claim, heartbeat, evidence, clarification |
+| `builder`      | Full write access         | Task CRUD, features, evidence        |
+| `reviewer`     | Review                    | Findings + verdicts                  |
 
 ---
 
-## 2. Создание профиля
+## 2. Creating a Profile
 
 ### UI
 Agent Center → New Agent → Name, Type, Description, Capabilities → Create.
@@ -41,12 +41,12 @@ upcp agent create --name "claude-opus-reviewer" --type llm --capabilities code_r
 
 ---
 
-## 3. Генерация токена
+## 3. Generating a Token
 
-Токен показывается **один раз**. Сохраните немедленно.
+The token is shown **once**. Save it immediately.
 
 ### UI
-Профиль агента → Tokens → Generate Token → выбрать scope → скопировать.
+Agent Profile → Tokens → Generate Token → select scope → copy.
 
 ### REST API
 
@@ -56,7 +56,7 @@ POST /api/v1/agents/{agent_id}/tokens
 // → { "id": "tok_...", "token": "upcp_agt_...", "scopes": [...], ... }
 ```
 
-### Формат
+### Format
 
 ```
 upcp_agt_<base62-random-48>
@@ -64,36 +64,36 @@ upcp_agt_<base62-random-48>
 
 ---
 
-## 4. Настройка Scope
+## 4. Configuring Scope
 
-| Scope | Описание |
-|-------|----------|
-| `projects:read/write` | Проекты |
-| `structure:read/write` | Компоненты, модули |
-| `delivery:read/write` | Features, tasks |
-| `quality:read/write` | AC, DoD |
-| `evidence:read/write` | Evidence |
-| `review:read/write` | Review rounds, findings |
-| `audit:read` | Audit events |
-| `git:read` | Git-данные |
+| Scope              | Description                      |
+|---------------------|----------------------------------|
+| `projects:read/write` | Projects                      |
+| `structure:read/write` | Components, modules           |
+| `delivery:read/write` | Features, tasks               |
+| `quality:read/write`  | AC, DoD                      |
+| `evidence:read/write` | Evidence                    |
+| `review:read/write`   | Review rounds, findings      |
+| `audit:read`           | Audit events                 |
+| `git:read`             | Git data                     |
 
-### Минимальные scope по роли
+### Minimum Scope per Role
 
-| Роль | Scope |
-|------|-------|
-| `reader` | `projects:read`, `delivery:read`, `quality:read` |
-| `contributor` | + `delivery:write`, `evidence:write` |
-| `builder` | + `structure:write`, `quality:write` |
-| `reviewer` | reader + `review:read/write`, `evidence:read` |
+| Role           | Scope                                                       |
+|----------------|-------------------------------------------------------------|
+| `reader`       | `projects:read`, `delivery:read`, `quality:read`           |
+| `contributor`  | + `delivery:write`, `evidence:write`                       |
+| `builder`      | + `structure:write`, `quality:write`                       |
+| `reviewer`     | reader + `review:read/write`, `evidence:read`              |
 
 ---
 
-## 5. Назначение на проект
+## 5. Project Assignment
 
-Агент работает только с назначенными проектами.
+An agent works only with assigned projects.
 
 ### UI
-Agent Center → Assignments → Assign to Project → выбрать проект и роль.
+Agent Center → Assignments → Assign to Project → select project and role.
 
 ### REST API
 
@@ -110,9 +110,9 @@ upcp agent assign --agent-id agt_... --project-id proj_... --role contributor
 
 ---
 
-## 6. Первый task claim
+## 6. First Task Claim
 
-### MCP-клиент (HTTP)
+### MCP Client (HTTP)
 
 ```json
 {
@@ -125,7 +125,7 @@ upcp agent assign --agent-id agt_... --project-id proj_... --role contributor
 }
 ```
 
-### MCP-клиент (stdio bridge)
+### MCP Client (stdio bridge)
 
 ```json
 {
@@ -139,10 +139,10 @@ upcp agent assign --agent-id agt_... --project-id proj_... --role contributor
 }
 ```
 
-### Подключение и claim
+### Connect and Claim
 
 ```
-tools/call → whoami                              # проверка
+tools/call → whoami                              # verify connection
 tools/call → get_context_pack { project_id, tier: "standard" }
 tools/call → claim_task { task_id, idempotency_key: "<uuid>" }
 ```
@@ -150,8 +150,8 @@ tools/call → claim_task { task_id, idempotency_key: "<uuid>" }
 ### CLI
 
 ```bash
-upcp agent whoami                    # проверка
-upcp agent inbox                     # входящие
+upcp agent whoami                    # verify
+upcp agent inbox                     # incoming
 upcp task list proj_... --status ready
 upcp task claim task_xyz789
 ```
@@ -171,12 +171,12 @@ upcp task list proj_... --limit 5                                 # tasks
 
 ## 8. Troubleshooting
 
-| Проблема | Решение |
-|----------|---------|
-| `UNAUTHENTICATED` | Проверьте `X-Agent-Token` |
-| `FORBIDDEN` | Проверьте scope |
-| `AGENT_TOKEN_REVOKED` | Перевыпустите токен |
-| `AGENT_SCOPE_INSUFFICIENT` | Добавьте scope |
-| Не видит проект | Проверьте assignment через `whoami` |
-| MCP не отвечает | Проверьте `/api/v1/health` |
-| Stdio bridge падает | Проверьте env vars |
+| Problem              | Solution                                  |
+|----------------------|-------------------------------------------|
+| `UNAUTHENTICATED`    | Check `X-Agent-Token`                     |
+| `FORBIDDEN`          | Check scope                               |
+| `AGENT_TOKEN_REVOKED`| Reissue the token                         |
+| `AGENT_SCOPE_INSUFFICIENT` | Add the required scope              |
+| Cannot see project   | Check assignment via `whoami`             |
+| MCP not responding   | Check `/api/v1/health`                    |
+| Stdio bridge crashes | Check environment variables               |

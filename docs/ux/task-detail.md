@@ -1,14 +1,14 @@
 # Task Detail UX
 
-Детальное представление задачи с вкладками для всех аспектов выполнения.
+Detailed task view with tabs for all aspects of execution.
 
 ---
 
-## 1. Обзор
+## 1. Overview
 
-Два режима:
-- **Sheet (slide-over)** — по умолчанию, при клике на задачу.
-- **Full page** — по deep link `/projects/:id/tasks/:tid`.
+Two modes:
+- **Sheet (slide-over)** — default, opened when clicking on a task.
+- **Full page** — via deep link `/projects/:id/tasks/:tid`.
 
 ---
 
@@ -30,7 +30,7 @@
 
 ### 3.1 Details
 
-Основная информация: Title, Description (markdown), Status, Priority, Feature, Component, Module, Assignee, Created/Updated at.
+Core information: Title, Description (markdown), Status, Priority, Feature, Component, Module, Assignee, Created/Updated at.
 
 ---
 
@@ -38,13 +38,13 @@
 
 **Claim Info:** Agent name, Claimed at, Expires at, Last heartbeat.
 
-**Stale Warning:** Если heartbeat > 7 мин:
+**Stale Warning:** If heartbeat > 7 min:
 ```
 ⚠️ Agent heartbeat is stale (last: 15m ago). Claim may expire.
 [Release Claim]
 ```
 
-**Progress Timeline:** Список progress reports — summary, timestamp, progress bar.
+**Progress Timeline:** List of progress reports — summary, timestamp, progress bar.
 
 **Actions:** [Release Claim], [Reassign], [Move to Backlog].
 
@@ -52,7 +52,7 @@
 
 ### 3.3 Clarifications
 
-Фильтры: Open | Answered | All.
+Filters: Open | Answered | All.
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -75,7 +75,7 @@
 └─────────────────────────────────────────────────┘
 ```
 
-**Действия:** Verify, Reject, Attach Evidence. Фильтры: verified/pending/rejected/all.
+**Actions:** Verify, Reject, Attach Evidence. Filters: verified/pending/rejected/all.
 
 ---
 
@@ -91,7 +91,7 @@ Progress: 2/4 (50%) ████████░░░░░░░░
 Quality Gate: ❌ NOT PASSED
 ```
 
-**Действия:** Toggle status, Add Item.
+**Actions:** Toggle status, Add Item.
 
 ---
 
@@ -103,7 +103,7 @@ Quality Gate: ❌ NOT PASSED
 ☐ Add CRUD service         [in_progress]
 ```
 
-**Действия:** Toggle status, Add, Edit.
+**Actions:** Toggle status, Add, Edit.
 
 ---
 
@@ -137,7 +137,7 @@ PR/MR:   !42 "Add User model" — merged
 
 ### 3.9 Audit
 
-Timeline всех действий:
+Timeline of all actions:
 
 ```
 12:00  task.created      — by system
@@ -152,13 +152,13 @@ Timeline всех действий:
 
 ## 4. Sheet vs Page
 
-| Аспект | Sheet | Page |
+| Aspect | Sheet | Page |
 |--------|-------|------|
 | URL | `?task=:tid` | `/projects/:id/tasks/:tid` |
-| Открытие | Клик в delivery | Deep link |
-| Закрытие | Esc / click outside | Back navigation |
-| Контекст | Delivery page видна слева | Полный экран |
-| Ширина | `w-full sm:max-w-2xl` | 100% |
+| Opening | Click in delivery | Deep link |
+| Closing | Esc / click outside | Back navigation |
+| Context | Delivery page visible on the left | Full screen |
+| Width | `w-full sm:max-w-2xl` | 100% |
 
 ---
 

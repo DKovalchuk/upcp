@@ -1,12 +1,12 @@
 # Agent Center UX
 
-Управление ИИ-агентами: профили, токены, scope, назначения, активность.
+AI agent management: profiles, tokens, scopes, assignments, activity.
 
 ---
 
-## 1. Обзор
+## 1. Overview
 
-Agent Center — единая страница для управления всеми агентами.
+Agent Center is a single page for managing all agents.
 
 **URL:** `/agents`
 
@@ -16,12 +16,12 @@ Agent Center — единая страница для управления вс�
 
 ### Table Columns
 
-| Колонка | Описание |
-|---------|----------|
-| Name | Имя + type badge |
+| Column | Description |
+|--------|-------------|
+| Name | Name + type badge |
 | Status | active / inactive / revoked |
 | Role | reader / contributor / builder / reviewer |
-| Active Tasks | Количество claimed задач |
+| Active Tasks | Number of claimed tasks |
 | Last Activity | Relative time |
 | Token Status | active / expired / revoked |
 
@@ -41,7 +41,7 @@ Agent Center — единая страница для управления вс�
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-Клик → Agent Detail.
+Click → Agent Detail.
 
 ---
 
@@ -68,20 +68,20 @@ Name, Type, Description, Capabilities (tags), Status toggle.
 
 #### 3.2 Tokens
 
-| Колонка | Описание |
-|---------|----------|
-| Name | Имя токена |
-| Prefix | Первые 12 символов + "..." |
-| Scopes | Теги scope |
-| Created | Дата |
-| Last Used | Дата |
+| Column | Description |
+|--------|-------------|
+| Name | Token name |
+| Prefix | First 12 characters + "..." |
+| Scopes | Scope tags |
+| Created | Date |
+| Last Used | Date |
 | Status | active / expired / revoked |
 
-**Действия:** [Generate Token] (modal, показывает один раз), [Revoke] (ConfirmDialog).
+**Actions:** [Generate Token] (modal, shown once), [Revoke] (ConfirmDialog).
 
 #### 3.3 Scopes
 
-Grid с чекбоксами:
+Checkbox grid:
 
 ```
                 Read    Write
@@ -97,19 +97,19 @@ Git              ✅      ❌
 
 #### 3.4 Assignments
 
-| Колонка | Описание |
-|---------|----------|
-| Project | Название |
-| Role | Роль |
-| Assigned | Дата |
+| Column | Description |
+|--------|-------------|
+| Project | Name |
+| Role | Role |
+| Assigned | Date |
 | Tasks | done / total |
 
-**Действия:** [Assign to Project], [Remove Assignment].
+**Actions:** [Assign to Project], [Remove Assignment].
 
 #### 3.5 Claims
 
-| Колонка | Описание |
-|---------|----------|
+| Column | Description |
+|--------|-------------|
 | Task | Title + link |
 | Status | active / expired / released / completed |
 | Claimed | Timestamp |
@@ -128,19 +128,19 @@ Action feed:
 
 #### 3.7 Clarifications
 
-Clarification requests от этого агента. Фильтры: open | answered | blocking | all.
+Clarification requests from this agent. Filters: open | answered | blocking | all.
 
 #### 3.8 Evidence
 
-Evidence, прикреплённые этим агентом. Фильтры: verified | unverified | rejected | all.
+Evidence attached by this agent. Filters: verified | unverified | rejected | all.
 
 #### 3.9 Reviews
 
-Review rounds, где агент — reviewer.
+Review rounds where this agent is the reviewer.
 
 #### 3.10 Audit
 
-Полный audit trail для агента.
+Full audit trail for this agent.
 
 ---
 

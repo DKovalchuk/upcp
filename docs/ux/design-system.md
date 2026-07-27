@@ -1,6 +1,6 @@
 # Design System Reference
 
-Эталонная система дизайна UPCP. shadcn/ui + Tailwind CSS v4 + Lucide React.
+UPCP design system reference. shadcn/ui + Tailwind CSS v4 + Lucide React.
 
 ---
 
@@ -74,7 +74,7 @@
 
 `next-themes` with CSS class strategy. Toggle: Sun/Moon/Monitor in TopBar.
 
-Правила: CSS variables only, dark-variants for status, `dark:invert` for images.
+Rules: CSS variables only, dark-variants for status, `dark:invert` for images.
 
 ---
 
