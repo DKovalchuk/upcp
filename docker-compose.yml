@@ -94,8 +94,6 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     restart: unless-stopped
-    profiles:
-      - frontend
     expose:
       - "35173"
     environment:
@@ -109,8 +107,6 @@ services:
   nginx:
     image: nginx:alpine
     restart: unless-stopped
-    profiles:
-      - frontend
     ports:
       - "127.0.0.1:3081:80"
     volumes:
