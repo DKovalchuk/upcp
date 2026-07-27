@@ -2,8 +2,6 @@
 
 Полное руководство для ИИ-агентов, работающих с UPCP.
 
----
-
 ## 1. Аутентификация
 
 Все запросы требуют заголовок `X-Agent-Token`:
@@ -232,8 +230,6 @@ Reviewer-агент создаёт findings:
 7. Хранить секреты в evidence/heartbeat/clarification.
 8. Retry без backoff.
 
----
-
 ## 11. Восстановление после сбоя
 
 1. `whoami` — токен активен?
@@ -242,8 +238,6 @@ Reviewer-агент создаёт findings:
 4. Если claim истёк — повторите `claim_task`.
 5. Если `blocked` — проверьте clarification ответы.
 6. Отправьте `heartbeat` для подтверждения.
-
----
 
 ## 12. Best Practices
 

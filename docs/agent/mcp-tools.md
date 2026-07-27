@@ -1,5 +1,4 @@
 # MCP Tools Reference
-
 Справочник по MCP tools для агентов. Протокол: JSON-RPC 2.0 over HTTP POST на `/mcp/`.
 
 ---
@@ -232,8 +231,6 @@ Evidence, прикреплённые к задаче.
 } }
 ```
 
----
-
 ### submit_review_verdict
 
 Финальный вердикт. Verdict: `approve` | `reject` | `needs_changes`.
@@ -244,8 +241,6 @@ Evidence, прикреплённые к задаче.
   "summary": "Add error handling and edge case tests."
 } }
 ```
-
----
 
 ## Идиемпотентность
 
