@@ -18,6 +18,9 @@ import {
   BlockedTasksSection,
   StaleAgentsSection,
   FailedQualityGatesSection,
+  RejectedTasksSection,
+  AgentVerdictsSection,
+  useAttentionDashboard,
 } from '@/components/dashboard/AttentionCards';
 import { LiveActivityFeed } from '@/components/dashboard/LiveActivityFeed';
 import { AgentActivitySummary } from '@/components/dashboard/AgentActivitySummary';
@@ -62,6 +65,7 @@ function StatCard({
 
 export function Dashboard() {
   const { data: stats, isLoading, error } = useDashboardStats();
+  const { data: attention } = useAttentionDashboard();
 
   if (isLoading) {
     return <PageSkeleton hasCards cardCount={4} rows={5} />;
@@ -83,6 +87,12 @@ export function Dashboard() {
   }
 
   const tc = stats?.task_counts_by_status;
+  const totalAttention =
+    (attention?.needs_review?.length ?? 0) +
+    (attention?.open_questions?.length ?? 0) +
+    (attention?.blocked_tasks?.length ?? 0) +
+    (attention?.stale_claims?.length ?? 0) +
+    (attention?.failed_dod?.length ?? 0);
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -110,11 +120,13 @@ export function Dashboard() {
           variant="success"
         />
         <StatCard
-          label="Recent Activity"
-          value={stats?.recent_activity?.length ?? 0}
+          label="Needs Attention"
+          value={totalAttention}
           icon={Activity}
-          color="bg-amber-500/10 text-amber-600 dark:text-amber-400"
-          variant="warning"
+          color={totalAttention > 0
+            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}
+          variant={totalAttention > 0 ? 'warning' : 'success'}
         />
       </div>
 
@@ -124,11 +136,13 @@ export function Dashboard() {
           Needs Attention
         </h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <NeedsReviewSection />
-          <OpenClarificationsSection />
-          <BlockedTasksSection />
-          <StaleAgentsSection />
-          <FailedQualityGatesSection />
+          <NeedsReviewSection items={attention?.needs_review ?? []} />
+          <OpenClarificationsSection items={attention?.open_questions ?? []} />
+          <BlockedTasksSection items={attention?.blocked_tasks ?? []} />
+          <StaleAgentsSection items={attention?.stale_claims ?? []} />
+          <FailedQualityGatesSection items={attention?.failed_dod ?? []} />
+          <RejectedTasksSection items={attention?.rejected_tasks ?? []} />
+          <AgentVerdictsSection items={attention?.agent_verdicts_waiting ?? []} />
         </div>
       </div>
 
