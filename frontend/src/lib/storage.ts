@@ -1,8 +1,10 @@
 /**
- * Safe localStorage wrapper — gracefully degrades when storage is unavailable.
+ * Safe storage wrapper — localStorage → cookie → memory fallback chain.
  *
- * Handles: private browsing, disabled storage, quota exceeded, iframe contexts.
- * Falls back to in-memory storage when localStorage is not accessible.
+ * Priority:
+ * 1. localStorage (fastest, most capacity)
+ * 2. cookie (persists across reloads, works in most environments)
+ * 3. memory (last resort, lost on reload)
  */
 
 let memoryStorage: Record<string, string> = {};
@@ -18,39 +20,81 @@ function isLocalStorageAvailable(): boolean {
   }
 }
 
-const available = isLocalStorageAvailable();
+function setCookie(key: string, value: string, days: number = 7): void {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${key}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
+function getCookie(key: string): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^| )${key}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function deleteCookie(key: string): void {
+  document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+}
+
+const localStorageAvailable = isLocalStorageAvailable();
 
 export const safeStorage = {
   getItem(key: string): string | null {
-    if (available) {
+    // 1. Try localStorage
+    if (localStorageAvailable) {
       try {
-        return localStorage.getItem(key);
+        const value = localStorage.getItem(key);
+        if (value !== null) return value;
       } catch {
-        return memoryStorage[key] ?? null;
+        // Fall through
       }
     }
+
+    // 2. Try cookie
+    try {
+      const value = getCookie(key);
+      if (value !== null) return value;
+    } catch {
+      // Fall through
+    }
+
+    // 3. Memory fallback
     return memoryStorage[key] ?? null;
   },
 
   setItem(key: string, value: string): void {
-    if (available) {
+    // 1. Try localStorage
+    if (localStorageAvailable) {
       try {
         localStorage.setItem(key, value);
         return;
       } catch {
-        // Quota exceeded or other error — fall through to memory
+        // Fall through
       }
     }
+
+    // 2. Try cookie
+    try {
+      setCookie(key, value);
+      return;
+    } catch {
+      // Fall through
+    }
+
+    // 3. Memory fallback
     memoryStorage[key] = value;
   },
 
   removeItem(key: string): void {
-    if (available) {
+    if (localStorageAvailable) {
       try {
         localStorage.removeItem(key);
       } catch {
         // Ignore
       }
+    }
+    try {
+      deleteCookie(key);
+    } catch {
+      // Ignore
     }
     delete memoryStorage[key];
   },
