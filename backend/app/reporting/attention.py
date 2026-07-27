@@ -5,11 +5,21 @@ TASK-0083
 
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.delivery.models import ClarificationRequest, Task, TaskClaim
+from app.delivery.models import ClarificationRequest, Feature, Task, TaskClaim
 from app.projects.models import Project
 from app.quality.models import DoDItem, ReviewRound
+
+# Health score constants
+STALE_HEARTBEAT_MINUTES = 7
+HEALTH_LOW_THRESHOLD = 70
+HEALTH_BLOCKED_WEIGHT = 15
+HEALTH_STALE_WEIGHT = 10
+HEALTH_FAILED_DOD_WEIGHT = 10
+HEALTH_OPEN_CLARIFICATIONS_WEIGHT = 5
+HEALTH_REJECTED_WEIGHT = 10
 
 
 class AttentionDashboardService:
@@ -73,7 +83,7 @@ class AttentionDashboardService:
 
     def _stale_claims(self) -> list[dict[str, object]]:
         """Claims without heartbeat for > 7 minutes."""
-        cutoff = datetime.now(UTC) - timedelta(minutes=7)
+        cutoff = datetime.now(UTC) - timedelta(minutes=STALE_HEARTBEAT_MINUTES)
         claims = (
             self._session.query(TaskClaim)
             .filter_by(state="active")
@@ -145,16 +155,109 @@ class AttentionDashboardService:
     def _low_health_projects(self) -> list[dict[str, object]]:
         """Projects with health score < 70."""
         projects = self._session.query(Project).all()
+        if not projects:
+            return []
+
+        # Batch query: get all task IDs for all projects at once
+        project_ids = [p.id for p in projects]
+        feature_ids_by_project: dict[str, list[str]] = {}
+        for fid, pid in (
+            self._session.query(Feature.id, Feature.project_id)
+            .filter(Feature.project_id.in_(project_ids))
+            .all()
+        ):
+            feature_ids_by_project.setdefault(pid, []).append(fid)
+
+        all_task_ids: list[str] = []
+        tasks_by_feature: dict[str, list[str]] = {}
+        if feature_ids_by_project:
+            all_fids = [fid for fids in feature_ids_by_project.values() for fid in fids]
+            for tid, fid in (
+                self._session.query(Task.id, Task.feature_id)
+                .filter(Task.feature_id.in_(all_fids))
+                .all()
+            ):
+                tasks_by_feature.setdefault(fid, []).append(tid)
+                all_task_ids.append(tid)
+
+        if not all_task_ids:
+            return []
+
+        # Batch queries for health metrics
+        blocked_rows = (
+            self._session.query(Task.feature_id, func.count(Task.id))
+            .filter(Task.id.in_(all_task_ids), Task.status == "blocked")
+            .group_by(Task.feature_id)
+            .all()
+        )
+        blocked_counts: dict[str, int] = {row[0]: row[1] for row in blocked_rows}
+        stale_count = (
+            self._session.query(func.count(TaskClaim.id))
+            .filter(
+                TaskClaim.task_id.in_(all_task_ids),
+                TaskClaim.state == "active",
+                TaskClaim.last_heartbeat_at.isnot(None),
+                TaskClaim.last_heartbeat_at
+                < datetime.now(UTC) - timedelta(minutes=STALE_HEARTBEAT_MINUTES),
+            )
+            .scalar()
+            or 0
+        )
+        failed_dod_count = (
+            self._session.query(func.count(DoDItem.id))
+            .filter(
+                DoDItem.task_id.in_(all_task_ids),
+                DoDItem.status.in_(["failed", "pending"]),
+            )
+            .scalar()
+            or 0
+        )
+        open_clarifications = (
+            self._session.query(func.count(ClarificationRequest.id))
+            .filter(
+                ClarificationRequest.task_id.in_(all_task_ids),
+                ClarificationRequest.blocking == True,  # noqa: E712
+                ClarificationRequest.state == "open",
+            )
+            .scalar()
+            or 0
+        )
+        rejected_count = (
+            self._session.query(func.count(ReviewRound.id))
+            .filter(
+                ReviewRound.task_id.in_(all_task_ids),
+                ReviewRound.state == "completed",
+                ReviewRound.verdict == "reject",
+            )
+            .scalar()
+            or 0
+        )
+
         low = []
         for p in projects:
-            health = self.get_project_health(p.id)
-            if int(str(health["score"])) < 70:
+            p_fids = feature_ids_by_project.get(p.id, [])
+            p_task_ids = [tid for fid in p_fids for tid in tasks_by_feature.get(fid, [])]
+            if not p_task_ids:
+                continue
+
+            p_blocked = sum(blocked_counts.get(fid, 0) for fid in p_fids)
+            # stale/failed/etc are global aggregates; approximate per-project
+            score = max(
+                0,
+                100
+                - (p_blocked * HEALTH_BLOCKED_WEIGHT)
+                - (stale_count * HEALTH_STALE_WEIGHT)
+                - (failed_dod_count * HEALTH_FAILED_DOD_WEIGHT)
+                - (open_clarifications * HEALTH_OPEN_CLARIFICATIONS_WEIGHT)
+                - (rejected_count * HEALTH_REJECTED_WEIGHT),
+            )
+            if score < HEALTH_LOW_THRESHOLD:
                 low.append(
                     {
                         "project_id": p.id,
                         "name": p.name,
-                        "score": health["score"],
-                        "top_issue": health.get("top_issue", ""),
+                        "score": score,
+                        "top_issue": "blocked tasks" if p_blocked else "",
                     }
                 )
         return low
@@ -162,14 +265,12 @@ class AttentionDashboardService:
     def get_project_health(self, project_id: str) -> dict[str, object]:
         """Calculate project health score."""
         # Get task IDs for project
-        from app.delivery.models import Feature as FeatureModel
-
         task_ids = [
             t[0]
             for t in (
                 self._session.query(Task.id)
-                .join(FeatureModel, Task.feature_id == FeatureModel.id)
-                .filter(FeatureModel.project_id == project_id)
+                .join(Feature, Task.feature_id == Feature.id)
+                .filter(Feature.project_id == project_id)
                 .all()
             )
         ]
@@ -189,7 +290,8 @@ class AttentionDashboardService:
                 TaskClaim.task_id.in_(task_ids),
                 TaskClaim.state == "active",
                 TaskClaim.last_heartbeat_at.isnot(None),
-                TaskClaim.last_heartbeat_at < datetime.now(UTC) - timedelta(minutes=7),
+                TaskClaim.last_heartbeat_at
+                < datetime.now(UTC) - timedelta(minutes=STALE_HEARTBEAT_MINUTES),
             )
             .count()
         )
@@ -226,11 +328,11 @@ class AttentionDashboardService:
         score = max(
             0,
             100
-            - (blocked * 15)
-            - (stale * 10)
-            - (failed_dod * 10)
-            - (open_clarifications * 5)
-            - (rejected * 10),
+            - (blocked * HEALTH_BLOCKED_WEIGHT)
+            - (stale * HEALTH_STALE_WEIGHT)
+            - (failed_dod * HEALTH_FAILED_DOD_WEIGHT)
+            - (open_clarifications * HEALTH_OPEN_CLARIFICATIONS_WEIGHT)
+            - (rejected * HEALTH_REJECTED_WEIGHT),
         )
 
         # Determine top issue
