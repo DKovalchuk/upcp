@@ -215,6 +215,18 @@ class TestProgress:
         hb = svc.progress(ready_task.id, agent_id="agent-001", progress_percent=75)
         assert hb.progress_percent == 75
 
+    def test_progress_step_names_not_empty(self, _db, session, ready_task):
+        """progress() uses meaningful step names, not empty strings."""
+        svc = WorkflowService(session)
+        svc.claim(ready_task.id, agent_id="agent-001")
+        session.flush()
+
+        hb = svc.progress(ready_task.id, agent_id="agent-001", progress_percent=50)
+        assert hb.current_step != ""
+        assert hb.next_step != ""
+        assert len(hb.current_step) > 0
+        assert len(hb.next_step) > 0
+
     def test_progress_wrong_agent_raises(self, _db, session, ready_task):
         """Cannot update progress on another agent's claim."""
         svc = WorkflowService(session)
