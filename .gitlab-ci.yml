@@ -1,22 +1,14 @@
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
 # UPCP CI/CD Pipeline
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
 #
 # Flow:
-#   feature/* → MR → develop   (lint + unit test)
-#   develop   → MR → main      (lint + all tests + build)
-#   main      → deploy:stage    (manual confirmation)
+#   feature/* → MR → develop   (lint → test → build)
+#   develop   → MR → main      (lint → test → build)
+#   main      → deploy:stage   (manual confirmation)
 #
-# Stage environment is pre-prod: services run there continuously
-# and are used by the team (including via MCP) for project management.
-#
-# Optimizations:
-#   - DAG with needs: for maximum parallelism
-#   - Docker BuildKit with registry cache
-#   - pytest-xdist for parallel test execution
-#   - Cache pull-push on main, pull-only on branches
-#
-# ════════════════════════════════════════════════════════════════
+# Stage ordering: lint → test → build → deploy
+# Pipeline stops at first failed stage — no downstream jobs run.
 
 stages:
   - lint
@@ -51,9 +43,9 @@ variables:
     when:
       - runner_system_failure
 
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
 # TEMPLATES
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
 
 .python-base:
   image: python:3.12-slim
@@ -66,8 +58,6 @@ variables:
       - .cache/pip
     fallback_keys:
       - backend-pip
-    # pull-push (default): cache is uploaded after the job
-    # so subsequent runs with the same requirements.txt skip downloads
   before_script:
     - pip install --quiet -r backend/requirements.txt
 
@@ -82,31 +72,25 @@ variables:
       - .cache/npm
     fallback_keys:
       - frontend-npm
-    # npm ci always deletes node_modules, so only cache the download dir
   before_script:
     - cd frontend
     - npm ci --prefer-offline --no-audit --no-fund
 
-# Uses host Docker daemon — runner must mount Docker socket:
-#   [[runners.docker]]
-#     volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
-# No container registry — images are built and used locally on the host.
 .docker-build-base:
   stage: build
   image: docker:24
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
 
-# ════════════════════════════════════════════════════════════════
-# LINT — fast feedback, parallel
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
+# LINT — stage 1: parallel within stage, pipeline stops if any fails
+# ══════════════════════════════════════════════════════════════
 
 backend:lint:
   stage: lint
   extends:
     - .python-base
     - .retry-on-system-failure
-  needs: []
   script:
     - ruff check backend
     - ruff format --check backend
@@ -120,7 +104,6 @@ backend:typecheck:
   extends:
     - .python-base
     - .retry-on-system-failure
-  needs: []
   script:
     - mypy backend/app
   rules:
@@ -133,7 +116,6 @@ frontend:lint:
   extends:
     - .frontend-base
     - .retry-on-system-failure
-  needs: []
   script:
     - npm run lint
   rules:
@@ -141,16 +123,15 @@ frontend:lint:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
 
-# ════════════════════════════════════════════════════════════════
-# TEST — parallel with lint (DAG)
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
+# TEST — stage 2: runs only after ALL lint jobs pass
+# ══════════════════════════════════════════════════════════════
 
 backend:test:
   stage: test
   extends:
     - .python-base
     - .retry-on-system-failure
-  needs: []
   services:
     - postgres:16
   variables:
@@ -183,7 +164,6 @@ frontend:test:
   extends:
     - .frontend-base
     - .retry-on-system-failure
-  needs: []
   script:
     - npm run test -- --reporter=junit --outputFile=test-results.xml
   artifacts:
@@ -198,16 +178,11 @@ frontend:test:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
 
-# ════════════════════════════════════════════════════════════════
-# TEST — security (develop + main, advisory)
-# ════════════════════════════════════════════════════════════════
-
 backend:security:
   stage: test
   extends:
     - .retry-on-system-failure
   image: python:3.12-slim
-  needs: []
   before_script:
     - pip install --quiet bandit
   script:
@@ -222,14 +197,12 @@ backend:security:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
 
-# ════════════════════════════════════════════════════════════════
-# BUILD — Docker images with BuildKit (develop + main only)
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
+# BUILD — stage 3: runs only after ALL tests pass
+# ══════════════════════════════════════════════════════════════
 
 build:backend:
   extends: .docker-build-base
-  needs:
-    - backend:test
   script:
     - docker build
         --cache-from upcp-backend:dev
@@ -242,8 +215,6 @@ build:backend:
 
 build:frontend:
   extends: .docker-build-base
-  needs:
-    - frontend:test
   script:
     - docker build
         --cache-from upcp-frontend:dev
@@ -254,18 +225,9 @@ build:frontend:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
 
-# ════════════════════════════════════════════════════════════════
-# DEPLOY — stage (pre-prod), main only, manual
-# ════════════════════════════════════════════════════════════════
-#
-# Stage runs continuously — services are used by the team and
-# MCP for project management. Deploy restarts with new images.
-#
-# Uses host Docker daemon — images are built locally by build jobs
-# and used directly. No container registry required.
-# Runner config.toml must mount the Docker socket:
-#   [[runners.docker]]
-#     volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
+# ══════════════════════════════════════════════════════════════
+# DEPLOY — stage 4: main only, manual
+# ══════════════════════════════════════════════════════════════
 
 deploy:stage:
   stage: deploy
@@ -276,12 +238,9 @@ deploy:stage:
     name: stage
     url: http://localhost:3080
   script:
-    # Tag locally built images for stage
     - docker tag upcp-backend:dev upcp-backend:stage
     - docker tag upcp-frontend:dev upcp-frontend:stage
-    # Deploy with docker compose
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
-    # Wait for health check
     - echo "Waiting for app health check..."
     - for i in $(seq 1 30); do
         wget -qO- http://localhost:38081/health && break || sleep 2;
@@ -295,7 +254,6 @@ deploy:stage:
       when: manual
       allow_failure: false
 
-# Stop stage environment (manual, for cleanup)
 stop:stage:
   stage: deploy
   image: docker:24
