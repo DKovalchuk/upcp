@@ -1,6 +1,7 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-27
+Version: 0.13.0 (see `VERSIONING.md` for scheme)
 Milestone: M11 — Human Control UX (Complete)
 Current Task: M11 complete
 Blockers: none
