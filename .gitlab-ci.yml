@@ -157,6 +157,7 @@ backend:test:
   script:
     - python -m pytest backend/tests -q --tb=short -x -n auto
         --cov=app --cov-report=term-missing --cov-report=xml:backend/coverage.xml
+        --cov-fail-under=85
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
@@ -211,6 +212,57 @@ backend:security:
     paths:
       - bandit-report.json
     expire_in: 7 days
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+dependency:scan:backend:
+  stage: test
+  extends:
+    - .python-base
+    - .retry-on-system-failure
+  needs:
+    - backend:lint
+  before_script:
+    - pip install --quiet pip-audit
+  script:
+    - pip-audit --requirement backend/requirements.txt --desc on
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+dependency:scan:frontend:
+  stage: test
+  extends:
+    - .frontend-base
+    - .retry-on-system-failure
+  needs:
+    - frontend:lint
+  script:
+    - npm audit --audit-level=high
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: ["frontend/**/*"]
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes: ["frontend/**/*"]
+    - if: $CI_COMMIT_BRANCH == "main"
+
+container:scan:backend:
+  stage: test
+  extends:
+    - .retry-on-system-failure
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  needs:
+    - backend:lint
+  script:
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL --format table backend/
   allow_failure: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

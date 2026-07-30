@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_model: str = ""
     llm_api_url: str = ""
+
+    @model_validator(mode="after")
+    def _validate_security(self) -> "Settings":
+        if self.secret_key == "change_me_local_only" and self.env not in ("local", "test", "ci"):
+            raise ValueError(
+                "UPCP_SECRET_KEY must be set to a secure value in production. "
+                "Current value is the insecure default."
+            )
+        return self
 
     model_config = {"env_prefix": "UPCP_", "extra": "ignore"}
 

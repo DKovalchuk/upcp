@@ -76,6 +76,7 @@ services:
       - "127.0.0.1:${UPCP_PROMETHEUS_PORT:-39090}:9090"
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
 
   grafana:
     image: grafana/grafana:latest
