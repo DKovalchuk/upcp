@@ -2,6 +2,14 @@ import { useTask, useUpdateTask, useDeleteTask } from '@/hooks/use-tasks';
 import { useAcceptanceCriteria, useDoDItems, useCreateAcceptanceCriterion, useCreateDoDItem } from '@/hooks/use-quality';
 import { useSubtasks, useCreateSubtask } from '@/hooks/use-subtasks';
 import {
+  useTaskClaims,
+  useTaskHeartbeats,
+  useTaskClarifications,
+  useTaskEvidence,
+  useTaskReviewRounds,
+  useReleaseTask,
+} from '@/hooks/use-task-execution';
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -48,6 +56,12 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
   const { data: acs } = useAcceptanceCriteria(taskId ?? '');
   const { data: dods } = useDoDItems(taskId ?? '');
   const { data: subtasks } = useSubtasks(taskId ?? '');
+  const { data: claims, isLoading: isLoadingClaims } = useTaskClaims(taskId ?? '');
+  const { data: heartbeats, isLoading: isLoadingHeartbeats } = useTaskHeartbeats(taskId ?? '');
+  const { data: clarifications, isLoading: isLoadingClarifications } = useTaskClarifications(taskId ?? '');
+  const { data: evidence, isLoading: isLoadingEvidence } = useTaskEvidence(taskId ?? '');
+  const { data: reviewRounds, isLoading: isLoadingReviewRounds } = useTaskReviewRounds(taskId ?? '');
+  const releaseTaskMutation = useReleaseTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const createAC = useCreateAcceptanceCriterion();
@@ -111,6 +125,16 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
       onOpenChange(false);
     } catch {
       showToast.mutationError('delete', 'task');
+    }
+  };
+
+  const handleReleaseClaim = async () => {
+    if (!taskId) return;
+    try {
+      await releaseTaskMutation.mutateAsync(taskId);
+      showToast.success('Claim released');
+    } catch {
+      showToast.mutationError('release', 'claim');
     }
   };
 
@@ -218,31 +242,88 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
 
                 {/* ── Execution Tab ── */}
                 <TabsContent value="execution" className="mt-4 space-y-4">
-                  <div className="rounded-lg border border-border p-4">
-                    <div className="flex items-center gap-3">
-                      <AgentAvatar name="code-quality-guard" status="working" showPulse size="lg" />
-                      <div>
-                        <p className="text-sm font-medium">code-quality-guard</p>
-                        <AgentStatusBadge status="working" showPulse />
+                  {/* Agent Claims */}
+                  {isLoadingClaims ? (
+                    <div className="rounded-lg border border-border p-4">
+                      <Skeleton className="h-16 w-full" />
+                    </div>
+                  ) : claims?.items && claims.items.length > 0 ? (
+                    <div className="rounded-lg border border-border p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <AgentAvatar name={claims.items[0].agent_id} status={claims.items[0].state === 'claimed' ? 'working' : 'idle'} showPulse={claims.items[0].state === 'claimed'} size="lg" />
+                          <div>
+                            <p className="text-sm font-medium">{claims.items[0].agent_id}</p>
+                            <AgentStatusBadge status={claims.items[0].state === 'claimed' ? 'working' : 'idle'} showPulse={claims.items[0].state === 'claimed'} />
+                          </div>
+                        </div>
+                        {claims.items[0].state === 'claimed' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleReleaseClaim}
+                            disabled={releaseTaskMutation.isPending}
+                          >
+                            Release claim
+                          </Button>
+                        )}
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-xs text-muted-foreground">Claimed</span>
+                          <p className="mt-0.5 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {claims.items[0].claimed_at ? new Date(claims.items[0].claimed_at).toLocaleString() : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground">State</span>
+                          <p className="mt-0.5">{claims.items[0].state}</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-xs text-muted-foreground">Claimed</span>
-                        <p className="mt-0.5 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          5 min ago
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Last Heartbeat</span>
-                        <p className="mt-0.5 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          30s ago
-                        </p>
-                      </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border p-4">
+                      <p className="text-sm text-muted-foreground text-center">No agent claims yet.</p>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Heartbeats */}
+                  {isLoadingHeartbeats ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-20 w-full" />
+                    </div>
+                  ) : heartbeats?.items && heartbeats.items.length > 0 ? (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" />
+                        Heartbeats
+                      </h4>
+                      {heartbeats.items.slice(0, 5).map((heartbeat) => (
+                        <div key={heartbeat.id} className="rounded-lg border border-border p-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">{heartbeat.current_step}</span>
+                            <span className="text-xs text-muted-foreground">{heartbeat.progress_percent}%</span>
+                          </div>
+                          <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-primary"
+                              style={{ width: `${Math.min(heartbeat.progress_percent, 100)}%` }}
+                            />
+                          </div>
+                          {heartbeat.next_step && (
+                            <p className="mt-1 text-xs text-muted-foreground">Next: {heartbeat.next_step}</p>
+                          )}
+                          {heartbeat.blockers && (
+                            <p className="mt-1 text-xs text-destructive">Blocker: {heartbeat.blockers}</p>
+                          )}
+                          {heartbeat.eta && (
+                            <p className="mt-1 text-xs text-muted-foreground">ETA: {new Date(heartbeat.eta).toLocaleString()}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
 
                   {/* Clarifications */}
                   <div>
@@ -250,13 +331,26 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                       <MessageCircle className="h-3 w-3" />
                       Clarifications
                     </h4>
-                    <ClarificationBanner
-                      taskName="Task: JWT Token Service"
-                      question="What is the expected token refresh behavior?"
-                      askedBy="code-quality-guard"
-                      askedAt={new Date(Date.now() - 10 * 60 * 1000).toISOString()}
-                      isBlocking
-                    />
+                    {isLoadingClarifications ? (
+                      <Skeleton className="h-20 w-full" />
+                    ) : clarifications?.items && clarifications.items.length > 0 ? (
+                      <div className="space-y-2">
+                        {clarifications.items.map((clarification) => (
+                          <ClarificationBanner
+                            key={clarification.id}
+                            taskName={task?.title ?? 'Task'}
+                            question={clarification.question}
+                            askedBy={clarification.author_id}
+                            askedAt={clarification.created_at}
+                            isBlocking={clarification.blocking}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-4">
+                        <p className="text-sm text-muted-foreground text-center">No clarifications requested.</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Evidence */}
@@ -265,9 +359,29 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                       <FileText className="h-3 w-3" />
                       Evidence
                     </h4>
-                    <div className="rounded-lg border border-border p-3">
-                      <p className="text-sm text-muted-foreground">No evidence attached yet.</p>
-                    </div>
+                    {isLoadingEvidence ? (
+                      <Skeleton className="h-20 w-full" />
+                    ) : evidence?.items && evidence.items.length > 0 ? (
+                      <div className="space-y-2">
+                        {evidence.items.map((item) => (
+                          <div key={item.id} className="rounded-lg border border-border p-3">
+                            <p className="text-sm font-medium">{item.title}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{item.type}</p>
+                            {item.description && (
+                              <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+                            )}
+                            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>Created: {new Date(item.created_at).toLocaleString()}</span>
+                              <span>Verification: {item.verification_state}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-4">
+                        <p className="text-sm text-muted-foreground text-center">No evidence attached yet.</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Reviews */}
@@ -276,14 +390,27 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                       <CheckCircle className="h-3 w-3" />
                       Reviews
                     </h4>
-                    <ReviewVerdictCard
-                      agentName="code-quality-guard"
-                      verdict="approve"
-                      confidence={0.92}
-                      findingsCount={0}
-                      summary="All acceptance criteria met. Code follows project conventions."
-                      createdAt={new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()}
-                    />
+                    {isLoadingReviewRounds ? (
+                      <Skeleton className="h-20 w-full" />
+                    ) : reviewRounds?.items && reviewRounds.items.length > 0 ? (
+                      <div className="space-y-2">
+                        {reviewRounds.items.map((round) => (
+                          <ReviewVerdictCard
+                            key={round.id}
+                            agentName={round.reviewer_id ?? 'Unknown reviewer'}
+                            verdict={(round.verdict as 'approve' | 'reject' | 'needs_changes') ?? 'approve'}
+                            confidence={round.confidence ?? 0}
+                            findingsCount={0}
+                            summary={round.summary ?? undefined}
+                            createdAt={round.created_at}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-4">
+                        <p className="text-sm text-muted-foreground text-center">No reviews yet.</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Git */}

@@ -59,3 +59,15 @@ export interface PortfolioProject {
   health_score: number;
   top_issue: string;
 }
+
+export interface AgentActivityItem {
+  agent_id: string;
+  agent_name: string;
+  task_id: string;
+  task_title: string;
+  claimed_at: string | null;
+  last_heartbeat_at: string | null;
+  progress_percent: number;
+  current_step: string;
+  is_stale: boolean;
+}

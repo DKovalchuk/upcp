@@ -1,9 +1,43 @@
 # PROJECT_STATUS
 
-Updated: 2026-07-27
-Milestone: M11 — Human Control UX (Complete)
-Current Task: M11 complete
+Updated: 2026-07-30
+Version: 0.13.0 (see `VERSIONING.md` for scheme)
+Milestone: M12 — Critical Fixes (S14.1 complete, S14.2 pending)
+Current Task: TASK-0089 (S14.1 done, ready for S14.2)
 Blockers: none
+
+## Roadmap to 1.0.0
+
+```
+0.13.0 (done) → 0.14.0 → 0.15.0 → 1.0.0
+   M11          M12       M13      Production
+```
+
+### M12: 0.14.0 — Critical Fixes & Security (S14.1–S14.2)
+
+| Sprint | Items | Points | Focus |
+|--------|-------|--------|-------|
+| S14.1 | 0.1–0.6 | 10 | Broken features: TaskDetailSheet execution, HealthPage DB, /health endpoint, AgentActivitySummary, ReportsPage export, EntityFormDialog select | ✅ DONE |
+| S14.2 | 1.1–1.4 | 5 | Security: CORS headers, SSRF validation, error sanitization, dependency scanning |
+
+### M13: 0.15.0 — Architecture & Backend Cleanup (S15.1–S15.3)
+
+| Sprint | Items | Points | Focus |
+|--------|-------|--------|-------|
+| S15.1 | 2.4, 2.8, 2.10, 3.2–3.5 | 8 | Quick wins: PATCH endpoint, OpenAPI, Settings route, useProjectId dedup, dead code, Ctrl+K |
+| S15.2 | 2.1–2.3, 3.1 | 9 | Backend: N+1, eager loading, pagination. Frontend: api.ts split |
+| S15.3 | 2.7, 2.9, 3.6–3.8 | 8 | Backend: schemas, /tasks endpoint. Frontend: logic to hooks, UUID resolution |
+
+### 1.0.0 — Production Ready (S16.1–S16.4)
+
+| Sprint | Items | Points | Focus |
+|--------|-------|--------|-------|
+| S16.1 | 4.1–4.3, 5.1–5.3 | 8 | Performance: bundle, staleTime, BoardView. A11y: aria, touch targets |
+| S16.2 | 4.4–4.6, 5.4–5.8 | 9 | Performance: lazy mount, dnd-kit, responsive. UX: password toggle, search, CommandPalette |
+| S16.3 | 6.1–6.8 | 9 | Tests: auth, core pages, api.ts, integration |
+| S16.4 | 5.9–5.15, 6.9–6.12 | 7 | Polish: animations, typography, switcher, quick-edit. Test cleanup |
+
+**Total: 61 items, 9 sprints (18 weeks), 3 milestones**
 
 ## M11 Progress (Complete)
 

@@ -10,10 +10,18 @@ def test_error_response_schema() -> None:
 
 
 def test_health_response_schema() -> None:
-    resp = HealthResponse(status="ok", service="upcp-backend")
+    resp = HealthResponse(
+        status="ok",
+        service="upcp-backend",
+        db={"status": "ok", "latency_ms": 1.23},
+        redis={"status": "ok"},
+    )
     data = resp.model_dump()
     assert data["status"] == "ok"
     assert data["service"] == "upcp-backend"
+    assert data["db"]["status"] == "ok"
+    assert data["db"]["latency_ms"] == 1.23
+    assert data["redis"]["status"] == "ok"
 
 
 def test_entity_id_is_str() -> None:

@@ -20,6 +20,7 @@ from app.identity.middleware import AuthMiddleware
 from app.mcp.server import create_mcp_router
 from app.shared.config import get_settings
 from app.shared.correlation import CorrelationMiddleware
+from app.shared.database import check_db_health
 from app.shared.errors import register_error_handlers
 from app.shared.logging import setup_logging
 
@@ -111,6 +112,7 @@ app.include_router(create_mcp_router(), prefix="/mcp")
 
 @app.get("/health")
 def health() -> dict[str, object]:
+    # Check Redis
     try:
         from app.shared.redis import check_redis_health
 
@@ -118,10 +120,23 @@ def health() -> dict[str, object]:
     except ImportError:
         redis_status = {"status": "unavailable", "service": "redis"}
 
+    # Check PostgreSQL
+    db_status = check_db_health()
+
+    # Compute overall status
+    statuses = [redis_status["status"], db_status["status"]]
+    if statuses.count("ok") == 2:
+        overall = "ok"
+    elif statuses.count("ok") == 0:
+        overall = "error"
+    else:
+        overall = "degraded"
+
     return {
-        "status": "ok" if redis_status["status"] == "ok" else "degraded",
+        "status": overall,
         "service": "upcp-backend",
-        "redis": redis_status["status"],
+        "db": db_status,
+        "redis": redis_status,
     }
 
 

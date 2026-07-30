@@ -147,7 +147,7 @@ describe('EntityFormDialog', () => {
     });
   });
 
-  it('renders select field with options', () => {
+  it('renders select field with shadcn Select component', () => {
     render(
       <EntityFormDialog
         open={true}
@@ -157,9 +157,9 @@ describe('EntityFormDialog', () => {
         onSubmit={async () => {}}
       />
     );
-    expect(screen.getByDisplayValue('Select...')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('Paused')).toBeInTheDocument();
+    // shadcn Select renders a combobox trigger; options are in a portal (visible only when opened)
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(screen.getByText('Status')).toBeInTheDocument();
   });
 
   it('calls onOpenChange when cancel is clicked', () => {
