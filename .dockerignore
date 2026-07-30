@@ -1,24 +1,72 @@
+# Version control
 .git
-.github
-.venv
+.gitignore
+.gitlab-ci.yml
+.pre-commit-config.yaml
+
+# Documentation
+*.md
+docs/
+specs/
+tasks/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Python
 __pycache__
 *.pyc
+*.pyo
 .mypy_cache
 .pytest_cache
 .ruff_cache
+.venv/
 .coverage
 htmlcov/
-node_modules/
+tests/
+
+# Node/frontend (not needed in backend image)
 frontend/node_modules/
 frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+frontend/test-results/
+
+# Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
+nginx.dev.conf
+
+# Environment
 .env
-.env.local
-*.log
+.env.*
+!.env.example
+
+# Data
+data/
+backups/
+*.sqlite
+*.sqlite3
+
+# Qwen
 .qwen/
 .qwen-orchestrator/
-docs/
-tasks/
-specs/
-prompts/
+
+# Observability
 observability/
-tests/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Playwright
+.playwright-mcp
+prompts/
