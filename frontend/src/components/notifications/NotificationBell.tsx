@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCheck, X } from 'lucide-react';
+import { Bell, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -86,14 +86,10 @@ export function NotificationBell() {
       <Tooltip>
         <TooltipTrigger
           render={
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-8 w-8"
-                aria-label={`Notifications (${unreadCount} unread)`}
-              />
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              className="relative flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
+              aria-label={`Notifications (${unreadCount} unread)`}
+            />
           }
         >
           <Bell className="h-4 w-4" />

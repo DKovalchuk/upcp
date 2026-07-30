@@ -1,7 +1,6 @@
 """Notification API routes — TASK-0085."""
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.reporting.service import NotificationService
@@ -9,10 +8,6 @@ from app.shared.database import get_session
 from app.shared.errors import NotFound
 
 router = APIRouter(tags=["notifications"])
-
-
-class NotificationReadRequest(BaseModel):
-    pass
 
 
 @router.get("/notifications")

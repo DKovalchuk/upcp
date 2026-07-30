@@ -1,4 +1,4 @@
-import { createRouter, createRoute, createRootRoute } from '@tanstack/react-router';
+import { createRouter, createRoute, createRootRoute, Navigate } from '@tanstack/react-router';
 import { AppShell } from '@/components/layouts/AppShell';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -66,8 +66,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    window.location.href = '/login';
-    return <RouteLoadingFallback />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
