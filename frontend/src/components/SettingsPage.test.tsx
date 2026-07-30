@@ -64,7 +64,12 @@ describe('SettingsPage', () => {
 
   it('shows Connected when backend is healthy', () => {
     mock.mockReturnValue({
-      data: { status: 'ok', service: 'upcp-backend', latency_ms: 15 },
+      data: {
+        status: 'ok',
+        service: 'upcp-backend',
+        db: { status: 'ok', latency_ms: 15 },
+        redis: { status: 'ok' },
+      },
       isLoading: false,
       error: null,
     } as any);
@@ -75,7 +80,12 @@ describe('SettingsPage', () => {
 
   it('shows Disconnected when backend is down', () => {
     mock.mockReturnValue({
-      data: { status: 'error', service: 'upcp-backend' },
+      data: {
+        status: 'error',
+        service: 'upcp-backend',
+        db: { status: 'error' },
+        redis: { status: 'error' },
+      },
       isLoading: false,
       error: null,
     } as any);

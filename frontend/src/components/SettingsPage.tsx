@@ -90,8 +90,8 @@ export function SettingsPage() {
                       <span className="text-sm">
                         {health.status === 'ok' ? 'Connected' : 'Disconnected'}
                       </span>
-                      {health.latency_ms !== undefined && (
-                        <span className="text-xs text-muted-foreground">{health.latency_ms}ms</span>
+                      {health.db?.latency_ms !== undefined && (
+                        <span className="text-xs text-muted-foreground">{health.db.latency_ms}ms</span>
                       )}
                     </>
                   ) : (
