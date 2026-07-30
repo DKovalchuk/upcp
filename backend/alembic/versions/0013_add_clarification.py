@@ -26,7 +26,7 @@ def upgrade() -> None:
         sa.Column("author_id", sa.String(36), nullable=False),
         sa.Column("question", sa.Text, nullable=False),
         sa.Column("context", sa.Text, nullable=True),
-        sa.Column("blocking", sa.Boolean, nullable=False, server_default=sa.text("0")),
+        sa.Column("blocking", sa.Boolean, nullable=False, server_default=sa.text("false")),
         sa.Column("state", sa.String(50), nullable=False, server_default="open"),
         sa.Column("answer", sa.Text, nullable=True),
         sa.Column("answered_by", sa.String(36), nullable=True),
