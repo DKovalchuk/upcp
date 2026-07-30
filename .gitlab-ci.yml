@@ -81,6 +81,8 @@ variables:
   image: docker:24
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
+    DOCKER_TLS_CERTDIR: ""
+    REGISTRY: gitlab.local:8929/dmitry.kovalchuk/upcp
 
 # ══════════════════════════════════════════════════════════════
 # LINT — stage 1: parallel within stage, pipeline stops if any fails
@@ -204,11 +206,14 @@ backend:security:
 build:backend:
   extends: .docker-build-base
   script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY
     - docker build
-        --cache-from upcp-backend:dev
-        --tag upcp-backend:$CI_COMMIT_SHORT_SHA
-        --tag upcp-backend:dev
+        --cache-from $REGISTRY/backend:dev
+        --tag $REGISTRY/backend:$CI_COMMIT_SHORT_SHA
+        --tag $REGISTRY/backend:dev
         .
+    - docker push $REGISTRY/backend:$CI_COMMIT_SHORT_SHA
+    - docker push $REGISTRY/backend:dev
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -216,11 +221,14 @@ build:backend:
 build:frontend:
   extends: .docker-build-base
   script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY
     - docker build
-        --cache-from upcp-frontend:dev
-        --tag upcp-frontend:$CI_COMMIT_SHORT_SHA
-        --tag upcp-frontend:dev
+        --cache-from $REGISTRY/frontend:dev
+        --tag $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA
+        --tag $REGISTRY/frontend:dev
         frontend/
+    - docker push $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA
+    - docker push $REGISTRY/frontend:dev
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -238,8 +246,11 @@ deploy:stage:
     name: stage
     url: http://localhost:3080
   script:
-    - docker tag upcp-backend:dev upcp-backend:stage
-    - docker tag upcp-frontend:dev upcp-frontend:stage
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY
+    - docker pull $REGISTRY/backend:dev
+    - docker pull $REGISTRY/frontend:dev
+    - docker tag $REGISTRY/backend:dev upcp-backend:stage
+    - docker tag $REGISTRY/frontend:dev upcp-frontend:stage
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
     - for i in $(seq 1 30); do
