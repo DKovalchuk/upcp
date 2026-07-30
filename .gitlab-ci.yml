@@ -82,7 +82,7 @@ variables:
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
     DOCKER_TLS_CERTDIR: ""
-    REGISTRY: gitlab.local:8929/dmitry.kovalchuk/upcp
+    REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
 
 # ══════════════════════════════════════════════════════════════
 # LINT — stage 1: parallel within stage, pipeline stops if any fails
@@ -206,7 +206,7 @@ backend:security:
 build:backend:
   extends: .docker-build-base
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
     - docker build
         --cache-from $REGISTRY/backend:dev
         --tag $REGISTRY/backend:$CI_COMMIT_SHORT_SHA
@@ -221,7 +221,7 @@ build:backend:
 build:frontend:
   extends: .docker-build-base
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
     - docker build
         --cache-from $REGISTRY/frontend:dev
         --tag $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA
@@ -246,7 +246,7 @@ deploy:stage:
     name: stage
     url: http://localhost:3080
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
     - docker pull $REGISTRY/backend:dev
     - docker pull $REGISTRY/frontend:dev
     - docker tag $REGISTRY/backend:dev upcp-backend:stage
