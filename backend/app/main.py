@@ -64,13 +64,13 @@ except ImportError:
 if settings.env != "test":
     app.add_middleware(AuthMiddleware)
 
-# CORS
+# CORS — configured via UPCP_CORS_ORIGINS and UPCP_CORS_ALLOW_HEADERS env vars
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.env == "local" else [],
+    allow_origins=getattr(settings, "cors_origins_list", []),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["*"],
+    allow_headers=getattr(settings, "cors_allow_headers_list", []),
 )
 
 

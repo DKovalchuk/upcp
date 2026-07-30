@@ -7,6 +7,17 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+### Security (S14.2 — M12 Security Hardening)
+- CORS: configurable origins via `UPCP_CORS_ORIGINS` env var (comma-separated)
+- CORS: configurable allowed headers via `UPCP_CORS_ALLOW_HEADERS` env var
+- CORS: wildcard `*` origins rejected in production envs
+- SSRF: GitHub adapter validates owner/repo format (alphanumeric, dots, hyphens, underscores)
+- SSRF: `validate_url_not_internal()` blocks private/internal IPs (127.x, 10.x, 192.168.x, 169.254.x, ::1)
+- SSRF: `GitProviderCreate.provider_type` restricted to `Literal["github", "gitlab", "bitbucket", "local", "other"]`
+- Error sanitization: catch-all `Exception` handler returns generic message (no stack traces)
+- Error sanitization: git adapter errors no longer expose raw stderr
+- Dependency scanning: `pip-audit`, `npm audit`, `trivy` jobs now block pipeline on failures
+
 ### Fixed (S14.1 — M12 Critical Fixes)
 - `/health` endpoint now checks PostgreSQL via `SELECT 1` (was Redis-only)
 - HealthPage Database card shows real connection status (was hardcoded "Connected")
