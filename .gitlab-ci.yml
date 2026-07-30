@@ -28,6 +28,7 @@ default:
   tags:
     - laptop
   interruptible: true
+  timeout: 30 minutes
 
 # ── Global variables ──────────────────────────────────────────
 variables:
@@ -83,6 +84,8 @@ variables:
     DOCKER_HOST: unix:///var/run/docker.sock
     DOCKER_TLS_CERTDIR: ""
     REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
 
 # ══════════════════════════════════════════════════════════════
 # LINT — stage 1: parallel within stage, pipeline stops if any fails
@@ -122,7 +125,9 @@ frontend:lint:
     - npm run lint
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: ["frontend/**/*"]
     - if: $CI_COMMIT_BRANCH == "develop"
+      changes: ["frontend/**/*"]
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ══════════════════════════════════════════════════════════════
@@ -134,6 +139,9 @@ backend:test:
   extends:
     - .python-base
     - .retry-on-system-failure
+  needs:
+    - backend:lint
+    - backend:typecheck
   services:
     - postgres:16
   variables:
@@ -166,6 +174,8 @@ frontend:test:
   extends:
     - .frontend-base
     - .retry-on-system-failure
+  needs:
+    - frontend:lint
   script:
     - npm run test -- --reporter=junit --outputFile=test-results.xml
   artifacts:
@@ -177,7 +187,9 @@ frontend:test:
     expire_in: 7 days
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: ["frontend/**/*"]
     - if: $CI_COMMIT_BRANCH == "develop"
+      changes: ["frontend/**/*"]
     - if: $CI_COMMIT_BRANCH == "main"
 
 backend:security:
@@ -185,6 +197,12 @@ backend:security:
   extends:
     - .retry-on-system-failure
   image: python:3.12-slim
+  needs:
+    - backend:lint
+  cache:
+    key: bandit
+    paths:
+      - .cache/pip
   before_script:
     - pip install --quiet bandit
   script:
@@ -206,7 +224,6 @@ backend:security:
 build:backend:
   extends: .docker-build-base
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
     - docker build
         --cache-from $REGISTRY/backend:dev
         --tag $REGISTRY/backend:$CI_COMMIT_SHORT_SHA
@@ -221,7 +238,6 @@ build:backend:
 build:frontend:
   extends: .docker-build-base
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
     - docker build
         --cache-from $REGISTRY/frontend:dev
         --tag $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA
@@ -245,6 +261,7 @@ deploy:stage:
   environment:
     name: stage
     url: http://localhost:3080
+  resource_group: stage
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
     - docker pull $REGISTRY/backend:dev
