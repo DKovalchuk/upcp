@@ -37,7 +37,27 @@ try:
 except ImportError:
     pass
 
-app = FastAPI(title="UPCP Backend", version="0.1.0")
+app = FastAPI(
+    title="UPCP Backend",
+    version="0.1.0",
+    openapi_tags=[
+        {"name": "projects", "description": "Project CRUD operations"},
+        {"name": "structure", "description": "Components and modules within projects"},
+        {"name": "delivery", "description": "Features, tasks, and subtasks"},
+        {"name": "quality", "description": "Acceptance criteria and DoD items"},
+        {"name": "gitread", "description": "Git provider integration"},
+        {"name": "reports", "description": "Project reports and daily summaries"},
+        {"name": "dashboard", "description": "Dashboard stats and attention overview"},
+        {"name": "audit", "description": "Audit event timeline"},
+        {"name": "search", "description": "Global search across entities"},
+        {
+            "name": "workflow",
+            "description": "Agent task workflow (claims, heartbeats, clarifications)",
+        },
+        {"name": "agent-self", "description": "Agent self-service endpoints"},
+        {"name": "notifications", "description": "User notifications"},
+    ],
+)
 register_error_handlers(app)
 
 # Tracing middleware — creates spans for each request (lazy import)

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.gitread.schemas import GitLinkCreate, GitProviderCreate
+from app.gitread.schemas import GitLinkCreate, GitProviderCreate, GitProviderUpdate
 from app.gitread.service import (
     GitBranchService,
     GitCommitService,
@@ -9,6 +9,7 @@ from app.gitread.service import (
     GitProviderService,
 )
 from app.shared.database import get_session
+from app.shared.errors import ValidationError
 
 router = APIRouter(tags=["gitread"])
 
@@ -62,6 +63,32 @@ def list_providers(
 @router.delete("/git-providers/{provider_id}", status_code=204)
 def delete_provider(provider_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     GitProviderService(session).delete(provider_id)
+
+
+@router.patch(
+    "/git-providers/{provider_id}",
+    summary="Update a git provider",
+    description="Partially update a git provider by ID. Only provided fields are updated.",
+)
+def update_provider(
+    provider_id: str, body: GitProviderUpdate, session: Session = Depends(get_session)
+) -> dict[str, str]:  # noqa: B008
+    updates = body.model_dump(exclude_unset=True)
+    if not updates:
+        raise ValidationError("No fields to update")
+    gp = GitProviderService(session).update(
+        provider_id,
+        name=updates.get("name"),
+        provider_type=updates.get("provider_type"),
+        url=updates.get("url"),
+    )
+    return {
+        "id": gp.id,
+        "name": gp.name,
+        "provider_type": gp.provider_type,
+        "url": gp.url,
+        "status": gp.status,
+    }
 
 
 @router.get("/git-providers/{provider_id}/branches")

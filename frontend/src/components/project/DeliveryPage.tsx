@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useLocation } from '@tanstack/react-router';
+import { useState } from 'react';
+import { useProjectId } from '@/hooks/use-project-id';
 import { useFeatures } from '@/hooks/use-features';
 import { useTasks } from '@/hooks/use-tasks';
 import { useCreateFeature, useDeleteFeature } from '@/hooks/use-features';
@@ -39,11 +39,7 @@ import {
 import type { Task } from '@/types/task';
 
 export function DeliveryPage() {
-  const location = useLocation();
-  const projectId = useMemo(() => {
-    const match = location.pathname.match(/^\/projects\/([^/]+)/);
-    return match?.[1] ?? '';
-  }, [location.pathname]);
+  const projectId = useProjectId();
   const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
   const { data, isLoading } = useFeatures(projectId, { offset, limit });
   const features = data?.items ?? [];

@@ -28,6 +28,24 @@ class GitProviderService:
         self._session.delete(gp)
         self._session.flush()
 
+    def update(
+        self,
+        provider_id: str,
+        *,
+        name: str | None = None,
+        provider_type: str | None = None,
+        url: str | None = None,
+    ) -> GitProvider:
+        gp = self.get(provider_id)
+        if name is not None:
+            gp.name = name
+        if provider_type is not None:
+            gp.provider_type = provider_type
+        if url is not None:
+            gp.url = url
+        self._session.flush()
+        return gp
+
 
 class GitBranchService:
     def __init__(self, session: Session) -> None:

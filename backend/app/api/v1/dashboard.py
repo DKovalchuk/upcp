@@ -17,7 +17,12 @@ from app.shared.database import get_session
 router = APIRouter(tags=["dashboard"])
 
 
-@router.get("/dashboard/stats", response_model=DashboardStatsResponse)
+@router.get(
+    "/dashboard/stats",
+    response_model=DashboardStatsResponse,
+    summary="Get dashboard statistics",
+    description="Get aggregated dashboard statistics including project count, task counts, and recent activity.",
+)
 def get_dashboard_stats(session: Session = Depends(get_session)) -> DashboardStatsResponse:  # noqa: B008
     """Get aggregated dashboard statistics."""
     service = DashboardService(session)
@@ -30,7 +35,11 @@ def get_dashboard_stats(session: Session = Depends(get_session)) -> DashboardSta
     )
 
 
-@router.get("/dashboard/attention")
+@router.get(
+    "/dashboard/attention",
+    summary="Get attention dashboard",
+    description="Get action items requiring user attention such as blocked tasks and overdue items.",
+)
 def get_dashboard_attention(
     session: Session = Depends(get_session),
 ) -> dict[str, list[dict[str, object]]]:  # noqa: B008
@@ -39,7 +48,12 @@ def get_dashboard_attention(
     return svc.get_attention()
 
 
-@router.get("/projects/{project_id}/health")
+@router.get(
+    "/projects/{project_id}/health",
+    summary="Get project health score",
+    description="Get the health score and detailed breakdown for a specific project.",
+    responses={404: {"description": "Project not found"}},
+)
 def get_project_health(
     project_id: str,
     session: Session = Depends(get_session),
@@ -49,7 +63,11 @@ def get_project_health(
     return svc.get_project_health(project_id)
 
 
-@router.get("/portfolio/overview")
+@router.get(
+    "/portfolio/overview",
+    summary="Get portfolio overview",
+    description="Get a portfolio-level overview with summaries across all projects.",
+)
 def get_portfolio_overview(
     session: Session = Depends(get_session),
 ) -> dict[str, object]:  # noqa: B008
@@ -58,7 +76,11 @@ def get_portfolio_overview(
     return svc.get_overview()
 
 
-@router.get("/dashboard/agent-activity")
+@router.get(
+    "/dashboard/agent-activity",
+    summary="Get agent activity",
+    description="Get active agents with their current task, progress percentage, and heartbeat status.",
+)
 def get_agent_activity(
     session: Session = Depends(get_session),
 ) -> dict[str, list[dict[str, object]]]:  # noqa: B008

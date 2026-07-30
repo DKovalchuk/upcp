@@ -13,6 +13,12 @@ class GitProviderCreate(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
 
 
+class GitProviderUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=255)
+    provider_type: ProviderType | None = None
+    url: str | None = Field(None, min_length=1, max_length=2048)
+
+
 class GitLinkCreate(BaseModel):
     entity_type: str = Field(..., min_length=1, max_length=255)
     entity_id: str = Field(..., min_length=1, max_length=255)

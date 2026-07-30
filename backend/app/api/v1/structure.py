@@ -44,7 +44,13 @@ def _mod_resp(m: Module) -> dict[str, str | None]:
 # ── Component ──
 
 
-@router.post("/projects/{project_id}/components", status_code=201)
+@router.post(
+    "/projects/{project_id}/components",
+    status_code=201,
+    summary="Create a component",
+    description="Create a new component within a project.",
+    responses={422: {"description": "Validation error"}},
+)
 def create_component(
     project_id: str, body: ComponentCreate, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -59,7 +65,12 @@ def create_component(
     return _comp_resp(comp)
 
 
-@router.get("/components/{component_id}")
+@router.get(
+    "/components/{component_id}",
+    summary="Get a component by ID",
+    description="Retrieve a single component by its unique identifier.",
+    responses={404: {"description": "Component not found"}},
+)
 def get_component(
     component_id: str, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -67,7 +78,15 @@ def get_component(
     return _comp_resp(service.get(component_id))
 
 
-@router.patch("/components/{component_id}")
+@router.patch(
+    "/components/{component_id}",
+    summary="Update a component",
+    description="Partially update a component. Only provided fields are changed.",
+    responses={
+        404: {"description": "Component not found"},
+        422: {"description": "Validation error"},
+    },
+)
 def update_component(
     component_id: str, body: ComponentUpdate, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -76,12 +95,22 @@ def update_component(
     return _comp_resp(comp)
 
 
-@router.delete("/components/{component_id}", status_code=204)
+@router.delete(
+    "/components/{component_id}",
+    status_code=204,
+    summary="Delete a component",
+    description="Delete a component by its identifier.",
+    responses={404: {"description": "Component not found"}},
+)
 def delete_component(component_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     ComponentService(session).delete(component_id)
 
 
-@router.get("/projects/{project_id}/components")
+@router.get(
+    "/projects/{project_id}/components",
+    summary="List components for a project",
+    description="List all components within a project with pagination.",
+)
 def list_components(
     project_id: str,
     pagination: PaginationParams = Depends(pagination_dependency),  # noqa: B008
@@ -102,7 +131,13 @@ def list_components(
 # ── Module ──
 
 
-@router.post("/components/{component_id}/modules", status_code=201)
+@router.post(
+    "/components/{component_id}/modules",
+    status_code=201,
+    summary="Create a module",
+    description="Create a new module within a component.",
+    responses={422: {"description": "Validation error"}},
+)
 def create_module(
     component_id: str, body: ModuleCreate, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -117,13 +152,26 @@ def create_module(
     return _mod_resp(mod)
 
 
-@router.get("/modules/{module_id}")
+@router.get(
+    "/modules/{module_id}",
+    summary="Get a module by ID",
+    description="Retrieve a single module by its unique identifier.",
+    responses={404: {"description": "Module not found"}},
+)
 def get_module(module_id: str, session: Session = Depends(get_session)) -> dict[str, str | None]:  # noqa: B008
     service = ModuleService(session)
     return _mod_resp(service.get(module_id))
 
 
-@router.patch("/modules/{module_id}")
+@router.patch(
+    "/modules/{module_id}",
+    summary="Update a module",
+    description="Partially update a module. Only provided fields are changed.",
+    responses={
+        404: {"description": "Module not found"},
+        422: {"description": "Validation error"},
+    },
+)
 def update_module(
     module_id: str, body: ModuleUpdate, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -132,12 +180,22 @@ def update_module(
     return _mod_resp(mod)
 
 
-@router.delete("/modules/{module_id}", status_code=204)
+@router.delete(
+    "/modules/{module_id}",
+    status_code=204,
+    summary="Delete a module",
+    description="Delete a module by its identifier.",
+    responses={404: {"description": "Module not found"}},
+)
 def delete_module(module_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     ModuleService(session).delete(module_id)
 
 
-@router.get("/components/{component_id}/modules")
+@router.get(
+    "/components/{component_id}/modules",
+    summary="List modules for a component",
+    description="List all modules within a component with pagination.",
+)
 def list_modules(
     component_id: str,
     pagination: PaginationParams = Depends(pagination_dependency),  # noqa: B008

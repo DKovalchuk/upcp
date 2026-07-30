@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useLocation } from '@tanstack/react-router';
+import { useState } from 'react';
+import { useProjectId } from '@/hooks/use-project-id';
 import { useComponents } from '@/hooks/use-components';
 import { useModules } from '@/hooks/use-modules';
 import { useCreateComponent, useDeleteComponent } from '@/hooks/use-components';
@@ -24,11 +24,7 @@ import {
 } from '@/components/ui/table';
 
 export function StructurePage() {
-  const location = useLocation();
-  const projectId = useMemo(() => {
-    const match = location.pathname.match(/^\/projects\/([^/]+)/);
-    return match?.[1] ?? '';
-  }, [location.pathname]);
+  const projectId = useProjectId();
   const { data: components, isLoading } = useComponents(projectId);
   const createComponent = useCreateComponent();
   const deleteComponent = useDeleteComponent();

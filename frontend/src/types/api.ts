@@ -5,11 +5,6 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
-export interface ErrorResponse {
-  error: string;
-  detail: string;
-}
-
 export interface HealthCheckResult {
   status: string;
   latency_ms?: number;
