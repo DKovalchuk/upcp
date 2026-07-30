@@ -5,7 +5,7 @@ FROM node:20.18.0-slim AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm install && npm rebuild
 
 COPY . .
 RUN npm run build
