@@ -41,8 +41,6 @@ class ReportingService:
         # Verify project exists
         project = self._session.get(Project, project_id)
         if not project:
-            from app.shared.errors import NotFound
-
             raise NotFound(f"Project {project_id} not found")
 
         # Get feature IDs for this project
@@ -88,7 +86,6 @@ class ReportingService:
                 }
                 for task in recent_tasks
             ],
-            "blockers": [],  # Placeholder for future blocker detection
         }
 
         return self.create_report(
@@ -118,8 +115,6 @@ class ReportingService:
         """Update report with LLM-generated summary."""
         report = self.get_report(report_id)
         if not report:
-            from app.shared.errors import NotFound
-
             raise NotFound(f"Report {report_id} not found")
 
         report.summary = summary

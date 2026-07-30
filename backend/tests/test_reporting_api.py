@@ -62,7 +62,6 @@ def test_generate_daily_report() -> None:
     assert "content" in data
     assert "task_counts" in data["content"]
     assert "recent_changes" in data["content"]
-    assert "blockers" in data["content"]
 
 
 def test_generate_daily_report_project_not_found() -> None:

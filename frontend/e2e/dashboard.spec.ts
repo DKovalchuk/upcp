@@ -13,7 +13,7 @@ test.describe('Dashboard', () => {
     const el = page.getByText('Needs Your Review');
     await el.scrollIntoViewIfNeeded();
     await expect(el).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('Open Clarifications')).toBeVisible();
+    await expect(page.getByText('Open Questions', { exact: true })).toBeVisible();
   });
 
   test('shows Active Agents section', async ({ page }) => {

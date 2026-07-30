@@ -9,6 +9,13 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export interface FormField {
   name: string;
@@ -60,7 +67,8 @@ export function EntityFormDialog({
       setFormData(initial);
       setErrors({});
     }
-  }, [open, fields, initialData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, fields, JSON.stringify(initialData)]);
 
   const handleChange = (name: string, value: string) => {
     setFormData((prev) => {
@@ -144,19 +152,18 @@ export function EntityFormDialog({
                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   />
                 ) : field.type === 'select' && field.options ? (
-                  <select
-                    id={field.name}
-                    value={formData[field.name] ?? ''}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">Select...</option>
-                    {field.options.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={formData[field.name] || ''} onValueChange={(v) => handleChange(field.name, v ?? '')}>
+                    <SelectTrigger className="h-10 w-full">
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <Input
                     id={field.name}

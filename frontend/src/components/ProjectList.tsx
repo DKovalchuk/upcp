@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useProjects, useCreateProject } from '@/hooks/use-projects';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
 import { ProjectTable } from '@/components/ProjectTable';
@@ -9,14 +9,9 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
+import { projectFields } from '@/components/forms/entity-fields';
 import { showToast } from '@/lib/toast';
 import { FolderKanban } from 'lucide-react';
-
-const PROJECT_FIELDS = [
-  { name: 'name', label: 'Name', required: true, placeholder: 'My Project' },
-  { name: 'slug', label: 'Slug', placeholder: 'my-project' },
-  { name: 'description', label: 'Description', type: 'textarea' as const, placeholder: 'Project description...' },
-];
 
 export function ProjectList() {
   const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
@@ -26,6 +21,12 @@ export function ProjectList() {
 
   const projects = data?.items ?? [];
   const total = data?.total ?? 0;
+
+  // Create dialog omits status field (defaults to "active" on server)
+  const projectFieldsForCreate = useMemo(
+    () => projectFields.filter((f) => f.name !== 'status'),
+    []
+  );
 
   const handleCreate = async (formData: Record<string, string>) => {
     await createProject.mutateAsync({
@@ -83,7 +84,7 @@ export function ProjectList() {
           open={showCreate}
           onOpenChange={setShowCreate}
           title="New Project"
-          fields={PROJECT_FIELDS}
+          fields={projectFieldsForCreate}
           onSubmit={handleCreate}
           submitLabel="Create"
         />
@@ -115,7 +116,7 @@ export function ProjectList() {
         open={showCreate}
         onOpenChange={setShowCreate}
         title="New Project"
-        fields={PROJECT_FIELDS}
+        fields={projectFieldsForCreate}
         onSubmit={handleCreate}
         submitLabel="Create"
       />

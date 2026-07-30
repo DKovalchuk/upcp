@@ -1,5 +1,9 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger(__name__)
 
 
 class AppError(Exception):
@@ -38,4 +42,17 @@ def register_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": exc.error_code, "detail": exc.detail},
+        )
+
+    @app.exception_handler(Exception)
+    async def catch_all_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.error(
+            "Unhandled exception: %s: %s",
+            type(exc).__name__,
+            exc,
+            exc_info=True,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_error", "detail": "An unexpected error occurred"},
         )

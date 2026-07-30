@@ -202,7 +202,23 @@ A task is done only if:
 - `PROJECT_STATUS.md` is updated;
 - evidence is available: test output, command output, or artifact.
 
-## 8. Model Routing
+## 8. Versioning
+
+UPCP uses SemVer 2.0 with a pre-1.0 convention. Full spec in `VERSIONING.md`.
+
+**Scheme**: `0.MINOR.PATCH` — minor = milestone, patch = fixes/polish.
+
+**Mandatory**: when completing a milestone or significant batch of changes:
+
+1. Read `VERSIONING.md` for current version and rules
+2. Bump version in `pyproject.toml` and `frontend/package.json` (must match)
+3. Add entry to `CHANGELOG.md` (move `[Unreleased]` items to new version)
+4. Update `VERSIONING.md` version history table
+5. Commit: `chore: bump version to 0.X.Y — <summary>`
+
+**Never**: skip versions, retroactively change released versions, or create git tags for 0.x.y.
+
+## 9. Model Routing
 
 Use the cheapest sufficient model.
 
@@ -240,7 +256,7 @@ If a routine model fails twice on the same issue, stop and either:
 1. decompose the task; or
 2. escalate to Pro model.
 
-## 9. Stop Conditions
+## 10. Stop Conditions
 
 Stop and report if:
 
@@ -254,7 +270,7 @@ Stop and report if:
 - more than two failed fix attempts occur;
 - a file is too large and needs decomposition.
 
-## 10. Output Discipline
+## 11. Output Discipline
 
 Final response must be concise.
 

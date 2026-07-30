@@ -10,9 +10,17 @@ export interface ErrorResponse {
   detail: string;
 }
 
+export interface HealthCheckResult {
+  status: string;
+  latency_ms?: number;
+  error?: string;
+}
+
 export interface HealthResponse {
   status: string;
   service: string;
+  db: HealthCheckResult;
+  redis: HealthCheckResult;
 }
 
 export interface ProjectSummary {

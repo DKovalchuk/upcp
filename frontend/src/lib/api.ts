@@ -2,7 +2,7 @@ import type { Project, ProjectCreate, ProjectUpdate } from '@/types/project';
 import type { Component, ComponentCreate, ComponentUpdate } from '@/types/component';
 import type { Module, ModuleCreate, ModuleUpdate } from '@/types/module';
 import type { Feature, FeatureCreate, FeatureUpdate } from '@/types/feature';
-import type { Task, TaskCreate, TaskUpdate, TaskClaim, AgentMe, AgentEvent } from '@/types/task';
+import type { Task, TaskCreate, TaskUpdate, TaskClaim, Heartbeat, ClarificationRequest, AgentMe, AgentEvent } from '@/types/task';
 import type { Subtask, SubtaskCreate, SubtaskUpdate } from '@/types/subtask';
 import type {
   AcceptanceCriterion,
@@ -18,6 +18,7 @@ import type {
 import type { Report, ReportCreate } from '@/types/report';
 import type { AuditEvent, AuditEventCreate } from '@/types/audit';
 import type {
+  AgentActivityItem,
   AttentionDashboard,
   Notification,
   PortfolioOverview,
@@ -34,6 +35,52 @@ function getToken(): string | null {
   return safeStorage.getItem('upcp_access_token');
 }
 
+function getRefreshToken(): string | null {
+  return safeStorage.getItem('upcp_refresh_token');
+}
+
+function setTokens(access: string, refresh: string): void {
+  safeStorage.setItem('upcp_access_token', access);
+  safeStorage.setItem('upcp_refresh_token', refresh);
+}
+
+function clearTokens(): void {
+  safeStorage.removeItem('upcp_access_token');
+  safeStorage.removeItem('upcp_refresh_token');
+}
+
+// Prevent multiple concurrent refresh attempts
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefreshToken(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return false;
+
+    try {
+      const res = await fetch(`${API_BASE.replace('/api/v1', '')}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      setTokens(data.access_token, data.refresh_token);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 function paginationParams(params?: { offset?: number; limit?: number }): string {
   if (!params) return '';
   const parts: string[] = [];
@@ -44,7 +91,8 @@ function paginationParams(params?: { offset?: number; limit?: number }): string 
 
 async function apiRequest<T>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  _isRetry = false,
 ): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -61,13 +109,19 @@ async function apiRequest<T>(
     headers,
   });
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      safeStorage.removeItem('upcp_access_token');
-      safeStorage.removeItem('upcp_refresh_token');
-      window.location.href = '/login';
-      throw new Error('Unauthorized');
+  if (response.status === 401 && !_isRetry && !url.includes('/auth/')) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      return apiRequest<T>(url, options, true);
     }
+    clearTokens();
+    if (!window.location.pathname.startsWith('/login')) {
+      window.location.href = '/login';
+    }
+    throw new Error('Unauthorized');
+  }
+
+  if (!response.ok) {
     const error = await response.json().catch(() => ({
       error: response.statusText,
       detail: 'Unknown error',
@@ -358,10 +412,18 @@ export async function fetchReport(id: string): Promise<Report> {
 }
 
 export async function createReport(projectId: string, data: ReportCreate): Promise<Report> {
-  return apiRequest<Report>(`${API_BASE}/projects/${projectId}/reports`, {
+  return apiRequest<Report>(`${API_BASE}/projects/${projectId}/reports/daily`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+export async function exportReportMarkdown(
+  reportId: string
+): Promise<{ markdown: string }> {
+  return apiRequest<{ markdown: string }>(
+    `${API_BASE}/reports/${reportId}/markdown`
+  );
 }
 
 // Audit Events
@@ -537,6 +599,32 @@ export async function updateProgress(
   });
 }
 
+// ── Task Workflow (read) ──
+
+export async function fetchTaskClaims(
+  taskId: string
+): Promise<{ items: TaskClaim[] }> {
+  return apiRequest<{ items: TaskClaim[] }>(
+    `${API_BASE}/tasks/${taskId}/claims`
+  );
+}
+
+export async function fetchTaskHeartbeats(
+  taskId: string
+): Promise<{ items: Heartbeat[] }> {
+  return apiRequest<{ items: Heartbeat[] }>(
+    `${API_BASE}/tasks/${taskId}/heartbeats`
+  );
+}
+
+export async function fetchTaskClarifications(
+  taskId: string
+): Promise<{ items: ClarificationRequest[] }> {
+  return apiRequest<{ items: ClarificationRequest[] }>(
+    `${API_BASE}/tasks/${taskId}/clarifications`
+  );
+}
+
 // ── Agent Self-Service ──
 
 export async function getAgentMe(): Promise<AgentMe> {
@@ -647,6 +735,12 @@ export async function submitForReview(
 
 export async function fetchAttentionDashboard(): Promise<AttentionDashboard> {
   return apiRequest<AttentionDashboard>(`${API_BASE}/dashboard/attention`);
+}
+
+export async function fetchAgentActivity(): Promise<{ items: AgentActivityItem[] }> {
+  return apiRequest<{ items: AgentActivityItem[] }>(
+    `${API_BASE}/dashboard/agent-activity`
+  );
 }
 
 export async function fetchProjectHealth(
