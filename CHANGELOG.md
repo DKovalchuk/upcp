@@ -5,6 +5,35 @@ All notable changes to UPCP will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development, 1.0.0 when production-ready.
 
+## [Unreleased]
+
+### Fixed (S14.1 — M12 Critical Fixes)
+- `/health` endpoint now checks PostgreSQL via `SELECT 1` (was Redis-only)
+- HealthPage Database card shows real connection status (was hardcoded "Connected")
+- HealthPage now shows Redis status card
+- `HealthResponse` schema updated with nested `db` and `redis` fields
+- TaskDetailSheet Execution tab shows real agent claims, heartbeats, clarifications, evidence, reviews (was 100% hardcoded mock data)
+- Added GET endpoints: `/tasks/{id}/claims`, `/tasks/{id}/heartbeats`, `/tasks/{id}/clarifications`
+- AgentActivitySummary fetches real agent activity from `/dashboard/agent-activity` (was static empty state)
+- Added `GET /dashboard/agent-activity` endpoint (active agents with task + heartbeat data)
+- ReportsPage: fixed `createReport` URL (`/reports` → `/reports/daily`) — generation was completely broken
+- ReportsPage: export uses `apiRequest` wrapper (was raw `fetch`, no auth token)
+- ReportsPage: fixed `revokeObjectURL` race condition (was called synchronously after `a.click()`)
+- EntityFormDialog: replaced native `<select>` with shadcn `<Select>` component
+- EntityFormDialog: fixed `useEffect` dependency causing form state loss on parent re-render
+- EntityFormDialog: removed dead `subtaskFields` code
+- ProjectList: imports field definitions from `entity-fields.ts` (was duplicated locally)
+
+### Added (S14.1)
+- `check_db_health()` function in `database.py`
+- `DashboardService.active_agents()` method
+- `useTaskClaims`, `useTaskHeartbeats`, `useTaskClarifications`, `useTaskEvidence`, `useTaskReviewRounds` hooks
+- `useAgentActivity()` hook
+- `AgentActivityItem` TypeScript type
+- `HealthCheckResult` TypeScript type
+- `exportReportMarkdown()` API function
+- 19 new backend tests, 8+ new frontend tests
+
 ## [0.13.0] - 2026-07-27
 
 ### Added (M11)

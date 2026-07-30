@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
-Updated: 2026-07-29
+Updated: 2026-07-30
 Version: 0.13.0 (see `VERSIONING.md` for scheme)
-Milestone: M11 — Human Control UX (Complete)
-Current Task: None (plan mode)
+Milestone: M12 — Critical Fixes (S14.1 complete, S14.2 pending)
+Current Task: TASK-0089 (S14.1 done, ready for S14.2)
 Blockers: none
 
 ## Roadmap to 1.0.0
@@ -17,7 +17,7 @@ Blockers: none
 
 | Sprint | Items | Points | Focus |
 |--------|-------|--------|-------|
-| S14.1 | 0.1–0.6 | 10 | Broken features: TaskDetailSheet execution, HealthPage DB, /health endpoint, AgentActivitySummary, ReportsPage export, EntityFormDialog select |
+| S14.1 | 0.1–0.6 | 10 | Broken features: TaskDetailSheet execution, HealthPage DB, /health endpoint, AgentActivitySummary, ReportsPage export, EntityFormDialog select | ✅ DONE |
 | S14.2 | 1.1–1.4 | 5 | Security: CORS headers, SSRF validation, error sanitization, dependency scanning |
 
 ### M13: 0.15.0 — Architecture & Backend Cleanup (S15.1–S15.3)
