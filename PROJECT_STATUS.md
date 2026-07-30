@@ -3,7 +3,7 @@
 Updated: 2026-07-30
 Version: 0.14.0 (see `VERSIONING.md` for scheme)
 Milestone: M13 — Architecture & Backend Cleanup (M12 complete)
-Current Task: none (S14.2 done, ready for M13)
+Current Task: TASK-0091 (S15.1 complete, ready for S15.2)
 Blockers: none
 
 ## Stage Deployment
@@ -31,7 +31,7 @@ Blockers: none
 
 | Sprint | Items | Points | Focus |
 |--------|-------|--------|-------|
-| S15.1 | 2.4, 2.8, 2.10, 3.2–3.5 | 8 | Quick wins: PATCH endpoint, OpenAPI, Settings route, useProjectId dedup, dead code, Ctrl+K |
+| S15.1 | 2.4, 2.8, 2.10, 3.2–3.5 | 8 | Quick wins: PATCH endpoint, OpenAPI, Settings route, useProjectId dedup, dead code, Ctrl+K | ✅ DONE |
 | S15.2 | 2.1–2.3, 3.1 | 9 | Backend: N+1, eager loading, pagination. Frontend: api.ts split |
 | S15.3 | 2.7, 2.9, 3.6–3.8 | 8 | Backend: schemas, /tasks endpoint. Frontend: logic to hooks, UUID resolution |
 
@@ -45,6 +45,36 @@ Blockers: none
 | S16.4 | 5.9–5.15, 6.9–6.12 | 7 | Polish: animations, typography, switcher, quick-edit. Test cleanup |
 
 **Total: 61 items, 9 sprints (18 weeks), 3 milestones**
+
+## S15.1 Progress (Complete)
+
+- [x] TASK-0091: S15.1 Quick Wins (2.4, 2.8, 2.10, 3.2, 3.4, 3.5)
+
+### S15.1 Summary
+
+**Backend:**
+- PATCH endpoint for git providers (`/git-providers/{provider_id}`)
+- `GitProviderUpdate` schema with optional fields
+- `update_provider()` service method with partial update support
+- OpenAPI documentation: summary + description on all 12 routers
+- OpenAPI tags with descriptions in `main.py`
+- 5 new PATCH endpoint tests (all passing)
+
+**Frontend:**
+- Settings page with theme toggle, API info, and about section
+- `useProjectId` deduplication: 6 components refactored to use hook
+- CommandPalette cleanup: removed inline projectId extraction
+- Dead code removal: HealthScore, PageHeader, unused type definitions, stale assets
+- TypeScript: 0 errors
+
+**Verification:**
+- Backend: 615/615 tests passed
+- Frontend: 161/161 tests passed
+- Ruff: All checks passed
+- Mypy: 0 errors
+- TypeScript: 0 errors
+
+**Files Changed:** 32 files (699 insertions, 250 deletions)
 
 ## M11 Progress (Complete)
 

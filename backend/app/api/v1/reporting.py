@@ -15,7 +15,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["reports"])
 
 
-@router.post("/projects/{project_id}/reports/daily", response_model=ReportResponse, status_code=201)
+@router.post(
+    "/projects/{project_id}/reports/daily",
+    response_model=ReportResponse,
+    status_code=201,
+    summary="Generate a daily report",
+    description="Generate a daily summary report for a project covering recent changes and task status.",
+    responses={422: {"description": "Validation error"}},
+)
 def generate_daily_report(
     project_id: str,
     session: Session = Depends(get_session),  # noqa: B008
@@ -33,7 +40,13 @@ def generate_daily_report(
     )
 
 
-@router.get("/reports/{report_id}", response_model=ReportResponse)
+@router.get(
+    "/reports/{report_id}",
+    response_model=ReportResponse,
+    summary="Get a report by ID",
+    description="Retrieve a single report by its unique identifier.",
+    responses={404: {"description": "Report not found"}},
+)
 def get_report(
     report_id: str,
     session: Session = Depends(get_session),  # noqa: B008
@@ -53,7 +66,12 @@ def get_report(
     )
 
 
-@router.get("/reports/{report_id}/markdown")
+@router.get(
+    "/reports/{report_id}/markdown",
+    summary="Export report as markdown",
+    description="Export a report in markdown format for external consumption.",
+    responses={404: {"description": "Report not found"}},
+)
 def export_report_markdown(
     report_id: str,
     session: Session = Depends(get_session),  # noqa: B008
@@ -69,7 +87,16 @@ def export_report_markdown(
     return {"markdown": markdown}
 
 
-@router.post("/reports/{report_id}/summarize", response_model=ReportSummary)
+@router.post(
+    "/reports/{report_id}/summarize",
+    response_model=ReportSummary,
+    summary="Summarize a report with LLM",
+    description="Generate an LLM-powered summary for a report. Requires LLM provider configuration.",
+    responses={
+        404: {"description": "Report not found"},
+        422: {"description": "LLM not enabled or report has no content"},
+    },
+)
 def summarize_report(
     report_id: str,
     session: Session = Depends(get_session),  # noqa: B008
@@ -139,7 +166,11 @@ def summarize_report(
     return ReportSummary(summary=summary)
 
 
-@router.get("/projects/{project_id}/reports")
+@router.get(
+    "/projects/{project_id}/reports",
+    summary="List reports for a project",
+    description="List all reports for a project with pagination.",
+)
 def list_project_reports(
     project_id: str,
     pagination: PaginationParams = Depends(pagination_dependency),  # noqa: B008

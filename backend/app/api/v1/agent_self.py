@@ -37,7 +37,12 @@ backlog → ready → claimed → in_progress → done
 """
 
 
-@router.get("/agent/me")
+@router.get(
+    "/agent/me",
+    summary="Get agent profile",
+    description="Return the current agent's profile, scopes, and inbox count.",
+    responses={404: {"description": "Agent not found"}},
+)
 def agent_me(
     agent: CurrentAgent = Depends(get_current_agent),
     db: Session = Depends(get_session),
@@ -70,7 +75,11 @@ def agent_me(
     }
 
 
-@router.get("/agent/inbox")
+@router.get(
+    "/agent/inbox",
+    summary="Get agent inbox",
+    description="Return pending events and notifications for the current agent.",
+)
 def agent_inbox(
     agent: CurrentAgent = Depends(get_current_agent),
     since: str | None = None,
@@ -80,7 +89,11 @@ def agent_inbox(
     return {"events": []}
 
 
-@router.get("/agent/playbook")
+@router.get(
+    "/agent/playbook",
+    summary="Get agent playbook",
+    description="Return the agent playbook with instructions on task handling and workflows.",
+)
 def agent_playbook(
     agent: CurrentAgent = Depends(get_current_agent),
 ) -> dict[str, str]:

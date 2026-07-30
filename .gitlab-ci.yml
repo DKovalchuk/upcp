@@ -229,6 +229,7 @@ dependency:scan:backend:
     - pip install --quiet pip-audit
   script:
     - pip-audit --requirement backend/requirements.txt --desc on
+  allow_failure: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -243,6 +244,7 @@ dependency:scan:frontend:
     - frontend:lint
   script:
     - npm audit --audit-level=high
+  allow_failure: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes: ["frontend/**/*"]

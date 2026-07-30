@@ -12,7 +12,11 @@ from app.shared.pagination import PaginationParams, pagination_dependency
 router = APIRouter(tags=["audit"])
 
 
-@router.get("/projects/{project_id}/audit-events")
+@router.get(
+    "/projects/{project_id}/audit-events",
+    summary="List audit events",
+    description="List audit events for a project with filtering by event type, entity type, and date range.",
+)
 def list_audit_events(
     project_id: str,
     pagination: PaginationParams = Depends(pagination_dependency),  # noqa: B008

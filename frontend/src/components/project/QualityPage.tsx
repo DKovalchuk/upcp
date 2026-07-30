@@ -1,5 +1,4 @@
-import { useLocation } from '@tanstack/react-router';
-import { useMemo } from 'react';
+import { useProjectId } from '@/hooks/use-project-id';
 import { useQualityStats } from '@/hooks/use-quality-stats';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
@@ -20,11 +19,7 @@ function StatCard({ label, value, sub }: { label: string; value: number | string
 }
 
 export function QualityPage() {
-  const location = useLocation();
-  const projectId = useMemo(() => {
-    const match = location.pathname.match(/^\/projects\/([^/]+)/);
-    return match?.[1] ?? '';
-  }, [location.pathname]);
+  const projectId = useProjectId();
 
   const { data: stats, isLoading, error } = useQualityStats(projectId);
 

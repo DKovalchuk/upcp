@@ -11,7 +11,3 @@ export interface ReportCreate {
   report_type: string;
   content?: Record<string, unknown>;
 }
-
-export interface ReportSummary {
-  summary: string;
-}

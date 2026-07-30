@@ -63,7 +63,13 @@ def _sub_resp(s: Subtask) -> dict[str, str | None]:
 # ── Feature ──
 
 
-@router.post("/projects/{project_id}/features", status_code=201)
+@router.post(
+    "/projects/{project_id}/features",
+    status_code=201,
+    summary="Create a feature",
+    description="Create a new feature within a project, optionally linked to a component.",
+    responses={422: {"description": "Validation error"}},
+)
 def create_feature(
     project_id: str, body: FeatureCreate, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -80,12 +86,25 @@ def create_feature(
     )
 
 
-@router.get("/features/{feature_id}")
+@router.get(
+    "/features/{feature_id}",
+    summary="Get a feature by ID",
+    description="Retrieve a single feature by its unique identifier.",
+    responses={404: {"description": "Feature not found"}},
+)
 def get_feature(feature_id: str, session: Session = Depends(get_session)) -> dict[str, str | None]:  # noqa: B008
     return _feat_resp(FeatureService(session).get(feature_id))
 
 
-@router.patch("/features/{feature_id}")
+@router.patch(
+    "/features/{feature_id}",
+    summary="Update a feature",
+    description="Partially update a feature. Only provided fields are changed.",
+    responses={
+        404: {"description": "Feature not found"},
+        422: {"description": "Validation error"},
+    },
+)
 def update_feature(
     feature_id: str, body: FeatureUpdate, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -94,12 +113,22 @@ def update_feature(
     )
 
 
-@router.delete("/features/{feature_id}", status_code=204)
+@router.delete(
+    "/features/{feature_id}",
+    status_code=204,
+    summary="Delete a feature",
+    description="Delete a feature by its identifier.",
+    responses={404: {"description": "Feature not found"}},
+)
 def delete_feature(feature_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     FeatureService(session).delete(feature_id)
 
 
-@router.get("/projects/{project_id}/features")
+@router.get(
+    "/projects/{project_id}/features",
+    summary="List features for a project",
+    description="List all features within a project with pagination.",
+)
 def list_features(
     project_id: str,
     pagination: PaginationParams = Depends(pagination_dependency),
@@ -118,7 +147,13 @@ def list_features(
 # ── Task ──
 
 
-@router.post("/features/{feature_id}/tasks", status_code=201)
+@router.post(
+    "/features/{feature_id}/tasks",
+    status_code=201,
+    summary="Create a task",
+    description="Create a new task within a feature with optional priority and assignee.",
+    responses={422: {"description": "Validation error"}},
+)
 def create_task(
     feature_id: str, body: TaskCreate, session: Session = Depends(get_session)
 ) -> dict[str, str | None | int]:  # noqa: B008
@@ -138,24 +173,47 @@ def create_task(
     )
 
 
-@router.get("/tasks/{task_id}")
+@router.get(
+    "/tasks/{task_id}",
+    summary="Get a task by ID",
+    description="Retrieve a single task by its unique identifier.",
+    responses={404: {"description": "Task not found"}},
+)
 def get_task(task_id: str, session: Session = Depends(get_session)) -> dict[str, str | None | int]:  # noqa: B008
     return _task_resp(TaskService(session).get(task_id))
 
 
-@router.patch("/tasks/{task_id}")
+@router.patch(
+    "/tasks/{task_id}",
+    summary="Update a task",
+    description="Partially update a task. Only provided fields are changed.",
+    responses={
+        404: {"description": "Task not found"},
+        422: {"description": "Validation error"},
+    },
+)
 def update_task(
     task_id: str, body: TaskUpdate, session: Session = Depends(get_session)
 ) -> dict[str, str | None | int]:  # noqa: B008
     return _task_resp(TaskService(session).update(task_id, **body.model_dump(exclude_unset=True)))
 
 
-@router.delete("/tasks/{task_id}", status_code=204)
+@router.delete(
+    "/tasks/{task_id}",
+    status_code=204,
+    summary="Delete a task",
+    description="Delete a task by its identifier.",
+    responses={404: {"description": "Task not found"}},
+)
 def delete_task(task_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     TaskService(session).delete(task_id)
 
 
-@router.get("/features/{feature_id}/tasks")
+@router.get(
+    "/features/{feature_id}/tasks",
+    summary="List tasks for a feature",
+    description="List all tasks within a feature with pagination.",
+)
 def list_tasks(
     feature_id: str,
     pagination: PaginationParams = Depends(pagination_dependency),
@@ -174,7 +232,13 @@ def list_tasks(
 # ── Subtask ──
 
 
-@router.post("/tasks/{task_id}/subtasks", status_code=201)
+@router.post(
+    "/tasks/{task_id}/subtasks",
+    status_code=201,
+    summary="Create a subtask",
+    description="Create a new subtask within a task.",
+    responses={422: {"description": "Validation error"}},
+)
 def create_subtask(
     task_id: str, body: SubtaskCreate, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -186,12 +250,25 @@ def create_subtask(
     )
 
 
-@router.get("/subtasks/{subtask_id}")
+@router.get(
+    "/subtasks/{subtask_id}",
+    summary="Get a subtask by ID",
+    description="Retrieve a single subtask by its unique identifier.",
+    responses={404: {"description": "Subtask not found"}},
+)
 def get_subtask(subtask_id: str, session: Session = Depends(get_session)) -> dict[str, str | None]:  # noqa: B008
     return _sub_resp(SubtaskService(session).get(subtask_id))
 
 
-@router.patch("/subtasks/{subtask_id}")
+@router.patch(
+    "/subtasks/{subtask_id}",
+    summary="Update a subtask",
+    description="Partially update a subtask. Only provided fields are changed.",
+    responses={
+        404: {"description": "Subtask not found"},
+        422: {"description": "Validation error"},
+    },
+)
 def update_subtask(
     subtask_id: str, body: SubtaskUpdate, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -200,12 +277,22 @@ def update_subtask(
     )
 
 
-@router.delete("/subtasks/{subtask_id}", status_code=204)
+@router.delete(
+    "/subtasks/{subtask_id}",
+    status_code=204,
+    summary="Delete a subtask",
+    description="Delete a subtask by its identifier.",
+    responses={404: {"description": "Subtask not found"}},
+)
 def delete_subtask(subtask_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     SubtaskService(session).delete(subtask_id)
 
 
-@router.get("/tasks/{task_id}/subtasks")
+@router.get(
+    "/tasks/{task_id}/subtasks",
+    summary="List subtasks for a task",
+    description="List all subtasks within a task with pagination.",
+)
 def list_subtasks(
     task_id: str,
     pagination: PaginationParams = Depends(pagination_dependency),

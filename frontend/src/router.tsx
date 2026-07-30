@@ -26,6 +26,10 @@ const ReportsPage = React.lazy(() =>
   import('@/components/project/ReportsPage').then((module) => ({ default: module.ReportsPage }))
 );
 
+const SettingsPage = React.lazy(() =>
+  import('@/components/SettingsPage').then((module) => ({ default: module.SettingsPage }))
+);
+
 const NotFoundPage = React.lazy(() =>
   import('@/components/NotFoundPage').then((module) => ({ default: module.NotFoundPage }))
 );
@@ -200,7 +204,7 @@ const settingsRoute = createRoute({
   path: '/settings',
   component: () => (
     <AuthGuard>
-      <LazyRoute Component={NotFoundPage} />
+      <LazyRoute Component={SettingsPage} />
     </AuthGuard>
   ),
 });

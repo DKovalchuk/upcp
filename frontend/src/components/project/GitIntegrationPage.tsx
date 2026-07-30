@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { useLocation } from '@tanstack/react-router';
+import { useProjectId } from '@/hooks/use-project-id';
 import { useGitProviders, useGitBranches, useGitCommits } from '@/hooks/use-git';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -18,11 +17,7 @@ import {
 } from '@/components/ui/table';
 
 export function GitIntegrationPage() {
-  const location = useLocation();
-  const projectId = useMemo(() => {
-    const match = location.pathname.match(/^\/projects\/([^/]+)/);
-    return match?.[1] ?? '';
-  }, [location.pathname]);
+  const projectId = useProjectId();
 
   const { data: providers, isLoading: providersLoading, error: providersError } =
     useGitProviders(projectId);
