@@ -1,16 +1,16 @@
 # Multi-stage build for production
-# Stage 1: Build
-FROM node:20.18.0-alpine AS build
+# Stage 1: Build (use slim for glibc — native bindings need it)
+FROM node:20.18.0-slim AS build
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --include=optional
+RUN npm ci
 
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve static files
+# Stage 2: Serve static files (alpine is fine for static serving)
 FROM node:20.18.0-alpine
 
 RUN addgroup -S upcp && adduser -S upcp -G upcp
