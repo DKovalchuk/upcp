@@ -5,7 +5,7 @@ FROM node:20.18.0-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --include=optional
 
 COPY . .
 RUN npm run build
