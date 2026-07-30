@@ -6,11 +6,18 @@ Milestone: M13 — Architecture & Backend Cleanup (M12 complete)
 Current Task: none (S14.2 done, ready for M13)
 Blockers: none
 
+## Stage Deployment
+
+- **MR !15**: develop → main merged (2026-07-30)
+- **Stage**: deployed and healthy on localhost:3080
+- **Backend**: localhost:38081 (healthy, DB + Redis connected)
+- **Fixes**: Redis port 36382 (avoids dev conflict), hardcoded UPCP_SECRET_KEY
+
 ## Roadmap to 1.0.0
 
 ```
-0.13.0 (done) → 0.14.0 → 0.15.0 → 1.0.0
-   M11          M12       M13      Production
+0.13.0 (done) → 0.14.0 (done+deployed) → 0.15.0 → 1.0.0
+   M11              M12                    M13      Production
 ```
 
 ### M12: 0.14.0 — Critical Fixes & Security (S14.1–S14.2)

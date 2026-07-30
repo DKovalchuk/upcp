@@ -29,7 +29,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "127.0.0.1:36380:6379"
+      - "127.0.0.1:36382:6379"
     volumes:
       - ./data/redis-stage:/data
     healthcheck:
@@ -50,7 +50,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       UPCP_ENV: stage
       UPCP_LOG_LEVEL: INFO
-      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-stage_change_me}
+      UPCP_SECRET_KEY: REDACTED_STAGE_SECRET
       UPCP_DEBUG: "false"
     ports:
       - "127.0.0.1:38081:8080"
