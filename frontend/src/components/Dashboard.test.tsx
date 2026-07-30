@@ -13,17 +13,19 @@ vi.mock('@tanstack/react-router', () => ({
 // Mock the hooks
 vi.mock('@/hooks/use-dashboard', () => ({
   useDashboardStats: vi.fn(),
+  useAgentActivity: vi.fn(),
 }));
 
 vi.mock('@/hooks/use-projects', () => ({
   useProjects: vi.fn(),
 }));
 
-import { useDashboardStats } from '@/hooks/use-dashboard';
+import { useDashboardStats, useAgentActivity } from '@/hooks/use-dashboard';
 import { useProjects } from '@/hooks/use-projects';
 
 const mockUseDashboardStats = vi.mocked(useDashboardStats);
 const mockUseProjects = vi.mocked(useProjects);
+const mockUseAgentActivity = vi.mocked(useAgentActivity);
 
 function createQueryClient() {
   return new QueryClient({
@@ -43,6 +45,10 @@ function renderDashboard() {
 describe('Dashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseAgentActivity.mockReturnValue({
+      data: { items: [] },
+      isLoading: false,
+    } as any);
   });
 
   it('renders loading skeleton initially', () => {

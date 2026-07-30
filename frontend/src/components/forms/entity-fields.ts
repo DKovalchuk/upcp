@@ -91,18 +91,3 @@ export const taskFields: FormField[] = [
     ],
   },
 ];
-
-export const subtaskFields: FormField[] = [
-  { name: 'title', label: 'Title', required: true, placeholder: 'Design login form' },
-  { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Subtask description...' },
-  {
-    name: 'status',
-    label: 'Status',
-    type: 'select',
-    options: [
-      { label: 'Todo', value: 'todo' },
-      { label: 'In Progress', value: 'in-progress' },
-      { label: 'Done', value: 'done' },
-    ],
-  },
-];

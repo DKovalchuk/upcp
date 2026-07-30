@@ -2,7 +2,7 @@ import type { Project, ProjectCreate, ProjectUpdate } from '@/types/project';
 import type { Component, ComponentCreate, ComponentUpdate } from '@/types/component';
 import type { Module, ModuleCreate, ModuleUpdate } from '@/types/module';
 import type { Feature, FeatureCreate, FeatureUpdate } from '@/types/feature';
-import type { Task, TaskCreate, TaskUpdate, TaskClaim, AgentMe, AgentEvent } from '@/types/task';
+import type { Task, TaskCreate, TaskUpdate, TaskClaim, Heartbeat, ClarificationRequest, AgentMe, AgentEvent } from '@/types/task';
 import type { Subtask, SubtaskCreate, SubtaskUpdate } from '@/types/subtask';
 import type {
   AcceptanceCriterion,
@@ -18,6 +18,7 @@ import type {
 import type { Report, ReportCreate } from '@/types/report';
 import type { AuditEvent, AuditEventCreate } from '@/types/audit';
 import type {
+  AgentActivityItem,
   AttentionDashboard,
   Notification,
   PortfolioOverview,
@@ -358,10 +359,18 @@ export async function fetchReport(id: string): Promise<Report> {
 }
 
 export async function createReport(projectId: string, data: ReportCreate): Promise<Report> {
-  return apiRequest<Report>(`${API_BASE}/projects/${projectId}/reports`, {
+  return apiRequest<Report>(`${API_BASE}/projects/${projectId}/reports/daily`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+export async function exportReportMarkdown(
+  reportId: string
+): Promise<{ markdown: string }> {
+  return apiRequest<{ markdown: string }>(
+    `${API_BASE}/reports/${reportId}/markdown`
+  );
 }
 
 // Audit Events
@@ -537,6 +546,32 @@ export async function updateProgress(
   });
 }
 
+// ── Task Workflow (read) ──
+
+export async function fetchTaskClaims(
+  taskId: string
+): Promise<{ items: TaskClaim[] }> {
+  return apiRequest<{ items: TaskClaim[] }>(
+    `${API_BASE}/tasks/${taskId}/claims`
+  );
+}
+
+export async function fetchTaskHeartbeats(
+  taskId: string
+): Promise<{ items: Heartbeat[] }> {
+  return apiRequest<{ items: Heartbeat[] }>(
+    `${API_BASE}/tasks/${taskId}/heartbeats`
+  );
+}
+
+export async function fetchTaskClarifications(
+  taskId: string
+): Promise<{ items: ClarificationRequest[] }> {
+  return apiRequest<{ items: ClarificationRequest[] }>(
+    `${API_BASE}/tasks/${taskId}/clarifications`
+  );
+}
+
 // ── Agent Self-Service ──
 
 export async function getAgentMe(): Promise<AgentMe> {
@@ -647,6 +682,12 @@ export async function submitForReview(
 
 export async function fetchAttentionDashboard(): Promise<AttentionDashboard> {
   return apiRequest<AttentionDashboard>(`${API_BASE}/dashboard/attention`);
+}
+
+export async function fetchAgentActivity(): Promise<{ items: AgentActivityItem[] }> {
+  return apiRequest<{ items: AgentActivityItem[] }>(
+    `${API_BASE}/dashboard/agent-activity`
+  );
 }
 
 export async function fetchProjectHealth(

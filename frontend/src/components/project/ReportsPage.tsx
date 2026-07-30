@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import { BarChart3, Plus, FileText, Download } from 'lucide-react';
 import { showToast } from '@/lib/toast';
+import { exportReportMarkdown } from '@/lib/api';
 import {
   Table,
   TableBody,
@@ -72,15 +73,14 @@ export function ReportsPage() {
 
   const handleExportMarkdown = async (reportId: string) => {
     try {
-      const res = await fetch(`/api/v1/reports/${reportId}/markdown`);
-      const data = await res.json();
+      const data = await exportReportMarkdown(reportId);
       const blob = new Blob([data.markdown], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `report-${reportId.slice(0, 8)}.md`;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
       showToast.success('Report exported');
     } catch {
       showToast.mutationError('export', 'report');

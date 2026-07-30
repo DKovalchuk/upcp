@@ -50,4 +50,68 @@ describe('HealthPage', () => {
     renderPage();
     expect(screen.getByText('Down')).toBeInTheDocument();
   });
+
+  it('shows Database connected when db.status is ok', () => {
+    mock.mockReturnValue({
+      data: {
+        status: 'ok',
+        service: 'upcp-backend',
+        db: { status: 'ok', latency_ms: 12 },
+        redis: { status: 'ok', latency_ms: 2 },
+      },
+      isLoading: false, error: null,
+    } as any);
+    renderPage();
+    expect(screen.getByText('Database')).toBeInTheDocument();
+    expect(screen.getAllByText('Connected').length).toBeGreaterThan(0);
+    expect(screen.getByText('12ms')).toBeInTheDocument();
+  });
+
+  it('shows Database disconnected when db.status is error', () => {
+    mock.mockReturnValue({
+      data: {
+        status: 'ok',
+        service: 'upcp-backend',
+        db: { status: 'error', error: 'connection refused' },
+        redis: { status: 'ok', latency_ms: 2 },
+      },
+      isLoading: false, error: null,
+    } as any);
+    renderPage();
+    expect(screen.getByText('Database')).toBeInTheDocument();
+    expect(screen.getByText('connection refused')).toBeInTheDocument();
+    expect(screen.getByText('Disconnected')).toBeInTheDocument();
+  });
+
+  it('shows Redis connected when redis.status is ok', () => {
+    mock.mockReturnValue({
+      data: {
+        status: 'ok',
+        service: 'upcp-backend',
+        db: { status: 'ok', latency_ms: 12 },
+        redis: { status: 'ok', latency_ms: 3 },
+      },
+      isLoading: false, error: null,
+    } as any);
+    renderPage();
+    expect(screen.getByText('Redis')).toBeInTheDocument();
+    expect(screen.getAllByText('Connected').length).toBeGreaterThan(0);
+    expect(screen.getByText('3ms')).toBeInTheDocument();
+  });
+
+  it('shows Redis disconnected when redis.status is error', () => {
+    mock.mockReturnValue({
+      data: {
+        status: 'ok',
+        service: 'upcp-backend',
+        db: { status: 'ok', latency_ms: 12 },
+        redis: { status: 'error', error: 'timeout' },
+      },
+      isLoading: false, error: null,
+    } as any);
+    renderPage();
+    expect(screen.getByText('Redis')).toBeInTheDocument();
+    expect(screen.getByText('timeout')).toBeInTheDocument();
+    expect(screen.getByText('Disconnected')).toBeInTheDocument();
+  });
 });
