@@ -1,5 +1,7 @@
 """Tests for dashboard statistics endpoint."""
 
+from datetime import timedelta
+
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.delivery import router as delivery_router
 from app.api.v1.projects import router as projects_router
@@ -8,10 +10,12 @@ from app.api.v1.structure import router as structure_router
 # Import all models to ensure all tables are created
 from app.audit.models import AuditEvent  # noqa: F401
 from app.audit.service import AuditService
-from app.delivery.models import Feature, Task  # noqa: F401
+from app.delivery.models import Feature, Heartbeat, Task, TaskClaim  # noqa: F401
+from app.identity.agents import Agent  # noqa: F401
 from app.projects.models import Project  # noqa: F401
 from app.shared.database import Base, get_session
 from app.shared.errors import register_error_handlers
+from app.shared.text import new_id, utcnow
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -214,3 +218,125 @@ def test_dashboard_stats_recent_activity_limit() -> None:
 
     # Should only return 10 recent activity items
     assert len(data["recent_activity"]) == 10
+
+
+# --- Agent Activity endpoint tests ---
+
+
+def _create_test_data(session, *, stale_heartbeat: bool = False) -> dict:
+    """Create Agent, Task, TaskClaim, Heartbeat for agent-activity tests."""
+    agent = Agent(id=new_id(), name="test-agent-1")
+    session.add(agent)
+    session.flush()
+
+    project = Project(id=new_id(), name="P1", slug="p1")
+    session.add(project)
+    session.flush()
+
+    feature = Feature(id=new_id(), project_id=project.id, name="F1", slug="f1")
+    session.add(feature)
+    session.flush()
+
+    task = Task(id=new_id(), feature_id=feature.id, title="Test Task")
+    session.add(task)
+    session.flush()
+
+    hb_time = utcnow() - timedelta(minutes=10) if stale_heartbeat else utcnow()
+
+    claim = TaskClaim(
+        id=new_id(),
+        task_id=task.id,
+        agent_id=agent.id,
+        state="active",
+        last_heartbeat_at=hb_time,
+    )
+    session.add(claim)
+    session.flush()
+
+    heartbeat = Heartbeat(
+        id=new_id(),
+        claim_id=claim.id,
+        progress_percent=55,
+        current_step="writing tests",
+        next_step="implementation",
+    )
+    session.add(heartbeat)
+    session.flush()
+    session.commit()
+
+    return {
+        "agent": agent,
+        "task": task,
+        "claim": claim,
+        "heartbeat": heartbeat,
+    }
+
+
+def test_agent_activity_empty() -> None:
+    """Test agent-activity returns empty list when no active claims."""
+    client = TestClient(_test_app())
+    resp = client.get("/api/v1/dashboard/agent-activity")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["items"] == []
+
+
+def test_agent_activity_with_claim() -> None:
+    """Test agent-activity returns agent with task info when claim exists."""
+    client = TestClient(_test_app())
+    session = TestSessionLocal()
+    data = _create_test_data(session)
+    # Capture IDs before closing session to avoid DetachedInstanceError
+    agent_id = data["agent"].id
+    task_id = data["task"].id
+    session.close()
+
+    resp = client.get("/api/v1/dashboard/agent-activity")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["items"]) == 1
+
+    item = body["items"][0]
+    assert item["agent_id"] == agent_id
+    assert item["agent_name"] == "test-agent-1"
+    assert item["task_id"] == task_id
+    assert item["task_title"] == "Test Task"
+    assert item["claimed_at"] is not None
+    assert item["last_heartbeat_at"] is not None
+
+
+def test_agent_activity_heartbeat_data() -> None:
+    """Test agent-activity returns heartbeat progress and step info."""
+    client = TestClient(_test_app())
+    session = TestSessionLocal()
+    _create_test_data(session)
+    session.close()
+
+    resp = client.get("/api/v1/dashboard/agent-activity")
+    item = resp.json()["items"][0]
+    assert item["progress_percent"] == 55
+    assert item["current_step"] == "writing tests"
+
+
+def test_agent_activity_stale_when_old_heartbeat() -> None:
+    """Test is_stale = true when last heartbeat is older than 7 minutes."""
+    client = TestClient(_test_app())
+    session = TestSessionLocal()
+    _create_test_data(session, stale_heartbeat=True)
+    session.close()
+
+    resp = client.get("/api/v1/dashboard/agent-activity")
+    item = resp.json()["items"][0]
+    assert item["is_stale"] is True
+
+
+def test_agent_activity_fresh_when_recent_heartbeat() -> None:
+    """Test is_stale = false when last heartbeat is within 7 minutes."""
+    client = TestClient(_test_app())
+    session = TestSessionLocal()
+    _create_test_data(session, stale_heartbeat=False)
+    session.close()
+
+    resp = client.get("/api/v1/dashboard/agent-activity")
+    item = resp.json()["items"][0]
+    assert item["is_stale"] is False

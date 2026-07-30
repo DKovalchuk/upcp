@@ -1,13 +1,31 @@
 """Dashboard service for aggregated statistics."""
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.audit.models import AuditEvent
-from app.delivery.models import Task
+from app.delivery.models import Heartbeat, Task, TaskClaim
+from app.identity.agents import Agent
 from app.projects.models import Project
+from app.shared.text import utcnow
+
+
+def _ensure_aware(dt: datetime | None) -> datetime | None:
+    """Ensure a datetime is timezone-aware (UTC). SQLite returns naive datetimes."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
+
+
+def _is_stale(last_heartbeat_at: datetime | None, threshold: datetime) -> bool:
+    """Check if a heartbeat is stale (older than threshold)."""
+    aware = _ensure_aware(last_heartbeat_at)
+    return aware is not None and aware < threshold
 
 
 class DashboardService:
@@ -88,4 +106,59 @@ class DashboardService:
                 "note": e.note,
             }
             for e in events
+        ]
+
+    def active_agents(self) -> list[dict[str, object]]:
+        """Get active agents with their current task, progress, and heartbeat status.
+
+        Returns a list of dicts, one per active TaskClaim, with agent info,
+        task info, latest heartbeat data, and a staleness flag (heartbeat > 7 min).
+        """
+        now = utcnow()
+        stale_threshold = now - timedelta(minutes=7)
+
+        # Subquery: latest heartbeat id per claim
+        latest_hb_sq = (
+            self._session.query(
+                Heartbeat.claim_id,
+                func.max(Heartbeat.id).label("latest_hb_id"),
+            )
+            .group_by(Heartbeat.claim_id)
+            .subquery()
+        )
+
+        rows = (
+            self._session.query(
+                Agent.id.label("agent_id"),
+                Agent.name.label("agent_name"),
+                Task.id.label("task_id"),
+                Task.title.label("task_title"),
+                TaskClaim.claimed_at,
+                TaskClaim.last_heartbeat_at,
+                Heartbeat.progress_percent,
+                Heartbeat.current_step,
+            )
+            .join(TaskClaim, TaskClaim.agent_id == Agent.id)
+            .join(Task, Task.id == TaskClaim.task_id)
+            .outerjoin(latest_hb_sq, latest_hb_sq.c.claim_id == TaskClaim.id)
+            .outerjoin(Heartbeat, Heartbeat.id == latest_hb_sq.c.latest_hb_id)
+            .filter(TaskClaim.state == "active")
+            .all()
+        )
+
+        return [
+            {
+                "agent_id": row.agent_id,
+                "agent_name": row.agent_name,
+                "task_id": row.task_id,
+                "task_title": row.task_title,
+                "claimed_at": row.claimed_at.isoformat() if row.claimed_at else None,
+                "last_heartbeat_at": (
+                    row.last_heartbeat_at.isoformat() if row.last_heartbeat_at else None
+                ),
+                "progress_percent": row.progress_percent or 0,
+                "current_step": row.current_step or "",
+                "is_stale": _is_stale(row.last_heartbeat_at, stale_threshold),
+            }
+            for row in rows
         ]

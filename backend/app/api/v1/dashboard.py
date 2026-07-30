@@ -56,3 +56,12 @@ def get_portfolio_overview(
     """Get portfolio-level overview with project summaries."""
     svc = PortfolioService(session)
     return svc.get_overview()
+
+
+@router.get("/dashboard/agent-activity")
+def get_agent_activity(
+    session: Session = Depends(get_session),
+) -> dict[str, list[dict[str, object]]]:  # noqa: B008
+    """Get active agents with current task, progress, and heartbeat status."""
+    svc = DashboardService(session)
+    return {"items": svc.active_agents()}

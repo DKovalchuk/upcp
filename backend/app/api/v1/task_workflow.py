@@ -1,12 +1,14 @@
-"""Task workflow endpoints — claim, release, heartbeat, progress.
+"""Task workflow endpoints — claim, release, heartbeat, progress, reads.
 
 TASK-0074
 """
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.delivery.models import ClarificationRequest, Heartbeat, Task, TaskClaim
 from app.delivery.workflow import WorkflowService
 from app.identity.agent_auth import get_current_agent
 from app.identity.dependencies import CurrentAgent
@@ -129,3 +131,106 @@ def progress_task(
         raise HTTPException(status_code=409, detail=str(e)) from None
 
     return {"ok": True}
+
+
+# ── GET endpoints (read-back) ──
+
+
+def _require_task(session: Session, task_id: str) -> None:
+    """Raise 404 if task does not exist."""
+    task = session.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"task '{task_id}' not found")
+
+
+@router.get("/tasks/{task_id}/claims")
+def list_claims(
+    task_id: str,
+    session: Session = Depends(get_session),
+) -> dict[str, object]:
+    _require_task(session, task_id)
+
+    stmt = (
+        select(TaskClaim).where(TaskClaim.task_id == task_id).order_by(TaskClaim.claimed_at.desc())
+    )
+    rows = session.execute(stmt).scalars().all()
+
+    items = [
+        {
+            "id": r.id,
+            "task_id": r.task_id,
+            "agent_id": r.agent_id,
+            "state": r.state,
+            "claimed_at": r.claimed_at.isoformat() if r.claimed_at else None,
+            "released_at": r.released_at.isoformat() if r.released_at else None,
+            "last_heartbeat_at": (r.last_heartbeat_at.isoformat() if r.last_heartbeat_at else None),
+            "context_snapshot": r.context_snapshot,
+        }
+        for r in rows
+    ]
+    return {"items": items}
+
+
+@router.get("/tasks/{task_id}/heartbeats")
+def list_heartbeats(
+    task_id: str,
+    session: Session = Depends(get_session),
+) -> dict[str, object]:
+    _require_task(session, task_id)
+
+    stmt = (
+        select(Heartbeat)
+        .join(TaskClaim, TaskClaim.id == Heartbeat.claim_id)
+        .where(TaskClaim.task_id == task_id)
+        .order_by(Heartbeat.created_at.desc())
+    )
+    rows = session.execute(stmt).scalars().all()
+
+    items = [
+        {
+            "id": r.id,
+            "claim_id": r.claim_id,
+            "progress_percent": r.progress_percent,
+            "current_step": r.current_step,
+            "next_step": r.next_step,
+            "blockers": r.blockers,
+            "eta": r.eta,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows
+    ]
+    return {"items": items}
+
+
+@router.get("/tasks/{task_id}/clarifications")
+def list_clarifications(
+    task_id: str,
+    session: Session = Depends(get_session),
+) -> dict[str, object]:
+    _require_task(session, task_id)
+
+    stmt = (
+        select(ClarificationRequest)
+        .where(ClarificationRequest.task_id == task_id)
+        .order_by(ClarificationRequest.created_at.desc())
+    )
+    rows = session.execute(stmt).scalars().all()
+
+    items = [
+        {
+            "id": r.id,
+            "task_id": r.task_id,
+            "author_type": r.author_type,
+            "author_id": r.author_id,
+            "question": r.question,
+            "context": r.context,
+            "blocking": r.blocking,
+            "state": r.state,
+            "answer": r.answer,
+            "answered_by": r.answered_by,
+            "answered_at": r.answered_at.isoformat() if r.answered_at else None,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows
+    ]
+    return {"items": items}
