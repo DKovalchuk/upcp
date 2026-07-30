@@ -7,6 +7,8 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-07-30
+
 ### Security (S14.2 — M12 Security Hardening)
 - CORS: configurable origins via `UPCP_CORS_ORIGINS` env var (comma-separated)
 - CORS: configurable allowed headers via `UPCP_CORS_ALLOW_HEADERS` env var

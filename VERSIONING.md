@@ -4,7 +4,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 
 ## Current Version
 
-**0.13.0** — M11 Human Control UX (see `pyproject.toml` for authoritative value)
+**0.14.0** — M12 Critical Fixes & Security (see `pyproject.toml` for authoritative value)
 
 ## Scheme
 
@@ -139,7 +139,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 | 0.11.0 | M9 — Agent Workflow MVP | 2026-07-27 |
 | 0.12.0 | M10 — Evidence & Review | 2026-07-27 |
 | 0.13.0 | M11 — Human Control UX | 2026-07-27 |
-| 0.14.0 | M12 — Critical Fixes & Security | *TBD* |
+| 0.14.0 | M12 — Critical Fixes & Security | 2026-07-30 |
 | 0.15.0 | M13 — Architecture & Backend Cleanup | *TBD* |
 | 1.0.0 | Production Ready | *TBD* |
 

@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
 Updated: 2026-07-30
-Version: 0.13.0 (see `VERSIONING.md` for scheme)
-Milestone: M12 — Critical Fixes (S14.1 complete, S14.2 in progress)
-Current Task: TASK-0090 (S14.2 security hardening)
+Version: 0.14.0 (see `VERSIONING.md` for scheme)
+Milestone: M13 — Architecture & Backend Cleanup (M12 complete)
+Current Task: none (S14.2 done, ready for M13)
 Blockers: none
 
 ## Roadmap to 1.0.0

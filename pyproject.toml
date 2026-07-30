@@ -1,6 +1,6 @@
 [project]
 name = "upcp"
-version = "0.13.0"
+version = "0.14.0"
 description = "Universal Project Control Plane"
 requires-python = ">=3.12"
 
