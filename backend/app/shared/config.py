@@ -1,7 +1,20 @@
+from __future__ import annotations
+
 from functools import lru_cache
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
+
+# Environments where wildcard CORS is permitted
+_CORS_WILDCARD_SAFE_ENVS = frozenset({"local", "test", "ci"})
+
+# Default allowed headers for CORS (comma-separated string)
+_DEFAULT_CORS_HEADERS = "Authorization,Content-Type,X-Request-ID"
+
+
+def _parse_csv(value: str) -> list[str]:
+    """Parse a comma-separated env var into a list, stripping whitespace."""
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 
 class Settings(BaseSettings):
@@ -21,6 +34,10 @@ class Settings(BaseSettings):
         alias="REDIS_URL",
     )
 
+    # CORS — env vars: UPCP_CORS_ORIGINS, UPCP_CORS_ALLOW_HEADERS (comma-separated strings)
+    cors_origins: str = Field(default="", alias="CORS_ORIGINS")
+    cors_allow_headers: str = Field(default=_DEFAULT_CORS_HEADERS, alias="CORS_ALLOW_HEADERS")
+
     # LLM (optional)
     llm_enabled: bool = False
     llm_provider: str = "local"
@@ -29,15 +46,31 @@ class Settings(BaseSettings):
     llm_api_url: str = ""
 
     @model_validator(mode="after")
-    def _validate_security(self) -> "Settings":
+    def _parse_cors(self) -> Settings:
+        self.__dict__["cors_origins_list"] = _parse_csv(self.cors_origins)
+        self.__dict__["cors_allow_headers_list"] = _parse_csv(self.cors_allow_headers)
+        return self
+
+    @model_validator(mode="after")
+    def _validate_security(self) -> Settings:
         if self.secret_key == "change_me_local_only" and self.env not in ("local", "test", "ci"):
             raise ValueError(
                 "UPCP_SECRET_KEY must be set to a secure value in production. "
                 "Current value is the insecure default."
             )
+        cors_origins_list: list[str] = getattr(self, "cors_origins_list", [])
+        if "*" in cors_origins_list and self.env not in _CORS_WILDCARD_SAFE_ENVS:
+            raise ValueError(
+                "CORS wildcard '*' is not allowed in production environments. "
+                f"Set UPCP_CORS_ORIGINS to explicit origins. Current env: {self.env}"
+            )
         return self
 
-    model_config = {"env_prefix": "UPCP_", "extra": "ignore"}
+    model_config = {
+        "env_prefix": "UPCP_",
+        "extra": "ignore",
+        "populate_by_name": True,
+    }
 
 
 @lru_cache(maxsize=1)

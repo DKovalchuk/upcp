@@ -71,7 +71,7 @@ class LocalGitAdapter:
         if result.returncode != 0:
             stderr = result.stderr.strip()
             logger.error(f"Git command failed: {args[0]} — {stderr[:200]}")
-            raise RuntimeError(f"git {args[0]} failed: {stderr[:200]}")
+            raise RuntimeError(f"git {args[0]} failed")
 
         return result.stdout.strip()
 
@@ -120,9 +120,11 @@ class LocalGitAdapter:
 
 class GitHubAdapter:
     def __init__(self, owner: str, repo: str, token: str | None = None) -> None:
-        self._owner = owner
-        self._repo = repo
-        self._base = f"https://api.github.com/repos/{owner}/{repo}"
+        from app.shared.url_validation import validate_github_owner, validate_github_repo
+
+        self._owner = validate_github_owner(owner)
+        self._repo = validate_github_repo(repo)
+        self._base = f"https://api.github.com/repos/{self._owner}/{self._repo}"
         self._headers = {"Accept": "application/vnd.github.v3+json"}
         if token:
             self._headers["Authorization"] = f"token {token}"

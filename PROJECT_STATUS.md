@@ -2,8 +2,8 @@
 
 Updated: 2026-07-30
 Version: 0.13.0 (see `VERSIONING.md` for scheme)
-Milestone: M12 — Critical Fixes (S14.1 complete, S14.2 pending)
-Current Task: TASK-0089 (S14.1 done, ready for S14.2)
+Milestone: M12 — Critical Fixes (S14.1 complete, S14.2 in progress)
+Current Task: TASK-0090 (S14.2 security hardening)
 Blockers: none
 
 ## Roadmap to 1.0.0
