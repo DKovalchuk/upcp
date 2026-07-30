@@ -65,12 +65,12 @@ def client():
         agent = Agent(name=f"A-{uid}", description="test", created_by=f"u-{uid}")
         session.add(agent)
         session.flush()
-        th = hashlib.sha256(_RAW_TOKEN.encode()).hexdigest()
+        th = hashlib.sha256(f"{_RAW_TOKEN}-{uid}".encode()).hexdigest()
         tok = AgentToken(id=f"tok-{uid}", agent_id=agent.id, token_hash=th, name="t")
         session.add(tok)
         session.commit()
 
-        result = {"task_id": t.id, "agent_id": agent.id}
+        result = {"task_id": t.id, "agent_id": agent.id, "token": f"{_RAW_TOKEN}-{uid}"}
         session.close()
     except Exception:
         session.rollback()
@@ -90,15 +90,17 @@ def client():
         pass
 
 
-def _hdr():
-    return {"X-Agent-Token": _RAW_TOKEN}
+def _hdr(token: str | None = None):
+    return {"X-Agent-Token": token or _RAW_TOKEN}
 
 
 class TestClaimEndpoint:
     def test_claim_success(self, client):
         c, data = client
         resp = c.post(
-            f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(), json={"context_snapshot": "s"}
+            f"/api/v1/tasks/{data['task_id']}/claim",
+            headers=_hdr(data["token"]),
+            json={"context_snapshot": "s"},
         )
         assert resp.status_code == 201
         assert resp.json()["state"] == "active"
@@ -110,32 +112,34 @@ class TestClaimEndpoint:
 
     def test_claim_already_claimed(self, client):
         c, data = client
-        c.post(f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(), json={})
-        resp = c.post(f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(), json={})
+        c.post(f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(data["token"]), json={})
+        resp = c.post(
+            f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(data["token"]), json={}
+        )
         assert resp.status_code == 409
 
 
 class TestReleaseEndpoint:
     def test_release_success(self, client):
         c, data = client
-        c.post(f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(), json={})
-        resp = c.post(f"/api/v1/tasks/{data['task_id']}/release", headers=_hdr())
+        c.post(f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(data["token"]), json={})
+        resp = c.post(f"/api/v1/tasks/{data['task_id']}/release", headers=_hdr(data["token"]))
         assert resp.status_code == 200
         assert resp.json()["ok"] is True
 
     def test_release_no_claim(self, client):
         c, data = client
-        resp = c.post(f"/api/v1/tasks/{data['task_id']}/release", headers=_hdr())
+        resp = c.post(f"/api/v1/tasks/{data['task_id']}/release", headers=_hdr(data["token"]))
         assert resp.status_code == 404
 
 
 class TestHeartbeatEndpoint:
     def test_heartbeat_success(self, client):
         c, data = client
-        c.post(f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(), json={})
+        c.post(f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(data["token"]), json={})
         resp = c.post(
             f"/api/v1/tasks/{data['task_id']}/heartbeat",
-            headers=_hdr(),
+            headers=_hdr(data["token"]),
             json={"progress_percent": 50, "current_step": "c", "next_step": "t"},
         )
         assert resp.status_code == 200
@@ -144,7 +148,7 @@ class TestHeartbeatEndpoint:
         c, data = client
         resp = c.post(
             f"/api/v1/tasks/{data['task_id']}/heartbeat",
-            headers=_hdr(),
+            headers=_hdr(data["token"]),
             json={"progress_percent": 50, "current_step": "c", "next_step": "t"},
         )
         assert resp.status_code == 404
@@ -153,10 +157,10 @@ class TestHeartbeatEndpoint:
 class TestProgressEndpoint:
     def test_progress_success(self, client):
         c, data = client
-        c.post(f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(), json={})
+        c.post(f"/api/v1/tasks/{data['task_id']}/claim", headers=_hdr(data["token"]), json={})
         resp = c.post(
             f"/api/v1/tasks/{data['task_id']}/progress",
-            headers=_hdr(),
+            headers=_hdr(data["token"]),
             json={"progress_percent": 75},
         )
         assert resp.status_code == 200
@@ -169,7 +173,7 @@ class TestGetClaimsEndpoint:
         # Create a claim via POST
         resp = c.post(
             f"/api/v1/tasks/{task_id}/claim",
-            headers=_hdr(),
+            headers=_hdr(data["token"]),
             json={"context_snapshot": "snap1"},
         )
         assert resp.status_code == 201
@@ -207,13 +211,13 @@ class TestGetHeartbeatsEndpoint:
         # Create a claim
         c.post(
             f"/api/v1/tasks/{task_id}/claim",
-            headers=_hdr(),
+            headers=_hdr(data["token"]),
             json={},
         )
         # Send a heartbeat
         c.post(
             f"/api/v1/tasks/{task_id}/heartbeat",
-            headers=_hdr(),
+            headers=_hdr(data["token"]),
             json={
                 "progress_percent": 40,
                 "current_step": "step1",
