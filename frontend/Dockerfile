@@ -5,7 +5,7 @@ FROM node:20.18.0-slim AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install && npm rebuild
+RUN npm install && npm install @rolldown/binding-linux-x64-gnu
 
 COPY . .
 RUN npm run build
