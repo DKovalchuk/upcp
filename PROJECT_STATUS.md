@@ -65,6 +65,10 @@ Blockers: none
 - `useProjectId` deduplication: 6 components refactored to use hook
 - CommandPalette cleanup: removed inline projectId extraction
 - Dead code removal: HealthScore, PageHeader, unused type definitions, stale assets
+- **Delivery bug fixes (MR !17):**
+  - Task counter: always fetch tasks regardless of expanded state
+  - Drag-and-drop: explicit queryClient.invalidateQueries for all feature task queries after mutation; prevent onClick during drag
+  - Feature status badge: compute from actual task statuses (done/in-progress/review) instead of stored API value
 - TypeScript: 0 errors
 
 **Verification:**
@@ -74,7 +78,7 @@ Blockers: none
 - Mypy: 0 errors
 - TypeScript: 0 errors
 
-**Files Changed:** 32 files (699 insertions, 250 deletions)
+**Files Changed:** 34 files (722 insertions, 258 deletions)
 
 ## M11 Progress (Complete)
 
