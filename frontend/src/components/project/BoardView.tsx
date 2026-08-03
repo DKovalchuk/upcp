@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   DragOverlay,
@@ -57,7 +57,9 @@ function DraggableTaskCard({
       className={`cursor-grab rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50 ${
         isDragging ? 'opacity-50' : ''
       }`}
-      onClick={() => onSelectTask(task.id)}
+      onClick={(e) => {
+        if (!isDragging) onSelectTask(task.id);
+      }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -99,6 +101,7 @@ function DroppableColumn({
 
 export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
   const updateTask = useUpdateTask();
+  const queryClient = useQueryClient();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
@@ -178,6 +181,10 @@ export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
         id: task.id,
         data: { status: newStatus },
       });
+      // Invalidate all task queries so columns re-render
+      for (const f of features) {
+        queryClient.invalidateQueries({ queryKey: ['tasks', f.id] });
+      }
       showToast.updated('Task');
     } catch {
       showToast.mutationError('update', 'task');

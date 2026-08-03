@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useProjectId } from '@/hooks/use-project-id';
 import { useFeatures } from '@/hooks/use-features';
 import { useTasks } from '@/hooks/use-tasks';
@@ -229,12 +229,20 @@ function FeatureSection({
   onSelectTask: (taskId: string) => void;
   onDelete: () => void;
 }) {
-  const { data: tasksData, isLoading: tasksLoading } = useTasks(
-    isExpanded ? feature.id : ''
-  );
+  const { data: tasksData, isLoading: tasksLoading } = useTasks(feature.id);
   const tasks = tasksData?.items ?? [];
+  const taskCount = tasksData?.total ?? tasks.length;
   const createTask = useCreateTask();
   const [showCreateTask, setShowCreateTask] = useState(false);
+
+  const featureStatus = useMemo(() => {
+    if (tasks.length === 0) return feature.status;
+    const statuses = tasks.map((t) => t.status);
+    if (statuses.every((s) => s === 'done')) return 'done';
+    if (statuses.some((s) => s === 'in-progress' || s === 'claimed' || s === 'blocked')) return 'in-progress';
+    if (statuses.some((s) => s === 'review' || s === 'ready_for_review' || s === 'changes_requested')) return 'review';
+    return 'backlog';
+  }, [tasks, feature.status]);
 
   const filteredTasks = tasks.filter(
     (t) => !search || t.title.toLowerCase().includes(search.toLowerCase())
@@ -268,12 +276,12 @@ function FeatureSection({
           <div>
             <span className="font-medium">{feature.name}</span>
             <span className="ml-2 text-sm text-muted-foreground">
-              ({filteredTasks?.length ?? 0} tasks)
+              ({taskCount} tasks)
             </span>
           </div>
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <StatusBadge status={feature.status} />
+          <StatusBadge status={featureStatus} />
           <Button
             variant="ghost"
             size="icon"
