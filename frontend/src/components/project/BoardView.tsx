@@ -57,7 +57,7 @@ function DraggableTaskCard({
       className={`cursor-grab rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50 ${
         isDragging ? 'opacity-50' : ''
       }`}
-      onClick={(e) => {
+      onClick={() => {
         if (!isDragging) onSelectTask(task.id);
       }}
     >
