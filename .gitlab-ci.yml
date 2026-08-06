@@ -324,6 +324,7 @@ deploy:stage:
     - docker pull $REGISTRY/frontend:dev
     - docker tag $REGISTRY/backend:dev upcp-backend:stage
     - docker tag $REGISTRY/frontend:dev upcp-frontend:stage
+    - docker compose -f docker-compose.stage.yml build nginx
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
     - for i in $(seq 1 30); do
