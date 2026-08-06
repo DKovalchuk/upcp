@@ -200,6 +200,7 @@ export function DeliveryPage() {
 
       <TaskDetailSheet
         taskId={selectedTaskId}
+        projectId={projectId}
         onOpenChange={(open) => {
           if (!open) setSelectedTaskId(null);
         }}

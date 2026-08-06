@@ -1,14 +1,15 @@
-import { useTask, useUpdateTask, useDeleteTask } from '@/hooks/use-tasks';
-import { useAcceptanceCriteria, useDoDItems, useCreateAcceptanceCriterion, useCreateDoDItem } from '@/hooks/use-quality';
-import { useSubtasks, useCreateSubtask } from '@/hooks/use-subtasks';
+import { useAcceptanceCriteria, useDoDItems } from '@/hooks/use-quality';
+import { useSubtasks } from '@/hooks/use-subtasks';
 import {
   useTaskClaims,
   useTaskHeartbeats,
   useTaskClarifications,
   useTaskEvidence,
   useTaskReviewRounds,
-  useReleaseTask,
 } from '@/hooks/use-task-execution';
+import { useTaskDetail } from '@/hooks/use-task-detail';
+import { useComponents } from '@/hooks/use-components';
+import { useModules } from '@/hooks/use-modules';
 import {
   Sheet,
   SheetContent,
@@ -42,17 +43,16 @@ import {
   CheckCircle,
   GitBranch,
 } from 'lucide-react';
-import { useState } from 'react';
-import { showToast } from '@/lib/toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface TaskDetailSheetProps {
   taskId: string | null;
+  projectId?: string;
   onOpenChange: (open: boolean) => void;
 }
 
-export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) {
-  const { data: task, isLoading } = useTask(taskId ?? '');
+export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailSheetProps) {
+  const detail = useTaskDetail(taskId);
   const { data: acs } = useAcceptanceCriteria(taskId ?? '');
   const { data: dods } = useDoDItems(taskId ?? '');
   const { data: subtasks } = useSubtasks(taskId ?? '');
@@ -61,82 +61,16 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
   const { data: clarifications, isLoading: isLoadingClarifications } = useTaskClarifications(taskId ?? '');
   const { data: evidence, isLoading: isLoadingEvidence } = useTaskEvidence(taskId ?? '');
   const { data: reviewRounds, isLoading: isLoadingReviewRounds } = useTaskReviewRounds(taskId ?? '');
-  const releaseTaskMutation = useReleaseTask();
-  const updateTask = useUpdateTask();
-  const deleteTask = useDeleteTask();
-  const createAC = useCreateAcceptanceCriterion();
-  const createDoD = useCreateDoDItem();
-  const createSubtask = useCreateSubtask();
-  const [newAC, setNewAC] = useState('');
-  const [newDoD, setNewDoD] = useState('');
-  const [newSubtask, setNewSubtask] = useState('');
-  const [activeTab, setActiveTab] = useState('details');
-  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // UUID resolution
+  const { data: components } = useComponents(projectId ?? '');
+  const componentMap = new Map((components ?? []).map((c) => [c.id, c.name]));
+  const { data: modules } = useModules(detail.task?.component_id ?? '');
+  const moduleMap = new Map((modules ?? []).map((m) => [m.id, m.name]));
+
   const open = !!taskId;
 
-  const handleAddAC = async () => {
-    if (!taskId || !newAC.trim()) return;
-    try {
-      await createAC.mutateAsync({ taskId, data: { description: newAC.trim() } });
-      setNewAC('');
-      showToast.created('Acceptance criterion');
-    } catch {
-      showToast.mutationError('create', 'acceptance criterion');
-    }
-  };
-
-  const handleAddDoD = async () => {
-    if (!taskId || !newDoD.trim()) return;
-    try {
-      await createDoD.mutateAsync({ taskId, data: { name: newDoD.trim() } });
-      setNewDoD('');
-      showToast.created('DoD item');
-    } catch {
-      showToast.mutationError('create', 'DoD item');
-    }
-  };
-
-  const handleAddSubtask = async () => {
-    if (!taskId || !newSubtask.trim()) return;
-    try {
-      await createSubtask.mutateAsync({ taskId, data: { title: newSubtask.trim() } });
-      setNewSubtask('');
-      showToast.created('Subtask');
-    } catch {
-      showToast.mutationError('create', 'subtask');
-    }
-  };
-
-  const handleStatusChange = async (newStatus: string) => {
-    if (!taskId) return;
-    try {
-      await updateTask.mutateAsync({ id: taskId, data: { status: newStatus } });
-      showToast.updated('Task');
-    } catch {
-      showToast.mutationError('update', 'task');
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!taskId) return;
-    try {
-      await deleteTask.mutateAsync(taskId);
-      showToast.deleted('Task');
-      onOpenChange(false);
-    } catch {
-      showToast.mutationError('delete', 'task');
-    }
-  };
-
-  const handleReleaseClaim = async () => {
-    if (!taskId) return;
-    try {
-      await releaseTaskMutation.mutateAsync(taskId);
-      showToast.success('Claim released');
-    } catch {
-      showToast.mutationError('release', 'claim');
-    }
-  };
+  const { task, isLoading, isReleasing, newAC, setNewAC, newDoD, setNewDoD, newSubtask, setNewSubtask, activeTab, setActiveTab, confirmDelete, setConfirmDelete, handleAddAC, handleAddDoD, handleAddSubtask, handleStatusChange, handleDelete, handleReleaseClaim, handleSubmitVerdict } = detail;
 
   return (
     <>
@@ -184,13 +118,13 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                 {task.component_id && (
                   <div>
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Component</span>
-                    <p className="mt-0.5 font-mono text-xs">{task.component_id}</p>
+                    <p className="mt-0.5 text-xs">{componentMap.get(task.component_id) ?? task.component_id}</p>
                   </div>
                 )}
                 {task.module_id && (
                   <div>
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Module</span>
-                    <p className="mt-0.5 font-mono text-xs">{task.module_id}</p>
+                    <p className="mt-0.5 text-xs">{moduleMap.get(task.module_id) ?? task.module_id}</p>
                   </div>
                 )}
               </div>
@@ -262,7 +196,7 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                             variant="outline"
                             size="sm"
                             onClick={handleReleaseClaim}
-                            disabled={releaseTaskMutation.isPending}
+                            disabled={isReleasing}
                           >
                             Release claim
                           </Button>
@@ -403,6 +337,16 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
                             findingsCount={0}
                             summary={round.summary ?? undefined}
                             createdAt={round.created_at}
+                            onAccept={
+                              round.verdict !== 'approve'
+                                ? () => handleSubmitVerdict(round.id, 'approve', round.confidence ?? 80, 'Accepted by human reviewer')
+                                : undefined
+                            }
+                            onReject={
+                              round.verdict !== 'reject'
+                                ? () => handleSubmitVerdict(round.id, 'reject', round.confidence ?? 50, 'Rejected by human reviewer')
+                                : undefined
+                            }
                           />
                         ))}
                       </div>
@@ -509,7 +453,10 @@ export function TaskDetailSheet({ taskId, onOpenChange }: TaskDetailSheetProps) 
         description="Are you sure you want to delete this task? This action cannot be undone."
         confirmLabel="Delete"
         variant="destructive"
-        onConfirm={handleDelete}
+        onConfirm={async () => {
+          await handleDelete();
+          onOpenChange(false);
+        }}
       />
     </>
   );

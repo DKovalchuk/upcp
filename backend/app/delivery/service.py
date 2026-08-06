@@ -123,7 +123,14 @@ class TaskService:
         return q.offset(offset).limit(limit).all(), total
 
     def list_tasks_by_project(
-        self, project_id: str, *, offset: int = 0, limit: int = 20
+        self,
+        project_id: str,
+        *,
+        offset: int = 0,
+        limit: int = 20,
+        status: str | None = None,
+        feature_id: str | None = None,
+        assignee_type: str | None = None,
     ) -> tuple[list[Task], int]:
         """List all tasks belonging to features of a project (JOIN via Feature)."""
         q = (
@@ -131,6 +138,12 @@ class TaskService:
             .join(Feature, Task.feature_id == Feature.id)
             .filter(Feature.project_id == project_id)
         )
+        if status is not None:
+            q = q.filter(Task.status == status)
+        if feature_id is not None:
+            q = q.filter(Task.feature_id == feature_id)
+        if assignee_type is not None:
+            q = q.filter(Task.assignee_type == assignee_type)
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
 

@@ -30,6 +30,7 @@ vi.mock('@/hooks/use-quality', () => ({
   useDoDItems: vi.fn(() => ({ data: [] })),
   useCreateAcceptanceCriterion: vi.fn(() => ({ mutateAsync: vi.fn() })),
   useCreateDoDItem: vi.fn(() => ({ mutateAsync: vi.fn() })),
+  useSubmitReviewVerdict: vi.fn(() => ({ mutateAsync: vi.fn() })),
 }));
 
 vi.mock('@/hooks/use-subtasks', () => ({

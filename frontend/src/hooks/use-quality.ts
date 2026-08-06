@@ -10,6 +10,7 @@ import {
   createDoDItem,
   updateDoDItem,
   deleteDoDItem,
+  submitReviewVerdict,
 } from '@/lib/api';
 import type {
   AcceptanceCriterionCreate,
@@ -135,6 +136,25 @@ export function useDeleteDoDItem() {
     mutationFn: (id: string) => deleteDoDItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dod-items'] });
+    },
+  });
+}
+
+// Review Verdicts
+export function useSubmitReviewVerdict() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      roundId,
+      data,
+    }: {
+      roundId: string;
+      data: { verdict: string; confidence: number; summary: string };
+    }) => submitReviewVerdict(roundId, data),
+    onSuccess: (_, { roundId }) => {
+      queryClient.invalidateQueries({ queryKey: ['review-rounds'] });
+      queryClient.invalidateQueries({ queryKey: ['review-rounds', roundId] });
     },
   });
 }
