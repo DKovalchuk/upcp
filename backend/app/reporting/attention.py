@@ -358,3 +358,131 @@ class AttentionDashboardService:
             },
             "top_issue": top_issue,
         }
+
+    def get_projects_health_batch(self, project_ids: list[str]) -> dict[str, dict[str, object]]:
+        """Calculate health scores for multiple projects in batch.
+
+        Returns dict mapping project_id → {score, breakdown, top_issue}.
+        Uses batch queries to avoid N+1.
+        """
+        if not project_ids:
+            return {}
+
+        # Batch: get all features for all projects
+        feature_rows = (
+            self._session.query(Feature.id, Feature.project_id)
+            .filter(Feature.project_id.in_(project_ids))
+            .all()
+        )
+        fids_by_project: dict[str, list[str]] = {}
+        all_fids: list[str] = []
+        for fid, pid in feature_rows:
+            fids_by_project.setdefault(pid, []).append(fid)
+            all_fids.append(fid)
+
+        # Batch: get all task IDs
+        tid_by_feature: dict[str, list[str]] = {}
+        all_task_ids: list[str] = []
+        if all_fids:
+            for tid, fid in (
+                self._session.query(Task.id, Task.feature_id)
+                .filter(Task.feature_id.in_(all_fids))
+                .all()
+            ):
+                tid_by_feature.setdefault(fid, []).append(tid)
+                all_task_ids.append(tid)
+
+        if not all_task_ids:
+            return {pid: {"score": 100, "breakdown": {}, "top_issue": ""} for pid in project_ids}
+
+        # Batch: get blocked counts per feature
+        blocked_by_feature: dict[str, int] = {}
+        for fid, cnt in (
+            self._session.query(Task.feature_id, func.count(Task.id))
+            .filter(Task.id.in_(all_task_ids), Task.status == "blocked")
+            .group_by(Task.feature_id)
+            .all()
+        ):
+            blocked_by_feature[fid] = cnt
+
+        # Batch: global health metrics (same pattern as _low_health_projects)
+        stale_count = (
+            self._session.query(func.count(TaskClaim.id))
+            .filter(
+                TaskClaim.task_id.in_(all_task_ids),
+                TaskClaim.state == "active",
+                TaskClaim.last_heartbeat_at.isnot(None),
+                TaskClaim.last_heartbeat_at
+                < datetime.now(UTC) - timedelta(minutes=STALE_HEARTBEAT_MINUTES),
+            )
+            .scalar()
+            or 0
+        )
+        failed_dod_count = (
+            self._session.query(func.count(DoDItem.id))
+            .filter(
+                DoDItem.task_id.in_(all_task_ids),
+                DoDItem.status.in_(["failed", "pending"]),
+            )
+            .scalar()
+            or 0
+        )
+        open_clarifications = (
+            self._session.query(func.count(ClarificationRequest.id))
+            .filter(
+                ClarificationRequest.task_id.in_(all_task_ids),
+                ClarificationRequest.blocking == True,  # noqa: E712
+                ClarificationRequest.state == "open",
+            )
+            .scalar()
+            or 0
+        )
+        rejected_count = (
+            self._session.query(func.count(ReviewRound.id))
+            .filter(
+                ReviewRound.task_id.in_(all_task_ids),
+                ReviewRound.state == "completed",
+                ReviewRound.verdict == "reject",
+            )
+            .scalar()
+            or 0
+        )
+
+        # Compute per-project health
+        result: dict[str, dict[str, object]] = {}
+        for pid in project_ids:
+            p_fids = fids_by_project.get(pid, [])
+            p_blocked = sum(blocked_by_feature.get(fid, 0) for fid in p_fids)
+
+            score = max(
+                0,
+                100
+                - (p_blocked * HEALTH_BLOCKED_WEIGHT)
+                - (stale_count * HEALTH_STALE_WEIGHT)
+                - (failed_dod_count * HEALTH_FAILED_DOD_WEIGHT)
+                - (open_clarifications * HEALTH_OPEN_CLARIFICATIONS_WEIGHT)
+                - (rejected_count * HEALTH_REJECTED_WEIGHT),
+            )
+
+            issues = [
+                (p_blocked, "blocked tasks"),
+                (stale_count, "stale claims"),
+                (failed_dod_count, "failed DoD items"),
+                (open_clarifications, "open clarifications"),
+                (rejected_count, "rejected tasks"),
+            ]
+            _, top_issue = max(issues, key=lambda x: x[0]) if any(i[0] for i in issues) else (0, "")
+
+            result[pid] = {
+                "score": score,
+                "breakdown": {
+                    "blocked": p_blocked,
+                    "stale_claims": stale_count,
+                    "failed_dod": failed_dod_count,
+                    "open_clarifications": open_clarifications,
+                    "rejected": rejected_count,
+                },
+                "top_issue": top_issue,
+            }
+
+        return result

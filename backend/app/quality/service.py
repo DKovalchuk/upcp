@@ -71,8 +71,12 @@ class EvidenceService:
             raise NotFound(f"evidence '{evidence_id}' not found")
         return e
 
-    def list_by_task(self, task_id: str) -> list[Evidence]:
-        return self._session.query(Evidence).filter_by(task_id=task_id).all()
+    def list_by_task(
+        self, task_id: str, *, offset: int = 0, limit: int = 100
+    ) -> tuple[list[Evidence], int]:
+        q = self._session.query(Evidence).filter_by(task_id=task_id)
+        total = q.count()
+        return q.offset(offset).limit(limit).all(), total
 
     def _transition(self, evidence: Evidence, target: str, by_type: str, by_id: str) -> None:
         allowed = _EVIDENCE_TRANSITIONS.get(evidence.verification_state, set())
@@ -141,8 +145,12 @@ class ReviewRoundService:
             raise NotFound(f"review round '{round_id}' not found")
         return rr
 
-    def list_by_task(self, task_id: str) -> list[ReviewRound]:
-        return self._session.query(ReviewRound).filter_by(task_id=task_id).all()
+    def list_by_task(
+        self, task_id: str, *, offset: int = 0, limit: int = 100
+    ) -> tuple[list[ReviewRound], int]:
+        q = self._session.query(ReviewRound).filter_by(task_id=task_id)
+        total = q.count()
+        return q.offset(offset).limit(limit).all(), total
 
     def start(self, round_id: str) -> ReviewRound:
         rr = self.get(round_id)
@@ -322,8 +330,12 @@ class AcceptanceCriterionService:
         self._session.delete(ac)
         self._session.flush()
 
-    def list_by_task(self, task_id: str) -> list[AcceptanceCriterion]:
-        return self._session.query(AcceptanceCriterion).filter_by(task_id=task_id).all()
+    def list_by_task(
+        self, task_id: str, *, offset: int = 0, limit: int = 100
+    ) -> tuple[list[AcceptanceCriterion], int]:
+        q = self._session.query(AcceptanceCriterion).filter_by(task_id=task_id)
+        total = q.count()
+        return q.offset(offset).limit(limit).all(), total
 
 
 class DoDItemService:
@@ -355,8 +367,12 @@ class DoDItemService:
         self._session.delete(item)
         self._session.flush()
 
-    def list_by_task(self, task_id: str) -> list[DoDItem]:
-        return self._session.query(DoDItem).filter_by(task_id=task_id).all()
+    def list_by_task(
+        self, task_id: str, *, offset: int = 0, limit: int = 100
+    ) -> tuple[list[DoDItem], int]:
+        q = self._session.query(DoDItem).filter_by(task_id=task_id)
+        total = q.count()
+        return q.offset(offset).limit(limit).all(), total
 
 
 class QualityStatsService:

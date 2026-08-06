@@ -81,7 +81,7 @@ def test_quality_stats_with_ac() -> None:
     # Task 0: 2 ACs, 1 passed
     c.post(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria", json={"description": "AC1"})
     c.post(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria", json={"description": "AC2"})
-    acs = c.get(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria").json()
+    acs = c.get(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria").json()["items"]
     c.patch(f"/api/v1/acceptance-criteria/{acs[0]['id']}", json={"status": "passed"})
 
     # Task 1: 1 AC, pending
@@ -103,7 +103,7 @@ def test_quality_stats_with_dod() -> None:
     # Task 0: 2 DoD, 2 passed
     c.post(f"/api/v1/tasks/{task_ids[0]}/dod-items", json={"name": "D1"})
     c.post(f"/api/v1/tasks/{task_ids[0]}/dod-items", json={"name": "D2"})
-    dods = c.get(f"/api/v1/tasks/{task_ids[0]}/dod-items").json()
+    dods = c.get(f"/api/v1/tasks/{task_ids[0]}/dod-items").json()["items"]
     c.patch(f"/api/v1/dod-items/{dods[0]['id']}", json={"status": "passed"})
     c.patch(f"/api/v1/dod-items/{dods[1]['id']}", json={"status": "passed"})
 
@@ -125,12 +125,12 @@ def test_quality_stats_pass_rate() -> None:
     # 2 ACs (1 passed) + 2 DoD (1 passed) => 2/4 = 50%
     c.post(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria", json={"description": "AC1"})
     c.post(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria", json={"description": "AC2"})
-    acs = c.get(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria").json()
+    acs = c.get(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria").json()["items"]
     c.patch(f"/api/v1/acceptance-criteria/{acs[0]['id']}", json={"status": "passed"})
 
     c.post(f"/api/v1/tasks/{task_ids[0]}/dod-items", json={"name": "D1"})
     c.post(f"/api/v1/tasks/{task_ids[0]}/dod-items", json={"name": "D2"})
-    dods = c.get(f"/api/v1/tasks/{task_ids[0]}/dod-items").json()
+    dods = c.get(f"/api/v1/tasks/{task_ids[0]}/dod-items").json()["items"]
     c.patch(f"/api/v1/dod-items/{dods[0]['id']}", json={"status": "passed"})
 
     resp = c.get(f"/api/v1/projects/{pid}/quality/stats")
@@ -156,11 +156,11 @@ def test_quality_stats_pass_rate_all_passed() -> None:
     pid, task_ids = _project_with_tasks(c, 1)
 
     c.post(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria", json={"description": "AC1"})
-    acs = c.get(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria").json()
+    acs = c.get(f"/api/v1/tasks/{task_ids[0]}/acceptance-criteria").json()["items"]
     c.patch(f"/api/v1/acceptance-criteria/{acs[0]['id']}", json={"status": "passed"})
 
     c.post(f"/api/v1/tasks/{task_ids[0]}/dod-items", json={"name": "D1"})
-    dods = c.get(f"/api/v1/tasks/{task_ids[0]}/dod-items").json()
+    dods = c.get(f"/api/v1/tasks/{task_ids[0]}/dod-items").json()["items"]
     c.patch(f"/api/v1/dod-items/{dods[0]['id']}", json={"status": "passed"})
 
     resp = c.get(f"/api/v1/projects/{pid}/quality/stats")

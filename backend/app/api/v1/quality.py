@@ -27,6 +27,7 @@ from app.quality.service import (
 )
 from app.shared.database import get_session
 from app.shared.errors import Conflict, NotFound
+from app.shared.pagination import PaginationParams, pagination_dependency
 
 router = APIRouter(tags=["quality"])
 
@@ -89,12 +90,23 @@ def delete_ac(ac_id: str, session: Session = Depends(get_session)) -> None:  # n
     summary="List acceptance criteria for a task",
     description="List all acceptance criteria associated with a task.",
 )
-def list_acs(task_id: str, session: Session = Depends(get_session)) -> list[dict[str, str]]:  # noqa: B008
-    items = AcceptanceCriterionService(session).list_by_task(task_id)
-    return [
-        {"id": a.id, "task_id": a.task_id, "description": a.description, "status": a.status}
-        for a in items
-    ]
+def list_acs(
+    task_id: str,
+    pagination: PaginationParams = Depends(pagination_dependency),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:  # noqa: B008
+    items, total = AcceptanceCriterionService(session).list_by_task(
+        task_id, offset=pagination.offset, limit=pagination.limit
+    )
+    return {
+        "items": [
+            {"id": a.id, "task_id": a.task_id, "description": a.description, "status": a.status}
+            for a in items
+        ],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
 
 
 @router.post(
@@ -155,9 +167,22 @@ def delete_dod(item_id: str, session: Session = Depends(get_session)) -> None:  
     summary="List DoD items for a task",
     description="List all Definition of Done items associated with a task.",
 )
-def list_dods(task_id: str, session: Session = Depends(get_session)) -> list[dict[str, str]]:  # noqa: B008
-    items = DoDItemService(session).list_by_task(task_id)
-    return [{"id": i.id, "task_id": i.task_id, "name": i.name, "status": i.status} for i in items]
+def list_dods(
+    task_id: str,
+    pagination: PaginationParams = Depends(pagination_dependency),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:  # noqa: B008
+    items, total = DoDItemService(session).list_by_task(
+        task_id, offset=pagination.offset, limit=pagination.limit
+    )
+    return {
+        "items": [
+            {"id": i.id, "task_id": i.task_id, "name": i.name, "status": i.status} for i in items
+        ],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
 
 
 @router.post(
@@ -252,10 +277,19 @@ def _evidence_dict(e: Any) -> dict[str, str | None]:
     description="List all evidence items attached to a task.",
 )
 def list_evidence(
-    task_id: str, session: Session = Depends(get_session)
-) -> dict[str, list[dict[str, str | None]]]:  # noqa: B008
-    items = EvidenceService(session).list_by_task(task_id)
-    return {"items": [_evidence_dict(e) for e in items]}
+    task_id: str,
+    pagination: PaginationParams = Depends(pagination_dependency),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:  # noqa: B008
+    items, total = EvidenceService(session).list_by_task(
+        task_id, offset=pagination.offset, limit=pagination.limit
+    )
+    return {
+        "items": [_evidence_dict(e) for e in items],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
 
 
 @router.post(
@@ -396,11 +430,18 @@ def _review_finding_dict(f: Any) -> dict[str, str | None]:
     description="List all review rounds associated with a task.",
 )
 def list_review_rounds(
-    task_id: str, session: Session = Depends(get_session)
-) -> dict[str, list[dict[str, str | None]]]:  # noqa: B008
+    task_id: str,
+    pagination: PaginationParams = Depends(pagination_dependency),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:  # noqa: B008
     svc = ReviewRoundService(session)
-    items = svc.list_by_task(task_id)
-    return {"items": [_review_round_dict(rr) for rr in items]}
+    items, total = svc.list_by_task(task_id, offset=pagination.offset, limit=pagination.limit)
+    return {
+        "items": [_review_round_dict(rr) for rr in items],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
 
 
 @router.post(
