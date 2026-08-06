@@ -311,6 +311,9 @@ deploy:stage:
     DOCKER_HOST: unix:///var/run/docker.sock
     REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
     GIT_STRATEGY: clone
+    GIT_CLEAN_FLAGS: -ffdx
+  before_script:
+    - ls -la nginx.stage.conf || (echo "nginx.stage.conf missing after checkout!" && exit 1)
   environment:
     name: stage
     url: http://localhost:3080
