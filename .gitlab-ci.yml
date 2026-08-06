@@ -309,6 +309,7 @@ deploy:stage:
   image: docker:24
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
+    REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
   environment:
     name: stage
     url: http://localhost:3080
