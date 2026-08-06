@@ -70,3 +70,68 @@ class QualityStatsResponse(BaseModel):
     total_dod: int = Field(..., ge=0)
     passed_dod: int = Field(..., ge=0)
     pass_rate: float = Field(..., ge=0, le=100)
+
+
+# ── Response schemas ──
+
+
+class AcceptanceCriterionResponse(BaseModel):
+    id: str
+    task_id: str
+    description: str
+    status: str
+    created_at: str
+    updated_at: str
+
+
+class DoDItemResponse(BaseModel):
+    id: str
+    task_id: str
+    name: str
+    status: str
+    required_evidence_type: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class EvidenceResponse(BaseModel):
+    id: str
+    task_id: str
+    type: str
+    title: str
+    description: str | None = None
+    url: str | None = None
+    content_snippet: str | None = None
+    artifact_ref: str | None = None
+    status: str
+    verification_notes: str | None = None
+    dod_item_id: str | None = None
+    created_by_type: str
+    created_by_id: str
+    created_at: str
+    updated_at: str
+
+
+class ReviewFindingResponse(BaseModel):
+    id: str
+    round_id: str
+    severity: str
+    category: str
+    message: str
+    evidence_id: str | None = None
+    dod_item_id: str | None = None
+    suggestion: str | None = None
+    created_at: str
+
+
+class ReviewRoundResponse(BaseModel):
+    id: str
+    task_id: str
+    reviewer_type: str | None = None
+    reviewer_id: str | None = None
+    verdict: str | None = None
+    confidence: int | None = None
+    summary: str | None = None
+    status: str
+    created_at: str
+    updated_at: str

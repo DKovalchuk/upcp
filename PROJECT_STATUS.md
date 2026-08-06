@@ -3,7 +3,7 @@
 Updated: 2026-08-06
 Version: 0.14.0 (see `VERSIONING.md` for scheme)
 Milestone: M13 — Architecture & Backend Cleanup (M12 complete)
-Current Task: TASK-0092 (S15.2 complete, ready for S15.3)
+Current Task: TASK-0093 (S15.3 in MR !19, pending merge)
 Blockers: none
 
 ## Stage Deployment
@@ -33,7 +33,7 @@ Blockers: none
 |--------|-------|--------|-------|
 | S15.1 | 2.4, 2.8, 2.10, 3.2–3.5 | 8 | Quick wins: PATCH endpoint, OpenAPI, Settings route, useProjectId dedup, dead code, Ctrl+K | ✅ DONE |
 | S15.2 | 2.1–2.3, 3.1 | 9 | Backend: N+1, eager loading, pagination. Frontend: api.ts split | ✅ DONE |
-| S15.3 | 2.7, 2.9, 3.6–3.8 | 8 | Backend: schemas, /tasks endpoint. Frontend: logic to hooks, UUID resolution |
+| S15.3 | 2.7, 2.9, 3.6–3.8 | 8 | Backend: schemas, /tasks endpoint. Frontend: logic to hooks, UUID resolution | 🔄 MR !19 |
 
 ### 1.0.0 — Production Ready (S16.1–S16.4)
 

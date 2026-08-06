@@ -49,3 +49,50 @@ class SubtaskUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=10000)
     status: str | None = Field(default=None, pattern=r"^[a-z_]+$")
+
+
+# ── Response schemas ──
+
+
+class FeatureResponse(BaseModel):
+    id: str
+    project_id: str
+    component_id: str | None = None
+    name: str
+    slug: str
+    description: str | None = None
+    status: str
+    created_at: str
+    updated_at: str
+
+
+class TaskResponse(BaseModel):
+    id: str
+    feature_id: str
+    component_id: str | None = None
+    module_id: str | None = None
+    title: str
+    description: str | None = None
+    status: str
+    priority: int
+    assignee_type: str | None = None
+    assignee_id: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class SubtaskResponse(BaseModel):
+    id: str
+    task_id: str
+    title: str
+    description: str | None = None
+    status: str
+    created_at: str
+    updated_at: str
+
+
+class TaskListResponse(BaseModel):
+    items: list[TaskResponse]
+    total: int
+    offset: int
+    limit: int
