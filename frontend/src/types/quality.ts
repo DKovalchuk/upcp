@@ -63,6 +63,7 @@ export interface EvidenceCreate {
   created_by_id: string;
 }
 
+
 export interface ReviewRound {
   id: string;
   task_id: string;
@@ -77,16 +78,4 @@ export interface ReviewRound {
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
-}
-
-export interface ReviewFinding {
-  id: string;
-  review_round_id: string;
-  severity: string;
-  category: string;
-  message: string;
-  evidence_id: string | null;
-  dod_item_id: string | null;
-  suggestion: string | null;
-  created_at: string;
 }

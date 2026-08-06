@@ -202,3 +202,70 @@ def test_github_adapter_init_no_token() -> None:
 
     adapter = GitHubAdapter("owner", "repo")
     assert "Authorization" not in adapter._headers
+
+
+# ── GitProvider PATCH ──
+
+
+def test_update_provider_name() -> None:
+    c = TestClient(_app())
+    pid = _pid(c)
+    gid = c.post(
+        f"/api/v1/projects/{pid}/git-providers",
+        json={"name": "Original", "provider_type": "local", "url": "/tmp/repo"},
+    ).json()["id"]
+    resp = c.patch(f"/api/v1/git-providers/{gid}", json={"name": "Updated"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "Updated"
+    assert data["provider_type"] == "local"
+    assert data["url"] == "/tmp/repo"
+
+
+def test_update_provider_url() -> None:
+    c = TestClient(_app())
+    pid = _pid(c)
+    gid = c.post(
+        f"/api/v1/projects/{pid}/git-providers",
+        json={"name": "Test", "provider_type": "local", "url": "/tmp/old"},
+    ).json()["id"]
+    resp = c.patch(f"/api/v1/git-providers/{gid}", json={"url": "/tmp/new"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["url"] == "/tmp/new"
+    assert data["name"] == "Test"
+
+
+def test_update_provider_all_fields() -> None:
+    c = TestClient(_app())
+    pid = _pid(c)
+    gid = c.post(
+        f"/api/v1/projects/{pid}/git-providers",
+        json={"name": "Old", "provider_type": "local", "url": "/tmp/old"},
+    ).json()["id"]
+    resp = c.patch(
+        f"/api/v1/git-providers/{gid}",
+        json={"name": "New", "provider_type": "github", "url": "https://github.com/test"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "New"
+    assert data["provider_type"] == "github"
+    assert data["url"] == "https://github.com/test"
+
+
+def test_update_provider_not_found() -> None:
+    c = TestClient(_app())
+    resp = c.patch("/api/v1/git-providers/nonexistent", json={"name": "Test"})
+    assert resp.status_code == 404
+
+
+def test_update_provider_empty_body() -> None:
+    c = TestClient(_app())
+    pid = _pid(c)
+    gid = c.post(
+        f"/api/v1/projects/{pid}/git-providers",
+        json={"name": "Test", "provider_type": "local", "url": "/tmp"},
+    ).json()["id"]
+    resp = c.patch(f"/api/v1/git-providers/{gid}", json={})
+    assert resp.status_code == 422

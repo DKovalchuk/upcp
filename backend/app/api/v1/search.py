@@ -7,7 +7,11 @@ from app.shared.database import get_session
 router = APIRouter(tags=["search"])
 
 
-@router.get("/search")
+@router.get(
+    "/search",
+    summary="Search across entities",
+    description="Global search across projects, components, tasks, and other entities.",
+)
 def search(
     q: str = Query(..., min_length=1),
     limit: int = Query(20, ge=1, le=50),

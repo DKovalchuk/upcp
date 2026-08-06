@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
-Updated: 2026-07-30
+Updated: 2026-08-06
 Version: 0.14.0 (see `VERSIONING.md` for scheme)
 Milestone: M13 — Architecture & Backend Cleanup (M12 complete)
-Current Task: none (S14.2 done, ready for M13)
+Current Task: TASK-0093 (S15.3 in MR !19, pending merge)
 Blockers: none
 
 ## Stage Deployment
@@ -31,9 +31,9 @@ Blockers: none
 
 | Sprint | Items | Points | Focus |
 |--------|-------|--------|-------|
-| S15.1 | 2.4, 2.8, 2.10, 3.2–3.5 | 8 | Quick wins: PATCH endpoint, OpenAPI, Settings route, useProjectId dedup, dead code, Ctrl+K |
-| S15.2 | 2.1–2.3, 3.1 | 9 | Backend: N+1, eager loading, pagination. Frontend: api.ts split |
-| S15.3 | 2.7, 2.9, 3.6–3.8 | 8 | Backend: schemas, /tasks endpoint. Frontend: logic to hooks, UUID resolution |
+| S15.1 | 2.4, 2.8, 2.10, 3.2–3.5 | 8 | Quick wins: PATCH endpoint, OpenAPI, Settings route, useProjectId dedup, dead code, Ctrl+K | ✅ DONE |
+| S15.2 | 2.1–2.3, 3.1 | 9 | Backend: N+1, eager loading, pagination. Frontend: api.ts split | ✅ DONE |
+| S15.3 | 2.7, 2.9, 3.6–3.8 | 8 | Backend: schemas, /tasks endpoint. Frontend: logic to hooks, UUID resolution | 🔄 MR !19 |
 
 ### 1.0.0 — Production Ready (S16.1–S16.4)
 
@@ -45,6 +45,75 @@ Blockers: none
 | S16.4 | 5.9–5.15, 6.9–6.12 | 7 | Polish: animations, typography, switcher, quick-edit. Test cleanup |
 
 **Total: 61 items, 9 sprints (18 weeks), 3 milestones**
+
+## S15.1 Progress (Complete)
+
+- [x] TASK-0091: S15.1 Quick Wins (2.4, 2.8, 2.10, 3.2, 3.4, 3.5)
+
+### S15.1 Summary
+
+**Backend:**
+- PATCH endpoint for git providers (`/git-providers/{provider_id}`)
+- `GitProviderUpdate` schema with optional fields
+- `update_provider()` service method with partial update support
+- OpenAPI documentation: summary + description on all 12 routers
+- OpenAPI tags with descriptions in `main.py`
+- 5 new PATCH endpoint tests (all passing)
+
+**Frontend:**
+- Settings page with theme toggle, API info, and about section
+- `useProjectId` deduplication: 6 components refactored to use hook
+- CommandPalette cleanup: removed inline projectId extraction
+- Dead code removal: HealthScore, PageHeader, unused type definitions, stale assets
+- **Delivery bug fixes (MR !17):**
+  - Task counter: always fetch tasks regardless of expanded state
+  - Drag-and-drop: explicit queryClient.invalidateQueries for all feature task queries after mutation; prevent onClick during drag
+  - Feature status badge: compute from actual task statuses (done/in-progress/review) instead of stored API value
+- TypeScript: 0 errors
+
+**Verification:**
+- Backend: 615/615 tests passed
+- Frontend: 161/161 tests passed
+- Ruff: All checks passed
+- Mypy: 0 errors
+- TypeScript: 0 errors
+
+**Files Changed:** 34 files (722 insertions, 258 deletions)
+
+## S15.2 Progress (Complete)
+
+- [x] TASK-0092: S15.2 Backend N+1/Eager Loading/Pagination + Frontend api.ts Split (2.1, 2.2, 2.3, 3.1)
+
+### S15.2 Summary
+
+**Backend:**
+- PortfolioService: batch queries (41→10 queries, 75% reduction)
+- AttentionDashboardService: new `get_projects_health_batch()` method for batch health calculation
+- Quality endpoints: added PaginationParams to AC, DoD, evidence, review-rounds list APIs
+- Service methods return `(items, total)` tuples for pagination support
+- MCP tools updated for new return type
+
+**Frontend:**
+- Split api.ts (600+ lines) into 10 domain modules:
+  - `api/client.ts` — Core API client
+  - `api/projects.ts`, `api/components.ts`, `api/modules.ts` — Structure CRUD
+  - `api/features.ts`, `api/tasks.ts` — Delivery CRUD + agent workflow
+  - `api/quality.ts` — AC, DoD, Evidence, Review
+  - `api/dashboard.ts` — Dashboard, Stats, Notifications
+  - `api/git.ts` — Git providers, branches, commits
+  - `api/index.ts` — Re-exports all
+- Backward-compatible re-exports via original api.ts
+
+**Tests:**
+- 17 new tests (N+1 query count, batch health, pagination)
+- Backend: 632/632 tests passed
+- Frontend: 161/161 tests passed
+- Ruff: All checks passed
+- Mypy: 0 errors
+- TypeScript: 0 errors
+
+**Files Changed:** 22 files (1553 insertions, 849 deletions)
+**MR:** !18
 
 ## M11 Progress (Complete)
 

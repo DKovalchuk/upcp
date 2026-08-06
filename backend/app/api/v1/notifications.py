@@ -10,7 +10,11 @@ from app.shared.errors import NotFound
 router = APIRouter(tags=["notifications"])
 
 
-@router.get("/notifications")
+@router.get(
+    "/notifications",
+    summary="List notifications",
+    description="List all notifications for a user, optionally filtering to unread only.",
+)
 def list_notifications(
     user_id: str = "default",
     unread_only: bool = False,
@@ -35,7 +39,11 @@ def list_notifications(
     }
 
 
-@router.get("/notifications/unread-count")
+@router.get(
+    "/notifications/unread-count",
+    summary="Get unread notification count",
+    description="Get the count of unread notifications for a user.",
+)
 def unread_count(
     user_id: str = "default",
     session: Session = Depends(get_session),
@@ -44,7 +52,12 @@ def unread_count(
     return {"count": svc.unread_count(user_id)}
 
 
-@router.post("/notifications/{notification_id}/read")
+@router.post(
+    "/notifications/{notification_id}/read",
+    summary="Mark a notification as read",
+    description="Mark a specific notification as read.",
+    responses={404: {"description": "Notification not found"}},
+)
 def mark_notification_read(
     notification_id: str,
     session: Session = Depends(get_session),
@@ -60,7 +73,11 @@ def mark_notification_read(
     }
 
 
-@router.post("/notifications/read-all")
+@router.post(
+    "/notifications/read-all",
+    summary="Mark all notifications as read",
+    description="Mark all notifications for a user as read.",
+)
 def mark_all_read(
     user_id: str = "default",
     session: Session = Depends(get_session),

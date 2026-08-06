@@ -27,11 +27,18 @@ from app.quality.service import (
 )
 from app.shared.database import get_session
 from app.shared.errors import Conflict, NotFound
+from app.shared.pagination import PaginationParams, pagination_dependency
 
 router = APIRouter(tags=["quality"])
 
 
-@router.post("/tasks/{task_id}/acceptance-criteria", status_code=201)
+@router.post(
+    "/tasks/{task_id}/acceptance-criteria",
+    status_code=201,
+    summary="Create an acceptance criterion",
+    description="Create a new acceptance criterion for a task.",
+    responses={422: {"description": "Validation error"}},
+)
 def create_ac(
     task_id: str, body: AcceptanceCriterionCreate, session: Session = Depends(get_session)
 ) -> dict[str, str]:  # noqa: B008
@@ -40,13 +47,26 @@ def create_ac(
     return {"id": ac.id, "task_id": ac.task_id, "description": ac.description, "status": ac.status}
 
 
-@router.get("/acceptance-criteria/{ac_id}")
+@router.get(
+    "/acceptance-criteria/{ac_id}",
+    summary="Get an acceptance criterion",
+    description="Retrieve a single acceptance criterion by its identifier.",
+    responses={404: {"description": "Acceptance criterion not found"}},
+)
 def get_ac(ac_id: str, session: Session = Depends(get_session)) -> dict[str, str]:  # noqa: B008
     ac = AcceptanceCriterionService(session).get(ac_id)
     return {"id": ac.id, "task_id": ac.task_id, "description": ac.description, "status": ac.status}
 
 
-@router.patch("/acceptance-criteria/{ac_id}")
+@router.patch(
+    "/acceptance-criteria/{ac_id}",
+    summary="Update an acceptance criterion",
+    description="Partially update an acceptance criterion.",
+    responses={
+        404: {"description": "Acceptance criterion not found"},
+        422: {"description": "Validation error"},
+    },
+)
 def update_ac(
     ac_id: str, body: AcceptanceCriterionUpdate, session: Session = Depends(get_session)
 ) -> dict[str, str]:  # noqa: B008
@@ -54,21 +74,48 @@ def update_ac(
     return {"id": ac.id, "task_id": ac.task_id, "description": ac.description, "status": ac.status}
 
 
-@router.delete("/acceptance-criteria/{ac_id}", status_code=204)
+@router.delete(
+    "/acceptance-criteria/{ac_id}",
+    status_code=204,
+    summary="Delete an acceptance criterion",
+    description="Delete an acceptance criterion by its identifier.",
+    responses={404: {"description": "Acceptance criterion not found"}},
+)
 def delete_ac(ac_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     AcceptanceCriterionService(session).delete(ac_id)
 
 
-@router.get("/tasks/{task_id}/acceptance-criteria")
-def list_acs(task_id: str, session: Session = Depends(get_session)) -> list[dict[str, str]]:  # noqa: B008
-    items = AcceptanceCriterionService(session).list_by_task(task_id)
-    return [
-        {"id": a.id, "task_id": a.task_id, "description": a.description, "status": a.status}
-        for a in items
-    ]
+@router.get(
+    "/tasks/{task_id}/acceptance-criteria",
+    summary="List acceptance criteria for a task",
+    description="List all acceptance criteria associated with a task.",
+)
+def list_acs(
+    task_id: str,
+    pagination: PaginationParams = Depends(pagination_dependency),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:  # noqa: B008
+    items, total = AcceptanceCriterionService(session).list_by_task(
+        task_id, offset=pagination.offset, limit=pagination.limit
+    )
+    return {
+        "items": [
+            {"id": a.id, "task_id": a.task_id, "description": a.description, "status": a.status}
+            for a in items
+        ],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
 
 
-@router.post("/tasks/{task_id}/dod-items", status_code=201)
+@router.post(
+    "/tasks/{task_id}/dod-items",
+    status_code=201,
+    summary="Create a DoD item",
+    description="Create a new Definition of Done item for a task.",
+    responses={422: {"description": "Validation error"}},
+)
 def create_dod(
     task_id: str, body: DoDItemCreate, session: Session = Depends(get_session)
 ) -> dict[str, str]:  # noqa: B008
@@ -77,13 +124,26 @@ def create_dod(
     return {"id": item.id, "task_id": item.task_id, "name": item.name, "status": item.status}
 
 
-@router.get("/dod-items/{item_id}")
+@router.get(
+    "/dod-items/{item_id}",
+    summary="Get a DoD item",
+    description="Retrieve a single DoD item by its identifier.",
+    responses={404: {"description": "DoD item not found"}},
+)
 def get_dod(item_id: str, session: Session = Depends(get_session)) -> dict[str, str]:  # noqa: B008
     item = DoDItemService(session).get(item_id)
     return {"id": item.id, "task_id": item.task_id, "name": item.name, "status": item.status}
 
 
-@router.patch("/dod-items/{item_id}")
+@router.patch(
+    "/dod-items/{item_id}",
+    summary="Update a DoD item",
+    description="Partially update a DoD item.",
+    responses={
+        404: {"description": "DoD item not found"},
+        422: {"description": "Validation error"},
+    },
+)
 def update_dod(
     item_id: str, body: DoDItemUpdate, session: Session = Depends(get_session)
 ) -> dict[str, str]:  # noqa: B008
@@ -91,24 +151,61 @@ def update_dod(
     return {"id": item.id, "task_id": item.task_id, "name": item.name, "status": item.status}
 
 
-@router.delete("/dod-items/{item_id}", status_code=204)
+@router.delete(
+    "/dod-items/{item_id}",
+    status_code=204,
+    summary="Delete a DoD item",
+    description="Delete a DoD item by its identifier.",
+    responses={404: {"description": "DoD item not found"}},
+)
 def delete_dod(item_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     DoDItemService(session).delete(item_id)
 
 
-@router.get("/tasks/{task_id}/dod-items")
-def list_dods(task_id: str, session: Session = Depends(get_session)) -> list[dict[str, str]]:  # noqa: B008
-    items = DoDItemService(session).list_by_task(task_id)
-    return [{"id": i.id, "task_id": i.task_id, "name": i.name, "status": i.status} for i in items]
+@router.get(
+    "/tasks/{task_id}/dod-items",
+    summary="List DoD items for a task",
+    description="List all Definition of Done items associated with a task.",
+)
+def list_dods(
+    task_id: str,
+    pagination: PaginationParams = Depends(pagination_dependency),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:  # noqa: B008
+    items, total = DoDItemService(session).list_by_task(
+        task_id, offset=pagination.offset, limit=pagination.limit
+    )
+    return {
+        "items": [
+            {"id": i.id, "task_id": i.task_id, "name": i.name, "status": i.status} for i in items
+        ],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
 
 
-@router.post("/tasks/{task_id}/complete")
+@router.post(
+    "/tasks/{task_id}/complete",
+    summary="Mark a task as complete",
+    description="Mark a task as complete, updating its status to done.",
+    responses={404: {"description": "Task not found"}},
+)
 def complete_task(task_id: str, session: Session = Depends(get_session)) -> dict[str, str]:  # noqa: B008
     task = TaskService(session).complete(task_id)
     return {"id": task.id, "status": task.status}
 
 
-@router.post("/tasks/{task_id}/submit-review", status_code=201)
+@router.post(
+    "/tasks/{task_id}/submit-review",
+    status_code=201,
+    summary="Submit a task for review",
+    description="Submit a completed task for agent or human review.",
+    responses={
+        404: {"description": "Task not found"},
+        400: {"description": "Task not eligible for review"},
+    },
+)
 def submit_task_for_review(
     task_id: str,
     session: Session = Depends(get_session),
@@ -127,7 +224,13 @@ def submit_task_for_review(
     return _review_round_dict(rr)
 
 
-@router.get("/projects/{project_id}/quality/stats", response_model=QualityStatsResponse)
+@router.get(
+    "/projects/{project_id}/quality/stats",
+    response_model=QualityStatsResponse,
+    summary="Get quality statistics",
+    description="Retrieve quality statistics for a project including task counts, AC pass rates, and DoD status.",
+    responses={404: {"description": "Project not found"}},
+)
 def get_quality_stats(
     project_id: str, session: Session = Depends(get_session)
 ) -> QualityStatsResponse:  # noqa: B008
@@ -168,15 +271,34 @@ def _evidence_dict(e: Any) -> dict[str, str | None]:
     }
 
 
-@router.get("/tasks/{task_id}/evidence")
+@router.get(
+    "/tasks/{task_id}/evidence",
+    summary="List evidence for a task",
+    description="List all evidence items attached to a task.",
+)
 def list_evidence(
-    task_id: str, session: Session = Depends(get_session)
-) -> dict[str, list[dict[str, str | None]]]:  # noqa: B008
-    items = EvidenceService(session).list_by_task(task_id)
-    return {"items": [_evidence_dict(e) for e in items]}
+    task_id: str,
+    pagination: PaginationParams = Depends(pagination_dependency),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:  # noqa: B008
+    items, total = EvidenceService(session).list_by_task(
+        task_id, offset=pagination.offset, limit=pagination.limit
+    )
+    return {
+        "items": [_evidence_dict(e) for e in items],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
 
 
-@router.post("/tasks/{task_id}/evidence", status_code=201)
+@router.post(
+    "/tasks/{task_id}/evidence",
+    status_code=201,
+    summary="Create evidence",
+    description="Attach a new evidence item to a task for DoD verification.",
+    responses={422: {"description": "Validation error"}},
+)
 def create_evidence(
     task_id: str, body: EvidenceCreate, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -196,7 +318,15 @@ def create_evidence(
     return _evidence_dict(e)
 
 
-@router.post("/evidence/{evidence_id}/agent-verify")
+@router.post(
+    "/evidence/{evidence_id}/agent-verify",
+    summary="Verify evidence (agent)",
+    description="Agent verifies an evidence item as valid.",
+    responses={
+        404: {"description": "Evidence not found"},
+        409: {"description": "Evidence already verified"},
+    },
+)
 def agent_verify_evidence(
     evidence_id: str,
     body: EvidenceVerifyRequest | None = None,
@@ -212,7 +342,15 @@ def agent_verify_evidence(
     return _evidence_dict(e)
 
 
-@router.post("/evidence/{evidence_id}/human-accept")
+@router.post(
+    "/evidence/{evidence_id}/human-accept",
+    summary="Accept evidence (human)",
+    description="Human reviewer accepts an evidence item as valid.",
+    responses={
+        404: {"description": "Evidence not found"},
+        409: {"description": "Evidence already accepted"},
+    },
+)
 def human_accept_evidence(
     evidence_id: str,
     session: Session = Depends(get_session),
@@ -227,7 +365,15 @@ def human_accept_evidence(
     return _evidence_dict(e)
 
 
-@router.post("/evidence/{evidence_id}/reject")
+@router.post(
+    "/evidence/{evidence_id}/reject",
+    summary="Reject evidence",
+    description="Reject an evidence item as invalid.",
+    responses={
+        404: {"description": "Evidence not found"},
+        409: {"description": "Evidence already rejected"},
+    },
+)
 def reject_evidence(
     evidence_id: str,
     body: EvidenceRejectRequest | None = None,
@@ -278,16 +424,33 @@ def _review_finding_dict(f: Any) -> dict[str, str | None]:
     }
 
 
-@router.get("/tasks/{task_id}/review-rounds")
+@router.get(
+    "/tasks/{task_id}/review-rounds",
+    summary="List review rounds for a task",
+    description="List all review rounds associated with a task.",
+)
 def list_review_rounds(
-    task_id: str, session: Session = Depends(get_session)
-) -> dict[str, list[dict[str, str | None]]]:  # noqa: B008
+    task_id: str,
+    pagination: PaginationParams = Depends(pagination_dependency),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:  # noqa: B008
     svc = ReviewRoundService(session)
-    items = svc.list_by_task(task_id)
-    return {"items": [_review_round_dict(rr) for rr in items]}
+    items, total = svc.list_by_task(task_id, offset=pagination.offset, limit=pagination.limit)
+    return {
+        "items": [_review_round_dict(rr) for rr in items],
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
 
 
-@router.post("/tasks/{task_id}/review-rounds", status_code=201)
+@router.post(
+    "/tasks/{task_id}/review-rounds",
+    status_code=201,
+    summary="Create a review round",
+    description="Create a new review round for a task with a specified reviewer.",
+    responses={404: {"description": "Task not found"}},
+)
 def create_review_round(
     task_id: str,
     body: ReviewRoundCreate,
@@ -307,7 +470,15 @@ def create_review_round(
     return _review_round_dict(rr)
 
 
-@router.post("/review-rounds/{round_id}/start")
+@router.post(
+    "/review-rounds/{round_id}/start",
+    summary="Start a review round",
+    description="Start a review round, transitioning it from pending to in_progress.",
+    responses={
+        404: {"description": "Review round not found"},
+        409: {"description": "Review round not in valid state"},
+    },
+)
 def start_review_round(
     round_id: str, session: Session = Depends(get_session)
 ) -> dict[str, str | None]:  # noqa: B008
@@ -321,7 +492,16 @@ def start_review_round(
     return _review_round_dict(rr)
 
 
-@router.post("/review-rounds/{round_id}/findings", status_code=201)
+@router.post(
+    "/review-rounds/{round_id}/findings",
+    status_code=201,
+    summary="Add a review finding",
+    description="Add a finding to a review round with severity and category.",
+    responses={
+        404: {"description": "Review round not found"},
+        409: {"description": "Review round not in valid state"},
+    },
+)
 def create_review_finding(
     round_id: str,
     body: ReviewFindingCreate,
@@ -345,7 +525,15 @@ def create_review_finding(
     return _review_finding_dict(f)
 
 
-@router.post("/review-rounds/{round_id}/verdict")
+@router.post(
+    "/review-rounds/{round_id}/verdict",
+    summary="Submit a review verdict",
+    description="Submit the final verdict for a review round with confidence and summary.",
+    responses={
+        404: {"description": "Review round not found"},
+        409: {"description": "Review round not in valid state"},
+    },
+)
 def submit_verdict(
     round_id: str,
     body: ReviewVerdictRequest,

@@ -1,3 +1,8 @@
+import app.delivery.models  # noqa: F401
+import app.projects.models  # noqa: F401
+
+# Ensure all models are registered with Base.metadata for create_all
+import app.structure.models  # noqa: F401
 from app.api.v1.delivery import router as delivery_router
 from app.api.v1.projects import router as projects_router
 from app.shared.database import Base, get_session
@@ -41,8 +46,8 @@ def _pid(c: TestClient) -> str:
     return c.post("/api/v1/projects", json={"name": "P"}).json()["id"]
 
 
-def _fid(c: TestClient, pid: str) -> str:
-    return c.post(f"/api/v1/projects/{pid}/features", json={"name": "F"}).json()["id"]
+def _fid(c: TestClient, pid: str, name: str = "F") -> str:
+    return c.post(f"/api/v1/projects/{pid}/features", json={"name": name}).json()["id"]
 
 
 def _tid(c: TestClient, fid: str) -> str:
@@ -168,3 +173,91 @@ def test_list_subtasks() -> None:
     for i in range(3):
         c.post(f"/api/v1/tasks/{tid}/subtasks", json={"title": f"S{i}"})
     assert c.get(f"/api/v1/tasks/{tid}/subtasks").json()["total"] == 3
+
+
+# ── Project-level tasks ──
+
+
+def test_list_tasks_by_project() -> None:
+    """GET /projects/{pid}/tasks returns all tasks across features."""
+    c = TestClient(_app())
+    pid = _pid(c)
+    f1 = _fid(c, pid, "F1")
+    f2 = _fid(c, pid, "F2")
+    c.post(f"/api/v1/features/{f1}/tasks", json={"title": "T1"})
+    c.post(f"/api/v1/features/{f1}/tasks", json={"title": "T2"})
+    c.post(f"/api/v1/features/{f2}/tasks", json={"title": "T3"})
+    resp = c.get(f"/api/v1/projects/{pid}/tasks")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 3
+    assert len(body["items"]) == 3
+
+
+def test_list_tasks_by_project_empty() -> None:
+    """GET /projects/{pid}/tasks returns empty for project with no tasks."""
+    c = TestClient(_app())
+    pid = _pid(c)
+    _fid(c, pid)  # feature exists but no tasks
+    resp = c.get(f"/api/v1/projects/{pid}/tasks")
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 0
+    assert resp.json()["items"] == []
+
+
+def test_list_tasks_by_project_pagination() -> None:
+    """GET /projects/{pid}/tasks respects offset/limit."""
+    c = TestClient(_app())
+    pid = _pid(c)
+    fid = _fid(c, pid)
+    for i in range(5):
+        c.post(f"/api/v1/features/{fid}/tasks", json={"title": f"T{i}"})
+    resp = c.get(f"/api/v1/projects/{pid}/tasks?offset=2&limit=2")
+    body = resp.json()
+    assert body["total"] == 5
+    assert len(body["items"]) == 2
+    assert body["offset"] == 2
+    assert body["limit"] == 2
+
+
+def test_list_tasks_by_project_filter_status() -> None:
+    """GET /projects/{pid}/tasks?status=backlog filters by status."""
+    c = TestClient(_app())
+    pid = _pid(c)
+    fid = _fid(c, pid)
+    c.post(f"/api/v1/features/{fid}/tasks", json={"title": "Backlog", "status": "backlog"})
+    c.post(f"/api/v1/features/{fid}/tasks", json={"title": "Done", "status": "done"})
+    resp = c.get(f"/api/v1/projects/{pid}/tasks?status=backlog")
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["title"] == "Backlog"
+
+
+def test_list_tasks_by_project_filter_feature() -> None:
+    """GET /projects/{pid}/tasks?feature_id=X filters by feature."""
+    c = TestClient(_app())
+    pid = _pid(c)
+    f1 = _fid(c, pid, "F1")
+    f2 = _fid(c, pid, "F2")
+    c.post(f"/api/v1/features/{f1}/tasks", json={"title": "In F1"})
+    c.post(f"/api/v1/features/{f2}/tasks", json={"title": "In F2"})
+    resp = c.get(f"/api/v1/projects/{pid}/tasks?feature_id=" + f1)
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["title"] == "In F1"
+
+
+def test_list_tasks_by_project_filter_assignee() -> None:
+    """GET /projects/{pid}/tasks?assignee_type=agent filters by assignee type."""
+    c = TestClient(_app())
+    pid = _pid(c)
+    fid = _fid(c, pid)
+    c.post(
+        f"/api/v1/features/{fid}/tasks",
+        json={"title": "Agent task", "assignee_type": "agent", "assignee_id": "code-guard"},
+    )
+    c.post(f"/api/v1/features/{fid}/tasks", json={"title": "Unassigned"})
+    resp = c.get(f"/api/v1/projects/{pid}/tasks?assignee_type=agent")
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["title"] == "Agent task"

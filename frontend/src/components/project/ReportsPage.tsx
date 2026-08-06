@@ -1,5 +1,5 @@
-import { useLocation } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { useProjectId } from '@/hooks/use-project-id';
 import { useReports, useCreateReport } from '@/hooks/use-reports';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,11 +23,7 @@ import {
 import type { Report } from '@/types/report';
 
 export function ReportsPage() {
-  const location = useLocation();
-  const projectId = useMemo(() => {
-    const match = location.pathname.match(/^\/projects\/([^/]+)/);
-    return match?.[1] ?? '';
-  }, [location.pathname]);
+  const projectId = useProjectId();
 
   const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
   const { data, isLoading, error } = useReports(projectId, { offset, limit });

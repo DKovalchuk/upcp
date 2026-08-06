@@ -1,5 +1,6 @@
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { AgentAvatar } from '@/components/ui/AgentAvatar';
+import { Button } from '@/components/ui/button';
 import { formatRelativeTime } from '@/lib/format';
 
 interface ReviewVerdictCardProps {
@@ -43,6 +44,8 @@ export function ReviewVerdictCard({
   findingsCount,
   summary,
   createdAt,
+  onAccept,
+  onReject,
 }: ReviewVerdictCardProps) {
   const config = VERDICT_CONFIG[verdict];
   const Icon = config.icon;
@@ -80,6 +83,22 @@ export function ReviewVerdictCard({
       )}
       {summary && (
         <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{summary}</p>
+      )}
+      {(onAccept || onReject) && (
+        <div className="mt-3 flex items-center gap-2">
+          {onAccept && (
+            <Button size="sm" variant="outline" onClick={onAccept} className="h-7 text-xs">
+              <CheckCircle className="mr-1 h-3 w-3" />
+              Accept
+            </Button>
+          )}
+          {onReject && (
+            <Button size="sm" variant="outline" onClick={onReject} className="h-7 text-xs text-destructive hover:text-destructive">
+              <XCircle className="mr-1 h-3 w-3" />
+              Reject
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

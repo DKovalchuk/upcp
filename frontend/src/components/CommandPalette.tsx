@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useNavigate, useLocation } from '@tanstack/react-router';
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { useProjectId } from '@/hooks/use-project-id';
 import {
   CommandDialog,
   CommandInput,
@@ -63,7 +64,6 @@ function saveRecentItem(id: string) {
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: searchResults = [] } = useQuery({
@@ -76,10 +76,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     setSearchQuery(value);
   }, []);
 
-  const projectId = useMemo(() => {
-    const match = location.pathname.match(/^\/projects\/([^/]+)/);
-    return match?.[1] ?? null;
-  }, [location.pathname]);
+  const projectId = useProjectId();
 
   const go = (path: string) => {
     navigate({ to: path });

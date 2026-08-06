@@ -82,7 +82,9 @@ def test_list_acs() -> None:
     tid = _task_id(c)
     c.post(f"/api/v1/tasks/{tid}/acceptance-criteria", json={"description": "A"})
     c.post(f"/api/v1/tasks/{tid}/acceptance-criteria", json={"description": "B"})
-    assert len(c.get(f"/api/v1/tasks/{tid}/acceptance-criteria").json()) == 2
+    body = c.get(f"/api/v1/tasks/{tid}/acceptance-criteria").json()
+    assert len(body["items"]) == 2
+    assert body["total"] == 2
 
 
 # ── DoD Item ──
@@ -115,7 +117,9 @@ def test_list_dods() -> None:
     c = TestClient(_app())
     tid = _task_id(c)
     c.post(f"/api/v1/tasks/{tid}/dod-items", json={"name": "A"})
-    assert len(c.get(f"/api/v1/tasks/{tid}/dod-items").json()) == 1
+    body = c.get(f"/api/v1/tasks/{tid}/dod-items").json()
+    assert len(body["items"]) == 1
+    assert body["total"] == 1
 
 
 # ── Quality Gate ──

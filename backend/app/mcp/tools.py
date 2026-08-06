@@ -757,7 +757,7 @@ def _handle_list_evidence(session: Any, arguments: dict[str, object]) -> ToolRes
     if not task_id:
         raise ValueError("task_id is required")
     svc = EvidenceService(session)
-    items = svc.list_by_task(task_id)
+    items, _total = svc.list_by_task(task_id)
     result = {
         "items": [
             {
@@ -812,7 +812,7 @@ def _handle_list_review_rounds(session: Any, arguments: dict[str, object]) -> To
     if not task_id:
         raise ValueError("task_id is required")
     svc = ReviewRoundService(session)
-    items = svc.list_by_task(task_id)
+    items, _total = svc.list_by_task(task_id)
     result = {
         "items": [
             {

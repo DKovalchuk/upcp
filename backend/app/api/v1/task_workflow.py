@@ -40,7 +40,16 @@ class ProgressRequest(BaseModel):
 # ── Endpoints ──
 
 
-@router.post("/tasks/{task_id}/claim", status_code=201)
+@router.post(
+    "/tasks/{task_id}/claim",
+    status_code=201,
+    summary="Claim a task",
+    description="Claim a ready task for an agent. Only one active claim per task is allowed.",
+    responses={
+        404: {"description": "Task not found"},
+        409: {"description": "Task already claimed"},
+    },
+)
 def claim_task(
     task_id: str,
     body: ClaimRequest | None = None,
@@ -68,7 +77,15 @@ def claim_task(
     }
 
 
-@router.post("/tasks/{task_id}/release")
+@router.post(
+    "/tasks/{task_id}/release",
+    summary="Release a task claim",
+    description="Release an active claim on a task, making it available for other agents.",
+    responses={
+        404: {"description": "Task not found"},
+        409: {"description": "No active claim to release"},
+    },
+)
 def release_task(
     task_id: str,
     agent: CurrentAgent = Depends(get_current_agent),
@@ -85,7 +102,15 @@ def release_task(
     return {"ok": True}
 
 
-@router.post("/tasks/{task_id}/heartbeat")
+@router.post(
+    "/tasks/{task_id}/heartbeat",
+    summary="Send a task heartbeat",
+    description="Send progress update and heartbeat for an active claim. Must be sent every 30-60 seconds.",
+    responses={
+        404: {"description": "Task not found"},
+        409: {"description": "No active claim for this task"},
+    },
+)
 def heartbeat_task(
     task_id: str,
     body: HeartbeatRequest,
@@ -111,7 +136,15 @@ def heartbeat_task(
     return {"ok": True}
 
 
-@router.post("/tasks/{task_id}/progress")
+@router.post(
+    "/tasks/{task_id}/progress",
+    summary="Update task progress",
+    description="Update the progress percentage for an active task claim.",
+    responses={
+        404: {"description": "Task not found"},
+        409: {"description": "No active claim for this task"},
+    },
+)
 def progress_task(
     task_id: str,
     body: ProgressRequest,
@@ -143,7 +176,12 @@ def _require_task(session: Session, task_id: str) -> None:
         raise HTTPException(status_code=404, detail=f"task '{task_id}' not found")
 
 
-@router.get("/tasks/{task_id}/claims")
+@router.get(
+    "/tasks/{task_id}/claims",
+    summary="List claims for a task",
+    description="List all claim records for a task including active and released claims.",
+    responses={404: {"description": "Task not found"}},
+)
 def list_claims(
     task_id: str,
     session: Session = Depends(get_session),
@@ -171,7 +209,12 @@ def list_claims(
     return {"items": items}
 
 
-@router.get("/tasks/{task_id}/heartbeats")
+@router.get(
+    "/tasks/{task_id}/heartbeats",
+    summary="List heartbeats for a task",
+    description="List all heartbeat records for a task across all claims.",
+    responses={404: {"description": "Task not found"}},
+)
 def list_heartbeats(
     task_id: str,
     session: Session = Depends(get_session),
@@ -202,7 +245,12 @@ def list_heartbeats(
     return {"items": items}
 
 
-@router.get("/tasks/{task_id}/clarifications")
+@router.get(
+    "/tasks/{task_id}/clarifications",
+    summary="List clarifications for a task",
+    description="List all clarification requests for a task including open and answered ones.",
+    responses={404: {"description": "Task not found"}},
+)
 def list_clarifications(
     task_id: str,
     session: Session = Depends(get_session),
