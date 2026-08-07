@@ -15,7 +15,8 @@ Read only what is needed for the current task.
 | `08-coding-standards.md` | Code style and limits | Writing or reviewing code |
 | `09-testing-standards.md` | Test structure | Writing tests |
 | `10-git-conventions.md` | Branches/commits | Committing work |
-| `11-docker-and-ports.md` | Docker ports | Running locally |
+| `11-docker-and-ports.md` | Docker ports and environments | Running locally |
+| `ENVIRONMENTS.md` | Login/passwords for stage/dev/test | Setting up or logging into environments |
 | `12-bootstrap-plan.md` | Milestones and first tasks | Planning implementation |
 | `13-model-routing.md` | Light vs Pro model usage | Choosing model |
 | `decisions.md` | Append-only decisions | Recording assumptions |
