@@ -132,11 +132,11 @@ export function DataTable<T extends Record<string, unknown>>({
           )}
           <div className="flex items-center gap-1">
             <Tooltip>
-              <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+              <TooltipTrigger render={<Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => {
                 const densities: Array<'compact' | 'default' | 'comfortable'> = ['compact', 'default', 'comfortable'];
                 const idx = densities.indexOf(density);
                 handleDensityChange(densities[(idx + 1) % densities.length]);
-              }} />}>
+              }} aria-label="Toggle density" />}>
                 <DensityIcon className="h-4 w-4" />
               </TooltipTrigger>
               <TooltipContent>{DENSITY_LABELS[density]}</TooltipContent>

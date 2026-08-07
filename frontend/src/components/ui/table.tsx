@@ -1,12 +1,22 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { useScrollHints } from "@/hooks/use-scroll-hints"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
+  const { ref, onScroll, check } = useScrollHints()
+
+  React.useEffect(() => {
+    check()
+  }, [check])
+
   return (
     <div
+      ref={ref}
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      data-scroll-hint
+      onScroll={onScroll}
+      className="table-scroll-wrapper relative w-full overflow-x-auto"
     >
       <table
         data-slot="table"

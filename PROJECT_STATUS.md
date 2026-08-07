@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
-Updated: 2026-08-06
-Version: 0.14.0 (see `VERSIONING.md` for scheme)
-Milestone: M13 — Architecture & Backend Cleanup (M12 complete)
-Current Task: TASK-0093 (S15.3 in MR !19, pending merge)
+Updated: 2026-08-07
+Version: 0.16.0 (see `VERSIONING.md` for scheme)
+Milestone: M14 — Performance & Accessibility (M13 complete)
+Current Task: S16.1 (feature/S16.1-perf-a11y branch)
 Blockers: none
 
 ## Stage Deployment
@@ -16,8 +16,8 @@ Blockers: none
 ## Roadmap to 1.0.0
 
 ```
-0.13.0 (done) → 0.14.0 (done+deployed) → 0.15.0 → 1.0.0
-   M11              M12                    M13      Production
+0.13.0 (done) → 0.14.0 (done) → 0.15.0 (done) → 0.16.0 (now) → 0.17.0 → 1.0.0
+   M11              M12              M13              M14         M15    Production
 ```
 
 ### M12: 0.14.0 — Critical Fixes & Security (S14.1–S14.2)
@@ -35,7 +35,7 @@ Blockers: none
 | S15.2 | 2.1–2.3, 3.1 | 9 | Backend: N+1, eager loading, pagination. Frontend: api.ts split | ✅ DONE |
 | S15.3 | 2.7, 2.9, 3.6–3.8 | 8 | Backend: schemas, /tasks endpoint. Frontend: logic to hooks, UUID resolution | 🔄 MR !19 |
 
-### 1.0.0 — Production Ready (S16.1–S16.4)
+### M14: 0.16.0 — Performance & Accessibility (S16.1–S16.4)
 
 | Sprint | Items | Points | Focus |
 |--------|-------|--------|-------|
@@ -44,7 +44,11 @@ Blockers: none
 | S16.3 | 6.1–6.8 | 9 | Tests: auth, core pages, api.ts, integration |
 | S16.4 | 5.9–5.15, 6.9–6.12 | 7 | Polish: animations, typography, switcher, quick-edit. Test cleanup |
 
-**Total: 61 items, 9 sprints (18 weeks), 3 milestones**
+**Total: 33 items, 4 sprints (8 weeks)**
+
+### M15: 0.17.0 — Production Ready (TBD)
+
+### 1.0.0 — Production Release
 
 ## S15.1 Progress (Complete)
 

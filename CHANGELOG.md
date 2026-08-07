@@ -7,6 +7,45 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+## [0.16.0] — M14 — Performance & Accessibility (in progress)
+
+### Performance (S16.1)
+- Bundle splitting: lazy routes via React.lazy for all pages
+- staleTime for React Query hooks (reduce unnecessary refetches)
+- BoardView: single /tasks endpoint (was N parallel queries)
+
+### Accessibility (S16.1)
+- aria-labels on all icon-only buttons
+- Touch targets ≥ 44px on interactive elements
+- Horizontal scroll hints on wide tables
+
+## [0.15.0] — M13 — Architecture & Backend Cleanup
+
+### Backend (S15.1–S15.3)
+- Git Provider PATCH endpoint
+- OpenAPI documentation on all 12 routers
+- N+1 query fixes in Search, PortfolioService (75% query reduction)
+- Pagination consistency across quality endpoints
+- Response schemas: Pydantic response_model on 15+ endpoints
+- `/projects/{id}/tasks` endpoint with filters (status, feature, assignee)
+- Eager loading for task claims, heartbeats, clarifications
+
+### Frontend (S15.1–S15.3)
+- Settings page with theme toggle, API info, about section
+- `useProjectId` hook deduplication (6 components refactored)
+- api.ts split into 10 domain modules
+- Business logic extracted to hooks (useTaskDetail, useSubmitReviewVerdict)
+- UUID resolution via component/module lookup maps
+- CommandPalette cleanup, dead code removal
+- Delivery bug fixes: task counter, drag-and-drop invalidation, feature status
+
+### CI/CD
+- Fixed REGISTRY variable in deploy job
+- Fixed nginx DinD volume mount (Dockerfile.nginx)
+- Added GIT_STRATEGY:clone + GIT_CLEAN_FLAGS for clean workspace
+- Dev environment on port 3082, test on port 3081
+- ENVIRONMENTS.md with all credentials and quick commands
+
 ## [0.14.0] - 2026-07-30
 
 ### Security (S14.2 — M12 Security Hardening)

@@ -4,7 +4,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 
 ## Current Version
 
-**0.14.0** — M12 Critical Fixes & Security (see `pyproject.toml` for authoritative value)
+**0.16.0** — M14 Performance & Accessibility (see `pyproject.toml` for authoritative value)
 
 ## Scheme
 
@@ -21,9 +21,9 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 ## Roadmap to 1.0.0
 
 ```
-0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 1.0.0
- M11        M12        M13        Production
- done       now        next       ready
+0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 1.0.0
+ M11        M12        M13        M14        M15        Production
+ done       done       done       now        next       ready
 ```
 
 ### 0.14.0 — Critical Fixes & Security
@@ -48,6 +48,24 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 - [ ] GitHub adapter validates owner/repo params
 - [ ] Git adapter errors don't expose stderr
 - [ ] Dependency scanning in CI
+
+### 0.16.0 — Performance & Accessibility
+
+**Goal**: Fast, accessible UI. No wasted loads, no inaccessible controls.
+**Items**: 6 (3 perf + 3 a11y)
+**Sprints**: 1 (2 weeks)
+
+| Sprint | Items | Points | Focus |
+|--------|-------|--------|-------|
+| S16.1 (2w) | 4.1–4.3, 5.1–5.3 | 8 | Performance: bundle splitting, staleTime, BoardView endpoint. Accessibility: aria-labels, touch targets, scroll hints |
+
+**Definition of Done**:
+- [ ] Bundle < 300KB
+- [ ] staleTime configured (no unnecessary refetches)
+- [ ] BoardView uses single /tasks endpoint
+- [ ] All icon buttons have aria-labels
+- [ ] Touch targets ≥ 44px
+- [ ] Tables have horizontal scroll hints
 
 ### 0.15.0 — Architecture & Backend Cleanup
 
@@ -140,8 +158,8 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 | 0.12.0 | M10 — Evidence & Review | 2026-07-27 |
 | 0.13.0 | M11 — Human Control UX | 2026-07-27 |
 | 0.14.0 | M12 — Critical Fixes & Security | 2026-07-30 |
-| 0.15.0 | M13 — Architecture & Backend Cleanup | *TBD* |
-| 1.0.0 | Production Ready | *TBD* |
+| 0.15.0 | M13 — Architecture & Backend Cleanup | 2026-08-07 |
+| 0.16.0 | M14 — Performance & Accessibility | *in progress* |
 
 ## How to Update Versions
 

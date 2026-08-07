@@ -358,3 +358,43 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   opacity: 0.5;
 }
+
+/* Horizontal scroll hint for tables */
+.table-scroll-wrapper {
+  position: relative;
+}
+
+.table-scroll-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, transparent, var(--color-background));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.table-scroll-wrapper[data-can-scroll-right="true"]::after {
+  opacity: 1;
+}
+
+.table-scroll-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to left, transparent, var(--color-background));
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.table-scroll-wrapper[data-can-scroll-left="true"]::before {
+  opacity: 1;
+}
