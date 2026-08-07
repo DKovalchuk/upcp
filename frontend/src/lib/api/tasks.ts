@@ -23,6 +23,23 @@ export async function fetchTasks(
   );
 }
 
+export async function fetchProjectTasks(
+  projectId: string,
+  filters?: { status?: string; feature_id?: string; assignee_type?: string },
+  pagination?: { offset?: number; limit?: number }
+): Promise<PaginatedResponse<Task>> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.feature_id) params.set('feature_id', filters.feature_id);
+  if (filters?.assignee_type) params.set('assignee_type', filters.assignee_type);
+  const qs = params.toString();
+  const pag = paginationParams(pagination);
+  const sep = qs && pag ? '&' : pag ? '' : qs ? '?' : '';
+  return apiRequest<PaginatedResponse<Task>>(
+    `/api/v1/projects/${projectId}/tasks${sep}${qs}${pag}`
+  );
+}
+
 export async function fetchTask(id: string): Promise<Task> {
   return apiRequest<Task>(`/api/v1/tasks/${id}`);
 }

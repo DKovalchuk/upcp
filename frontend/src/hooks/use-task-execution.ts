@@ -13,6 +13,7 @@ export function useTaskClaims(taskId: string) {
     queryKey: ['tasks', taskId, 'claims'],
     queryFn: () => fetchTaskClaims(taskId),
     enabled: !!taskId,
+    staleTime: 0,
   });
 }
 
@@ -21,6 +22,7 @@ export function useTaskHeartbeats(taskId: string) {
     queryKey: ['tasks', taskId, 'heartbeats'],
     queryFn: () => fetchTaskHeartbeats(taskId),
     enabled: !!taskId,
+    staleTime: 0,
   });
 }
 
@@ -29,6 +31,7 @@ export function useTaskClarifications(taskId: string) {
     queryKey: ['tasks', taskId, 'clarifications'],
     queryFn: () => fetchTaskClarifications(taskId),
     enabled: !!taskId,
+    staleTime: 0,
   });
 }
 

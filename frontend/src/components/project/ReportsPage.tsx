@@ -131,8 +131,9 @@ export function ReportsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
+                        className="min-h-[44px] min-w-[44px]"
                         onClick={() => handleExportMarkdown(report.id)}
+                        aria-label="Export report"
                       >
                         <Download className="h-3.5 w-3.5" />
                       </Button>

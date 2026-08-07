@@ -91,8 +91,9 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-destructive"
+                    className="min-h-[44px] min-w-[44px] text-destructive"
                     onClick={() => setConfirmDelete(true)}
+                    aria-label="Delete task"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

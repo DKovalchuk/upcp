@@ -96,10 +96,10 @@ export function ProjectDetail() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={project.status} />
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setShowEdit(true)}>
+          <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => setShowEdit(true)} aria-label="Edit project">
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive" onClick={() => setConfirmDelete(true)}>
+          <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px] text-destructive" onClick={() => setConfirmDelete(true)} aria-label="Delete project">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>

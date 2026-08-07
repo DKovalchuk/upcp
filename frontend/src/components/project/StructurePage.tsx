@@ -197,8 +197,9 @@ function ComponentCard({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-destructive"
+              className="min-h-[44px] min-w-[44px] text-destructive"
               onClick={onDelete}
+              aria-label="Delete component"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -261,8 +262,9 @@ function ComponentCard({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-destructive"
+                        className="min-h-[44px] min-w-[44px] text-destructive"
                         onClick={() => onDeleteModule(mod.id, mod.name)}
+                        aria-label="Delete module"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

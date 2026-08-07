@@ -94,18 +94,18 @@ export function DeliveryPage() {
             <Button
               variant={viewMode === 'list' ? 'secondary' : 'ghost'}
               size="icon"
-              className="h-8 w-8 rounded-r-none"
+              className="min-h-[44px] min-w-[44px] rounded-r-none"
               onClick={() => setViewMode('list')}
-              title="List view"
+              aria-label="List view"
             >
               <List className="h-4 w-4" />
             </Button>
             <Button
               variant={viewMode === 'board' ? 'secondary' : 'ghost'}
               size="icon"
-              className="h-8 w-8 rounded-l-none"
+              className="min-h-[44px] min-w-[44px] rounded-l-none"
               onClick={() => setViewMode('board')}
-              title="Board view"
+              aria-label="Board view"
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -144,6 +144,7 @@ export function DeliveryPage() {
         />
       ) : viewMode === 'board' ? (
         <BoardView
+          projectId={projectId}
           features={features}
           search={search}
           onSelectTask={setSelectedTaskId}
@@ -286,8 +287,9 @@ function FeatureSection({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-destructive"
+            className="min-h-[44px] min-w-[44px] text-destructive"
             onClick={onDelete}
+            aria-label="Delete feature"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>

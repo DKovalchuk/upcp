@@ -47,6 +47,7 @@ export function SearchInput({
           size="icon"
           className="absolute right-0 top-0 h-full px-3"
           onClick={handleClear}
+          aria-label="Clear search"
         >
           <X className="h-4 w-4" />
         </Button>

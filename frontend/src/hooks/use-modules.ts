@@ -13,6 +13,7 @@ export function useModules(componentId: string) {
     queryKey: ['modules', componentId],
     queryFn: () => fetchModules(componentId),
     enabled: !!componentId,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -21,6 +22,7 @@ export function useModule(id: string) {
     queryKey: ['modules', id],
     queryFn: () => fetchModule(id),
     enabled: !!id,
+    staleTime: 5 * 60_000,
   });
 }
 

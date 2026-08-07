@@ -27,7 +27,7 @@ function ThemeToggle() {
           variant="ghost"
           size="icon"
           onClick={() => setTheme(nextTheme)}
-          title={`Theme: ${theme}`}
+          aria-label={`Theme: ${theme}`}
         />
       }>
         {theme === 'light' && <Sun className="h-4 w-4" />}
@@ -68,7 +68,7 @@ export function TopBar({ onCommandOpen }: TopBarProps) {
           </kbd>
         </Button>
         <Tooltip>
-          <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onCommandOpen} />}>
+          <TooltipTrigger render={<Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={onCommandOpen} aria-label="Search (Ctrl+K)" />}>
             <Search className="h-4 w-4 sm:hidden" />
           </TooltipTrigger>
           <TooltipContent>Search (Ctrl+K)</TooltipContent>

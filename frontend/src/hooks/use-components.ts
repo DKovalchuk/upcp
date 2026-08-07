@@ -13,6 +13,7 @@ export function useComponents(projectId: string) {
     queryKey: ['components', projectId],
     queryFn: () => fetchComponents(projectId),
     enabled: !!projectId,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -21,6 +22,7 @@ export function useComponent(id: string) {
     queryKey: ['components', id],
     queryFn: () => fetchComponent(id),
     enabled: !!id,
+    staleTime: 5 * 60_000,
   });
 }
 

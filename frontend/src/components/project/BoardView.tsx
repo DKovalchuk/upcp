@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   DragOverlay,
@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { useDroppable } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-import { fetchTasks } from '@/lib/api';
+import { fetchProjectTasks } from '@/lib/api';
 import { useUpdateTask } from '@/hooks/use-tasks';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityDot } from '@/components/ui/PriorityDot';
@@ -29,6 +29,7 @@ const BOARD_COLUMNS = [
 ] as const;
 
 interface BoardViewProps {
+  projectId: string;
   features: Feature[];
   search: string;
   onSelectTask: (taskId: string) => void;
@@ -99,7 +100,7 @@ function DroppableColumn({
   );
 }
 
-export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
+export function BoardView({ projectId, features, search, onSelectTask }: BoardViewProps) {
   const updateTask = useUpdateTask();
   const queryClient = useQueryClient();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -108,25 +109,13 @@ export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  const taskQueries = useQueries({
-    queries: features.map((f) => ({
-      queryKey: ['tasks', f.id],
-      queryFn: () => fetchTasks(f.id),
-      enabled: !!f.id,
-    })),
+  const { data, isLoading } = useQuery({
+    queryKey: ['project-tasks', projectId],
+    queryFn: () => fetchProjectTasks(projectId),
+    enabled: !!projectId,
   });
 
-  const isLoading = taskQueries.some((q) => q.isLoading);
-
-  const allTasksList = useMemo(() => {
-    const result: Task[] = [];
-    for (const q of taskQueries) {
-      if (q.data?.items) {
-        result.push(...q.data.items);
-      }
-    }
-    return result;
-  }, [taskQueries]);
+  const allTasksList = useMemo(() => data?.items ?? [], [data]);
 
   const filteredTasks = useMemo(() => {
     if (!search) return allTasksList;
@@ -181,10 +170,7 @@ export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
         id: task.id,
         data: { status: newStatus },
       });
-      // Invalidate all task queries so columns re-render
-      for (const f of features) {
-        queryClient.invalidateQueries({ queryKey: ['tasks', f.id] });
-      }
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       showToast.updated('Task');
     } catch {
       showToast.mutationError('update', 'task');
