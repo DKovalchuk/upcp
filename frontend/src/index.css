@@ -398,3 +398,67 @@ body {
 .table-scroll-wrapper[data-can-scroll-left="true"]::before {
   opacity: 1;
 }
+
+/* ── Transition Utilities ── */
+.transition-default {
+  transition-property: color, background-color, border-color, box-shadow, opacity;
+  transition-timing-function: var(--ease-default);
+  transition-duration: var(--duration-default);
+}
+
+.transition-fast {
+  transition-property: color, background-color, border-color, box-shadow, opacity;
+  transition-timing-function: var(--ease-default);
+  transition-duration: var(--duration-fast);
+}
+
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: var(--ease-out);
+  transition-duration: var(--duration-default);
+}
+
+/* ── Micro-interactions ── */
+.hover-lift {
+  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.hover-glow {
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-md);
+}
+
+.press-scale {
+  transition: transform var(--duration-instant) var(--ease-out);
+}
+
+.press-scale:active {
+  transform: scale(0.98);
+}
+
+/* ── Page transitions ── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in var(--duration-slow) var(--ease-out) both;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in {
+  animation: slide-in var(--duration-slow) var(--ease-out) both;
+}
