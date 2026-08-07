@@ -2,15 +2,16 @@
 
 Updated: 2026-08-07
 Version: 0.16.0 (see `VERSIONING.md` for scheme)
-Milestone: M14 — Performance & Accessibility (M13 complete)
-Current Task: S16.4 (next sprint)
+Milestone: M14 — Performance & Accessibility (COMPLETE)
+Current Task: M15 planning
 Blockers: none
 
-## Sprint History
+## Sprint History (M14)
 
 - [x] S16.1 (done) — Performance: bundle, staleTime, BoardView. A11y: aria, touch targets
 - [x] S16.2 (done) — Performance: lazy mount, dnd-kit, responsive. UX: password toggle, search, CommandPalette
 - [x] S16.3 (done, !30) — Tests: ProjectList, TopBar, AppShell, AuthContext, api/client, e2e integration
+- [x] S16.4 (done, !31) — Polish: transitions, micro-interactions. Test cleanup: 32→0 `as any`, shared helpers
 
 ## Stage Deployment
 
