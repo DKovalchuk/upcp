@@ -3,8 +3,14 @@
 Updated: 2026-08-07
 Version: 0.16.0 (see `VERSIONING.md` for scheme)
 Milestone: M14 — Performance & Accessibility (M13 complete)
-Current Task: S16.1 (feature/S16.1-perf-a11y branch)
+Current Task: S16.4 (next sprint)
 Blockers: none
+
+## Sprint History
+
+- [x] S16.1 (done) — Performance: bundle, staleTime, BoardView. A11y: aria, touch targets
+- [x] S16.2 (done) — Performance: lazy mount, dnd-kit, responsive. UX: password toggle, search, CommandPalette
+- [x] S16.3 (done, !30) — Tests: ProjectList, TopBar, AppShell, AuthContext, api/client, e2e integration
 
 ## Stage Deployment
 
@@ -340,8 +346,9 @@ TASK-0057 completed: Board/Kanban view for Delivery page.
 - DEC-0013: URL-synced pagination with search params
 - DEC-0014: Design system components (StatusBadge, PriorityDot, EmptyState, ErrorState, ConfirmDialog)
 
-### Test Coverage
-- Frontend: 119 tests across 19 test files, all passing
+### Test Coverage (updated 2026-08-07)
+- Frontend: 238 tests across 34 test files, all passing
+- E2E: 12 Playwright tests (auth, integration)
 - Backend: 189 tests, 90% coverage
 
 ## M5 Completed (Previous)
