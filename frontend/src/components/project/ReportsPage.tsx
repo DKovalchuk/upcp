@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useProjectId } from '@/hooks/use-project-id';
 import { useReports, useCreateReport } from '@/hooks/use-reports';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
@@ -9,7 +9,7 @@ import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
-import { BarChart3, Plus, FileText, Download } from 'lucide-react';
+import { BarChart3, Plus, FileText, Download, Calendar } from 'lucide-react';
 import { showToast } from '@/lib/toast';
 import { exportReportMarkdown } from '@/lib/api';
 import {
@@ -31,6 +31,22 @@ export function ReportsPage() {
   const total = data?.total ?? 0;
   const createReport = useCreateReport();
   const [generating, setGenerating] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const filteredReports = useMemo(() => {
+    if (!dateFrom && !dateTo) return reports;
+    return reports.filter((r) => {
+      const d = new Date(r.created_at);
+      if (dateFrom && d < new Date(dateFrom)) return false;
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setHours(23, 59, 59, 999);
+        if (d > to) return false;
+      }
+      return true;
+    });
+  }, [reports, dateFrom, dateTo]);
 
   if (!projectId) {
     return (
@@ -90,18 +106,38 @@ export function ReportsPage() {
           <BarChart3 className="h-5 w-5" />
           <h2 className="text-lg font-semibold">Reports</h2>
         </div>
-        <Button size="sm" onClick={handleGenerate} disabled={generating}>
-          <Plus className="mr-2 h-4 w-4" />
-          {generating ? 'Generating...' : 'Daily Report'}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 rounded-md border bg-transparent px-2 text-sm"
+              aria-label="Filter from date"
+            />
+            <span>—</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 rounded-md border bg-transparent px-2 text-sm"
+              aria-label="Filter to date"
+            />
+          </div>
+          <Button size="sm" onClick={handleGenerate} disabled={generating}>
+            <Plus className="mr-2 h-4 w-4" />
+            {generating ? 'Generating...' : 'Daily Report'}
+          </Button>
+        </div>
       </div>
 
-      {!reports.length ? (
+      {!filteredReports.length ? (
         <EmptyState
           icon={FileText}
-          title="No reports yet"
-          description="Generate your first daily report to see project status."
-          action={{ label: 'Generate Report', onClick: handleGenerate }}
+          title={reports.length ? 'No reports in date range' : 'No reports yet'}
+          description={reports.length ? 'Try adjusting the date filters.' : 'Generate your first daily report to see project status.'}
+          action={reports.length ? undefined : { label: 'Generate Report', onClick: handleGenerate }}
         />
       ) : (
         <Card>
@@ -116,7 +152,7 @@ export function ReportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reports.map((report: Report) => (
+                {filteredReports.map((report: Report) => (
                   <TableRow key={report.id}>
                     <TableCell>
                       <StatusBadge status={report.report_type} />

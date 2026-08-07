@@ -84,4 +84,43 @@ describe('CommandPalette', () => {
     expect(screen.getByText('Quality')).toBeInTheDocument();
     expect(screen.getByText('Audit')).toBeInTheDocument();
   });
+
+  it('shows Actions group with New Project', () => {
+    renderPalette();
+    expect(screen.getByText('New Project')).toBeInTheDocument();
+  });
+
+  it('shows project actions when on project page', () => {
+    mockPathname = '/projects/proj-123/delivery';
+    renderPalette();
+    expect(screen.getByText('New Feature')).toBeInTheDocument();
+    expect(screen.getByText('Refresh Data')).toBeInTheDocument();
+  });
+
+  it('dispatches upcp:action event for Refresh Data', () => {
+    const onOpenChange = vi.fn();
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+    mockPathname = '/projects/proj-123/delivery';
+    renderPalette({ onOpenChange });
+
+    fireEvent.click(screen.getByText('Refresh Data'));
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'upcp:action',
+        detail: 'refresh',
+      }),
+    );
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    dispatchSpy.mockRestore();
+  });
+
+  it('navigates to delivery and dispatches new-feature action', () => {
+    mockPathname = '/projects/proj-123/delivery';
+    renderPalette();
+
+    fireEvent.click(screen.getByText('New Feature'));
+
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/projects/proj-123/delivery' });
+  });
 });
