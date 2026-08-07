@@ -17,7 +17,7 @@ describe('useLazyMount', () => {
 
   it('mounts on first open', () => {
     const onOpenChange = vi.fn();
-    const { result, rerender } = renderHook(
+    const { result } = renderHook(
       ({ open }) => useLazyMount(open, onOpenChange),
       { initialProps: { open: false } },
     );

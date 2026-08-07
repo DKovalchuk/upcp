@@ -74,6 +74,7 @@ describe('SetupPage', () => {
     vi.mocked(authSetup).mockResolvedValue({
       access_token: 'token',
       refresh_token: 'refresh',
+      token_type: 'bearer',
     });
 
     renderSetup();

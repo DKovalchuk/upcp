@@ -68,6 +68,7 @@ describe('LoginPage', () => {
     vi.mocked(authLogin).mockResolvedValue({
       access_token: 'token',
       refresh_token: 'refresh',
+      token_type: 'bearer',
     });
 
     renderLogin();
@@ -86,6 +87,7 @@ describe('LoginPage', () => {
     vi.mocked(authLogin).mockResolvedValue({
       access_token: 'token',
       refresh_token: 'refresh',
+      token_type: 'bearer',
     });
 
     renderLogin();
