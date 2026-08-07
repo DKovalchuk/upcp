@@ -75,6 +75,14 @@ describe('SetupPage', () => {
       access_token: 'token',
       refresh_token: 'refresh',
       token_type: 'bearer',
+      user: {
+        id: 'u1',
+        email: 'admin@example.com',
+        display_name: 'Admin',
+        is_active: true,
+        is_superuser: true,
+        organizations: [],
+      },
     });
 
     renderSetup();
