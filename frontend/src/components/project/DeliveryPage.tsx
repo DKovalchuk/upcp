@@ -5,10 +5,11 @@ import { useTasks } from '@/hooks/use-tasks';
 import { useCreateFeature, useDeleteFeature } from '@/hooks/use-features';
 import { useCreateTask } from '@/hooks/use-tasks';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
+import { useLazyMount } from '@/hooks/use-lazy-mount';
 import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
 import { featureFields, taskFields } from '@/components/forms/entity-fields';
 import { TaskDetailSheet } from './TaskDetailSheet';
-import { BoardView } from './BoardView';
+import { LazyBoardView } from './LazyBoardView';
 import { SavedViewsDropdown } from './SavedViewsDropdown';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityDot } from '@/components/ui/PriorityDot';
@@ -56,6 +57,10 @@ export function DeliveryPage() {
     id: string;
     name: string;
   } | null>(null);
+
+  const taskDetailSheet = useLazyMount(!!selectedTaskId, (open) => {
+    if (!open) setSelectedTaskId(null);
+  });
 
   if (isLoading) {
     return <PageSkeleton hasCards={false} rows={8} />;
@@ -143,7 +148,7 @@ export function DeliveryPage() {
           }}
         />
       ) : viewMode === 'board' ? (
-        <BoardView
+        <LazyBoardView
           projectId={projectId}
           features={features}
           search={search}
@@ -199,13 +204,15 @@ export function DeliveryPage() {
         onConfirm={handleDeleteFeature}
       />
 
-      <TaskDetailSheet
-        taskId={selectedTaskId}
-        projectId={projectId}
-        onOpenChange={(open) => {
-          if (!open) setSelectedTaskId(null);
-        }}
-      />
+      {taskDetailSheet.mounted && (
+        <TaskDetailSheet
+          taskId={selectedTaskId}
+          projectId={projectId}
+          onOpenChange={(open) => {
+            if (!open) setSelectedTaskId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
