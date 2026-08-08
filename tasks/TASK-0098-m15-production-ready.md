@@ -4,7 +4,13 @@
 **Milestone:** M15 (0.17.0)
 **Story Points:** ~60
 **Status:** Planning
-**Spec:** SPEC-0015
+**Spec:** SPEC-0017 (renamed from SPEC-0015 to avoid ID conflict)
+
+> **NOTE**: Backend for M9–M11 is ALREADY IMPLEMENTED. This task focuses on:
+> - Frontend UI for agent workflow, evidence, review
+> - E2E test coverage
+> - Observability instrumentation
+> - Production hardening (graceful shutdown, etc.)
 
 ## Sprint Plan
 

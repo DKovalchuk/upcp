@@ -89,7 +89,7 @@ ReviewRound(
 ReviewFinding(
     id: UUID,
     review_round_id: UUID FK → ReviewRound,
-    severity: VARCHAR(16),      # info | warning | critical
+    severity: VARCHAR(16),      # critical | major | minor | nit
     category: VARCHAR(32),      # correctness | security | performance | style | missing
     description: TEXT,
     file_path: TEXT,            # File path (optional)
@@ -101,10 +101,13 @@ ReviewFinding(
 
 ### Severity Semantics
 
+> **NOTE**: These match the actual implementation in `quality/schemas.py`.
+
 | Severity | Description | Impact on Verdict |
 |----------|-------------|-------------------|
-| `info` | Suggestion, non-blocking | No impact |
-| `warning` | Recommendation, worth fixing | Non-blocking |
+| `nit` | Minor style/naming suggestion | No impact |
+| `minor` | Small improvement, non-blocking | Non-blocking |
+| `major` | Significant issue, should fix | Blocking if unresolved |
 | `critical` | Blocking finding | Automatically → `rejected` |
 
 ### Category Taxonomy

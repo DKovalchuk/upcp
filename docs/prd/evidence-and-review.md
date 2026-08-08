@@ -1,6 +1,8 @@
 # Evidence & Review — Specification
 
 > Related: [UPCP v2 PRD](./upcp-v2.md) §3.3-3.4 | Milestone: M10
+> **Status**: Implemented (backend M10 complete, frontend types exist)
+> **Source of truth**: `backend/app/quality/models.py` and `backend/app/quality/schemas.py`
 
 ## 1. Overview
 
@@ -168,11 +170,14 @@ class ReviewRound:
 
 ### 5.3 Findings
 
+> **NOTE**: The severity levels below match the actual implementation in `quality/schemas.py`.
+> Pattern: `^(critical|major|minor|nit)$`
+
 ```python
 class Finding:
     id: str
     review_round_id: str
-    severity: Literal["info", "suggestion", "minor", "major", "critical"]
+    severity: Literal["critical", "major", "minor", "nit"]
     file_path: str | None     # link to file
     line: int | None          # link to line
     description: str

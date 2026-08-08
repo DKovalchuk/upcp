@@ -1,9 +1,15 @@
-"""FastAPI auth dependencies — JWT + agent token."""
+"""FastAPI auth dependencies — JWT + agent token.
+
+Agent token verification is implemented in agent_auth.py.
+This module re-exports get_current_agent for backward compatibility.
+"""
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.identity.dependencies import CurrentAgent, CurrentUser
+# Re-export from the actual implementation
+from app.identity.agent_auth import get_current_agent  # noqa: F401
+from app.identity.dependencies import CurrentAgent, CurrentUser  # noqa: F401
 from app.identity.models import User
 from app.identity.token_service import TokenService
 from app.shared.database import get_session
@@ -59,22 +65,4 @@ def get_current_user(
         user_id=user.id,
         email=user.email,
         is_superuser=user.is_superuser,
-    )
-
-
-def get_current_agent(
-    x_agent_token: str | None = Header(None, alias="X-Agent-Token"),
-    db: Session = Depends(get_session),
-) -> CurrentAgent:
-    """Validate agent token and return current agent. Raises 401 on failure."""
-    if x_agent_token is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing agent token",
-        )
-
-    # TODO: Implement agent token verification (TASK-0068)
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid agent token",
     )

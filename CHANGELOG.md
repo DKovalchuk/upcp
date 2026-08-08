@@ -7,7 +7,7 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
-## [0.16.0] — M14 — Performance & Accessibility (in progress)
+## [0.16.0] — 2026-08-07 — M14 — Performance & Accessibility
 
 ### Performance (S16.1)
 - Bundle splitting: lazy routes via React.lazy for all pages

@@ -1,6 +1,8 @@
 # Agent Workflow — Specification
 
 > Related: [UPCP v2 PRD](./upcp-v2.md) §3.2 | Milestone: M9
+> **Status**: Implemented (backend M9 complete, frontend types exist)
+> **Source of truth**: `backend/app/delivery/lifecycle.py` for state machine
 
 ## 1. Overview
 
@@ -8,45 +10,60 @@ Agent Workflow defines the task lifecycle from creation to completion, with emph
 
 ## 2. Task Lifecycle
 
+> **NOTE**: The state machine below matches the actual implementation in `lifecycle.py`.
+> This is the authoritative definition. Do not use older diagrams.
+
 ```
-open → claimed → in_progress → in_review → done
-  │       │           │            │
-  │       │           │            └→ changes_requested → in_progress
-  │       │           │
-  │       │           └→ blocked → in_progress (clarification resolved)
-  │       │
-  │       └→ open (release/timeout)
-  │
-  └→ cancelled
+backlog ──→ ready ──→ claimed ──→ in_progress ──→ done
+                │         │            │
+                │         │            ├──→ blocked ──→ in_progress
+                │         │            │
+                │         │            ├──→ needs_clarification ──→ in_progress
+                │         │            │
+                │         │            └──→ ready_for_review ──→ done
+                │         │                         │
+                │         │                         └──→ changes_requested ──→ in_progress
+                │         │
+                │         └──→ backlog (claim released)
+                │
+                └──→ cancelled
 ```
 
 ### 2.1 Statuses
 
 | Status | Description | Owner |
 |--------|-------------|-------|
-| `open` | Task created, awaiting assignment | — |
+| `backlog` | Task created, not yet ready for work | — |
+| `ready` | Task is ready to be claimed | owner/admin |
 | `claimed` | Agent has claimed the task | agent |
-| `in_progress` | Agent is working | agent |
-| `blocked` | Awaiting clarification | agent / human |
-| `in_review` | Result under review | reviewer |
+| `in_progress` | Agent is actively working | agent |
+| `blocked` | Blocked by external dependency | system |
+| `needs_clarification` | Agent requested clarification, awaiting answer | agent / human |
+| `ready_for_review` | Work complete, awaiting review | reviewer |
 | `changes_requested` | Reviewer requested changes | reviewer |
-| `done` | Task completed | — |
-| `cancelled` | Task cancelled | human |
+| `done` | Task completed and approved | — |
+| `cancelled` | Task cancelled | human (admin/owner) |
 
-### 2.2 Transitions
+### 2.2 Transitions (from `lifecycle.py`)
 
 | From | To | Who | Condition |
 |------|----|-----|-----------|
-| open | claimed | agent | `POST /tasks/{id}/claim` |
-| claimed | in_progress | agent | `PATCH /tasks/{id}` status=working |
-| in_progress | blocked | agent | `POST /tasks/{id}/clarification-request` |
-| blocked | in_progress | human | `POST /tasks/{id}/clarification/{id}/resolve` |
-| in_progress | in_review | agent | `POST /tasks/{id}/submit-review` + evidence attached |
-| in_review | done | reviewer | `POST /tasks/{id}/approve` |
-| in_review | changes_requested | reviewer | `POST /tasks/{id}/request-changes` |
-| changes_requested | in_progress | agent | agent resumes work |
-| claimed | open | system | heartbeat timeout (7 min) |
-| any (≠done, ≠cancelled) | cancelled | human (admin/owner) | `POST /tasks/{id}/cancel` |
+| backlog | ready | owner/admin | Task prepared for work |
+| backlog | cancelled | admin | Task cancelled |
+| ready | claimed | agent | `POST /tasks/{id}/claim` |
+| ready | backlog | owner/admin | Moved back to backlog |
+| ready | cancelled | admin | Task cancelled |
+| claimed | in_progress | agent | Agent starts working |
+| claimed | backlog | system/agent | Claim released or expired |
+| in_progress | done | agent | Direct completion (no review required) |
+| in_progress | blocked | system | External dependency |
+| in_progress | needs_clarification | agent | `POST /tasks/{id}/clarifications` |
+| in_progress | ready_for_review | agent | `POST /tasks/{id}/submit-review` |
+| blocked | in_progress | system/human | Blocker resolved |
+| needs_clarification | in_progress | human | `POST /clarifications/{id}/answer` |
+| ready_for_review | done | reviewer | `POST /review-rounds/{id}/verdict` (approve) |
+| ready_for_review | changes_requested | reviewer | Verdict: needs_changes |
+| changes_requested | in_progress | agent | Agent resumes work |
 
 ## 3. Claim
 
@@ -57,7 +74,7 @@ Authorization: ApiKey <agent-key>
 ```
 
 ### Rules
-- Task must be in `open` status
+- Task must be in `ready` status (see lifecycle in §2)
 - Only `agent` role can claim
 - One agent — one active claim (configurable via `max_active_claims` in the project)
 - Claim is atomic (row-level lock)
@@ -83,12 +100,16 @@ Body: { "message": "Running integration tests...", "progress": 60 }
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `heartbeat_interval` | 30–60 sec | Recommended interval |
-| `heartbeat_stale` | 7 min | Task is considered abandoned |
+| `heartbeat_stale` | 5 min | Task is considered abandoned |
 | `heartbeat_dead` | 15 min | Automatic release + notification |
 
+> **NOTE**: The architecture state-machine doc previously specified 120 seconds.
+> The agent-playbook specified 30 minutes. These are both incorrect.
+> Values above (5 min stale, 15 min dead) are the canonical defaults.
+
 ### Stale behavior
-1. **7 min without heartbeat** → task is marked `stale`, notification sent to project owner
-2. **15 min without heartbeat** → automatic release, task returns to `open`
+1. **5 min without heartbeat** → task is marked `stale`, notification sent to project owner
+2. **15 min without heartbeat** → automatic release, task returns to `ready`
 3. Audit event: `task.stale_detected`, `task.auto_released`
 
 ## 5. Clarification Flow

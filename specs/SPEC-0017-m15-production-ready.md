@@ -1,13 +1,14 @@
-# SPEC-0015: M15 — Production Ready
+# SPEC-0017: M15 — Production Ready
 
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 2.0
+**Date:** 2026-08-08
 **Status:** Draft
 **Milestone:** M15 (0.17.0)
+**Supersedes:** SPEC-0015 (renamed to avoid ID conflict with Evidence & Review spec)
 
 ## 1. Objective
 
-Transform UPCP from development-ready to production-ready by completing the agent workflow (M9), evidence & review engine (M10), and remaining frontend features (M11).
+Transform UPCP from development-ready to production-ready by completing the **frontend UI** for agent workflow (M9), evidence & review engine (M10), and remaining features (M11). The backend for M9–M11 is **already implemented** — M15 focuses on frontend integration, E2E tests, observability, and production hardening.
 
 ## 2. Success Criteria
 

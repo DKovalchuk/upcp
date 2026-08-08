@@ -23,7 +23,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 ```
 0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 1.0.0
  M11        M12        M13        M14        M15        Production
- done       done       done       now        next       ready
+ done       done       done       done       next       ready
 ```
 
 ### 0.14.0 — Critical Fixes & Security
@@ -159,7 +159,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 | 0.13.0 | M11 — Human Control UX | 2026-07-27 |
 | 0.14.0 | M12 — Critical Fixes & Security | 2026-07-30 |
 | 0.15.0 | M13 — Architecture & Backend Cleanup | 2026-08-07 |
-| 0.16.0 | M14 — Performance & Accessibility | *in progress* |
+| 0.16.0 | M14 — Performance & Accessibility | 2026-08-07 |
 
 ## How to Update Versions
 
