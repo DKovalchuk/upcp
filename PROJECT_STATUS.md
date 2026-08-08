@@ -6,6 +6,49 @@ Milestone: M14 — Performance & Accessibility (COMPLETE)
 Current Task: M15 planning
 Blockers: none
 
+## UPCP v2 Project (Stage)
+
+**Project ID:** d9313eae-7e0b-4060-85ca-2e5591faefd2
+**Stage URL:** http://localhost:3080
+**API:** http://localhost:38081
+
+### Population Summary
+
+| Entity | Count | Status |
+|--------|-------|--------|
+| Project | 1 | active |
+| Components | 13 | all active |
+| Modules | 81 | all active |
+| Features | 26 | all active |
+| Tasks | 56 | 34 done, 42 backlog |
+| DoD Items | 105 | per done task |
+| Acceptance Criteria | 33 | per done task |
+
+### Overall Completion: **44.7%** (34/76 tasks done)
+
+### Component Completion
+
+| Component | Done | Total | % |
+|-----------|------|-------|---|
+| Auth Pages & Dashboard | 3 | 3 | 100% |
+| Board View & Task Detail | 2 | 2 | 100% |
+| MCP Server & REST API | 3 | 3 | 100% |
+| Project Views | 2 | 2 | 100% |
+| Settings & Accessibility | 2 | 2 | 100% |
+| User Registration & Login | 7 | 14 | 50% |
+| RBAC & Authorization | 3 | 6 | 50% |
+| Agent CRUD & Tokens | 2 | 4 | 50% |
+| Redis Integration & Rate Limiting | 2 | 4 | 50% |
+| Secret Management | 2 | 4 | 50% |
+| Structured Logging & Metrics | 2 | 4 | 50% |
+| Task Claim & Heartbeat | 0 | 3 | 0% |
+| Clarification Flow | 0 | 2 | 0% |
+| Evidence Attachment & Verification | 0 | 2 | 0% |
+| Review Rounds | 0 | 2 | 0% |
+| Reports & Analytics | 0 | 2 | 0% |
+| Notification System | 0 | 1 | 0% |
+| Notification Channels | 0 | 2 | 0% |
+
 ## Sprint History (M14)
 
 - [x] S16.1 (done) — Performance: bundle, staleTime, BoardView. A11y: aria, touch targets
@@ -23,37 +66,26 @@ Blockers: none
 ## Roadmap to 1.0.0
 
 ```
-0.13.0 (done) → 0.14.0 (done) → 0.15.0 (done) → 0.16.0 (now) → 0.17.0 → 1.0.0
+0.13.0 (done) → 0.14.0 (done) → 0.15.0 (done) → 0.16.0 (done) → 0.17.0 → 1.0.0
    M11              M12              M13              M14         M15    Production
 ```
 
-### M12: 0.14.0 — Critical Fixes & Security (S14.1–S14.2)
+### M12: 0.14.0 — Critical Fixes & Security (S14.1–S14.2) ✅ DONE
 
-| Sprint | Items | Points | Focus |
-|--------|-------|--------|-------|
-| S14.1 | 0.1–0.6 | 10 | Broken features: TaskDetailSheet execution, HealthPage DB, /health endpoint, AgentActivitySummary, ReportsPage export, EntityFormDialog select | ✅ DONE |
-| S14.2 | 1.1–1.4 | 5 | Security: CORS headers, SSRF validation, error sanitization, dependency scanning |
+### M13: 0.15.0 — Architecture & Backend Cleanup (S15.1–S15.3) ✅ DONE
 
-### M13: 0.15.0 — Architecture & Backend Cleanup (S15.1–S15.3)
-
-| Sprint | Items | Points | Focus |
-|--------|-------|--------|-------|
-| S15.1 | 2.4, 2.8, 2.10, 3.2–3.5 | 8 | Quick wins: PATCH endpoint, OpenAPI, Settings route, useProjectId dedup, dead code, Ctrl+K | ✅ DONE |
-| S15.2 | 2.1–2.3, 3.1 | 9 | Backend: N+1, eager loading, pagination. Frontend: api.ts split | ✅ DONE |
-| S15.3 | 2.7, 2.9, 3.6–3.8 | 8 | Backend: schemas, /tasks endpoint. Frontend: logic to hooks, UUID resolution | 🔄 MR !19 |
-
-### M14: 0.16.0 — Performance & Accessibility (S16.1–S16.4)
-
-| Sprint | Items | Points | Focus |
-|--------|-------|--------|-------|
-| S16.1 | 4.1–4.3, 5.1–5.3 | 8 | Performance: bundle, staleTime, BoardView. A11y: aria, touch targets |
-| S16.2 | 4.4–4.6, 5.4–5.8 | 9 | Performance: lazy mount, dnd-kit, responsive. UX: password toggle, search, CommandPalette |
-| S16.3 | 6.1–6.8 | 9 | Tests: auth, core pages, api.ts, integration |
-| S16.4 | 5.9–5.15, 6.9–6.12 | 7 | Polish: animations, typography, switcher, quick-edit. Test cleanup |
-
-**Total: 33 items, 4 sprints (8 weeks)**
+### M14: 0.16.0 — Performance & Accessibility (S16.1–S16.4) ✅ DONE
 
 ### M15: 0.17.0 — Production Ready (TBD)
+
+**Target: 42 backlog tasks across M9, M10, M11**
+
+| Milestone | Focus | Tasks | Status |
+|-----------|-------|-------|--------|
+| M9 | Agent Workflow: claim, heartbeat, clarification, context packs | 8 | backlog |
+| M10 | Evidence & Review: evidence, DoD, review rounds | 7 | backlog |
+| M11 | Frontend: notifications, reports, graceful shutdown | 7 | backlog |
+| M8 | Runtime: graceful shutdown, OTEL tracing | 2 | backlog |
 
 ### 1.0.0 — Production Release
 
