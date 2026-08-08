@@ -10,6 +10,15 @@ import {
   MOCK_HEALTH,
   MOCK_QUALITY_STATS,
   MOCK_AUDIT_EVENTS,
+  MOCK_CLAIMS,
+  MOCK_HEARTBEATS,
+  MOCK_CLARIFICATIONS,
+  MOCK_EVIDENCE,
+  MOCK_REVIEW_ROUNDS,
+  MOCK_REVIEW_FINDINGS,
+  MOCK_AGENT_ACTIVITY,
+  MOCK_ATTENTION,
+  MOCK_NOTIFICATIONS,
 } from './mock-data';
 
 /**
@@ -124,6 +133,40 @@ export async function mockAllApis(page: Page) {
   await page.route('**/api/**', (route: Route) => {
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], total: 0, offset: 0, limit: 20 }) });
   });
+}
+
+/**
+ * Mock agent workflow endpoints for task detail execution tab.
+ * Override specific routes per test for different scenarios.
+ */
+export async function mockWorkflowApis(page: Page) {
+  await page.route('**/api/v1/tasks/*/claims', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_CLAIMS, total: MOCK_CLAIMS.length }) })
+  );
+  await page.route('**/api/v1/tasks/*/heartbeats', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_HEARTBEATS, total: MOCK_HEARTBEATS.length }) })
+  );
+  await page.route('**/api/v1/tasks/*/clarifications', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_CLARIFICATIONS, total: MOCK_CLARIFICATIONS.length }) })
+  );
+  await page.route('**/api/v1/tasks/*/evidence', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_EVIDENCE, total: MOCK_EVIDENCE.length }) })
+  );
+  await page.route('**/api/v1/tasks/*/review-rounds', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_REVIEW_ROUNDS, total: MOCK_REVIEW_ROUNDS.length }) })
+  );
+  await page.route('**/api/v1/review-rounds/*/findings', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_REVIEW_FINDINGS, total: MOCK_REVIEW_FINDINGS.length }) })
+  );
+  await page.route('**/api/v1/dashboard/attention', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_ATTENTION) })
+  );
+  await page.route('**/api/v1/dashboard/agent-activity', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_AGENT_ACTIVITY, total: MOCK_AGENT_ACTIVITY.length }) })
+  );
+  await page.route('**/api/v1/notifications**', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_NOTIFICATIONS, total: MOCK_NOTIFICATIONS.length }) })
+  );
 }
 
 /**
