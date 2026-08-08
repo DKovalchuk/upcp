@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import type { UseQueryResult } from '@tanstack/react-query';
 
 /**
