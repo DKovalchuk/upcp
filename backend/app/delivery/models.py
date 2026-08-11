@@ -140,3 +140,20 @@ class Heartbeat(Base):
     blockers: Mapped[str | None] = mapped_column(Text, nullable=True)
     eta: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AgentInboxEvent(Base):
+    __tablename__ = "agent_inbox_event"
+    __table_args__ = (
+        Index("ix_agent_inbox_event_agent_id", "agent_id"),
+        Index("ix_agent_inbox_event_created_at", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    agent_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    task_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_read: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

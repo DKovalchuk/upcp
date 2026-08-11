@@ -1,6 +1,6 @@
-"""Agent workflow service — claim, release, heartbeat, progress.
+"""Agent workflow service — claim, release, heartbeat, progress, clarifications.
 
-TASK-0074
+TASK-0074, TASK-0099
 """
 
 from datetime import UTC, datetime
@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.delivery.lifecycle import validate_transition
-from app.delivery.models import Heartbeat, Task, TaskClaim
+from app.delivery.models import ClarificationRequest, Heartbeat, Task, TaskClaim
 from app.shared.errors import Conflict, NotFound
 from app.shared.text import new_id
 
@@ -133,3 +133,81 @@ class WorkflowService:
         if claim.agent_id != agent_id:
             raise Conflict("not your claim")
         return claim
+
+    # ── Clarification ──────────────────────────────────────────────
+
+    def create_clarification(
+        self,
+        task_id: str,
+        *,
+        agent_id: str,
+        question: str,
+        context: str | None = None,
+        blocking: bool = False,
+    ) -> ClarificationRequest:
+        """Agent creates a clarification request on a claimed task."""
+        task = self._session.get(Task, task_id)
+        if task is None:
+            raise NotFound(f"task '{task_id}' not found")
+
+        self._get_active_claim(task_id, agent_id)
+
+        cr = ClarificationRequest(
+            id=new_id(),
+            task_id=task_id,
+            author_type="agent",
+            author_id=agent_id,
+            question=question,
+            context=context,
+            blocking=blocking,
+        )
+        self._session.add(cr)
+
+        if blocking:
+            validate_transition(task.status, "needs_clarification")
+            task.status = "needs_clarification"
+
+        self._session.flush()
+        return cr
+
+    def answer_clarification(
+        self,
+        clarification_id: str,
+        *,
+        answered_by: str,
+        answer: str,
+    ) -> ClarificationRequest:
+        """Answer an open clarification request."""
+        cr = self._session.get(ClarificationRequest, clarification_id)
+        if cr is None:
+            raise NotFound(f"clarification '{clarification_id}' not found")
+
+        if cr.state != "open":
+            raise Conflict(f"clarification is '{cr.state}', can only answer 'open' ones")
+
+        cr.state = "answered"
+        cr.answer = answer
+        cr.answered_by = answered_by
+        cr.answered_at = datetime.now(UTC)
+
+        if cr.blocking:
+            task = self._session.get(Task, cr.task_id)
+            if task is not None:
+                validate_transition(task.status, "in_progress")
+                task.status = "in_progress"
+
+        self._session.flush()
+        return cr
+
+    def resolve_clarification(self, clarification_id: str) -> ClarificationRequest:
+        """Resolve an answered clarification request."""
+        cr = self._session.get(ClarificationRequest, clarification_id)
+        if cr is None:
+            raise NotFound(f"clarification '{clarification_id}' not found")
+
+        if cr.state != "answered":
+            raise Conflict(f"clarification is '{cr.state}', can only resolve 'answered' ones")
+
+        cr.state = "resolved"
+        self._session.flush()
+        return cr
