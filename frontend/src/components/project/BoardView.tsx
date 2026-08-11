@@ -16,6 +16,7 @@ import { fetchProjectTasks } from '@/lib/api';
 import { useUpdateTask } from '@/hooks/use-tasks';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityDot } from '@/components/ui/PriorityDot';
+import { AgentAvatar } from '@/components/ui/AgentAvatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showToast } from '@/lib/toast';
 import type { Task } from '@/types/task';
@@ -71,8 +72,11 @@ function DraggableTaskCard({
         </div>
         <PriorityDot priority={task.priority} />
       </div>
-      <div className="mt-2">
+      <div className="mt-2 flex items-center justify-between">
         <StatusBadge status={task.status} />
+        {task.assignee_type === 'agent' && task.assignee_id && (
+          <AgentAvatar name={task.assignee_id} size="sm" />
+        )}
       </div>
     </div>
   );

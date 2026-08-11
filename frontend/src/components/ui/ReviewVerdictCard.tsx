@@ -72,10 +72,10 @@ export function ReviewVerdictCard({
           <div className="h-1.5 w-16 rounded-full bg-muted">
             <div
               className={`h-full rounded-full ${verdict === 'approve' ? 'bg-emerald-500' : verdict === 'reject' ? 'bg-red-500' : 'bg-amber-500'}`}
-              style={{ width: `${Math.min(confidence * 100, 100)}%` }}
+              style={{ width: `${Math.min(confidence > 1 ? confidence : confidence * 100, 100)}%` }}
             />
           </div>
-          <span>{Math.round(confidence * 100)}%</span>
+          <span>{confidence > 1 ? confidence : Math.round(confidence * 100)}%</span>
         </div>
       )}
       {findingsCount !== undefined && findingsCount > 0 && (

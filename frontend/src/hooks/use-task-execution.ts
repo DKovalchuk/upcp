@@ -6,6 +6,7 @@ import {
   fetchEvidence,
   fetchReviewRounds,
   releaseTask,
+  answerClarification,
 } from '@/lib/api';
 
 export function useTaskClaims(taskId: string) {
@@ -59,6 +60,18 @@ export function useReleaseTask() {
     onSuccess: (_, taskId) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'claims'] });
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'heartbeats'] });
+    },
+  });
+}
+
+export function useAnswerClarification(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ clarificationId, answer }: { clarificationId: string; answer: string }) =>
+      answerClarification(clarificationId, answer),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'clarifications'] });
     },
   });
 }

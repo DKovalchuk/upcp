@@ -1,5 +1,7 @@
-import { AlertTriangle, MessageCircle, Clock } from 'lucide-react';
+import { AlertTriangle, MessageCircle, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
 import { formatRelativeTime } from '@/lib/format';
 
 interface ClarificationBannerProps {
@@ -7,8 +9,12 @@ interface ClarificationBannerProps {
   question: string;
   askedBy?: string;
   askedAt: string;
-  onAnswer?: () => void;
+  answer?: string | null;
+  answeredBy?: string | null;
+  answeredAt?: string | null;
+  onAnswer?: (answer: string) => void;
   isBlocking?: boolean;
+  state?: string;
 }
 
 export function ClarificationBanner({
@@ -16,9 +22,23 @@ export function ClarificationBanner({
   question,
   askedBy,
   askedAt,
+  answer,
+  answeredBy,
+  answeredAt,
   onAnswer,
   isBlocking = false,
+  state,
 }: ClarificationBannerProps) {
+  const [answerText, setAnswerText] = useState('');
+  const isResolved = state === 'answered' || state === 'resolved';
+
+  const handleSubmit = () => {
+    if (answerText.trim() && onAnswer) {
+      onAnswer(answerText.trim());
+      setAnswerText('');
+    }
+  };
+
   return (
     <div className={`flex items-start gap-3 rounded-lg border p-3 ${isBlocking ? 'border-amber-500/30 bg-amber-500/5 dark:border-amber-500/20 dark:bg-amber-500/5' : 'border-border bg-card'}`}>
       <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${isBlocking ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'}`}>
@@ -32,12 +52,32 @@ export function ClarificationBanner({
           <span>{formatRelativeTime(askedAt)}</span>
           {askedBy && <span>by {askedBy}</span>}
         </div>
+        {answer && (
+          <div className="mt-2 rounded-md bg-muted/50 p-2">
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+              <CheckCircle className="h-3 w-3" />
+              <span className="font-medium">Answered</span>
+              {answeredBy && <span className="text-muted-foreground">by {answeredBy}</span>}
+              {answeredAt && <span className="text-muted-foreground">{formatRelativeTime(answeredAt)}</span>}
+            </div>
+            <p className="mt-1 text-sm">{answer}</p>
+          </div>
+        )}
+        {onAnswer && !isResolved && (
+          <div className="mt-2 flex items-center gap-2">
+            <Input
+              value={answerText}
+              onChange={(e) => setAnswerText(e.target.value)}
+              placeholder="Type your answer..."
+              className="h-8 text-sm"
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            />
+            <Button size="sm" onClick={handleSubmit} disabled={!answerText.trim()} className="h-8">
+              Send
+            </Button>
+          </div>
+        )}
       </div>
-      {onAnswer && (
-        <Button variant="outline" size="sm" onClick={onAnswer} className="shrink-0">
-          Answer
-        </Button>
-      )}
     </div>
   );
 }
