@@ -11,6 +11,10 @@ import {
   updateDoDItem,
   deleteDoDItem,
   submitReviewVerdict,
+  createEvidence,
+  acceptEvidence,
+  rejectEvidence,
+  createReviewRound,
 } from '@/lib/api';
 import type {
   AcceptanceCriterionCreate,
@@ -155,6 +159,55 @@ export function useSubmitReviewVerdict() {
     onSuccess: (_, { roundId }) => {
       queryClient.invalidateQueries({ queryKey: ['review-rounds'] });
       queryClient.invalidateQueries({ queryKey: ['review-rounds', roundId] });
+    },
+  });
+}
+
+// Evidence
+export function useCreateEvidence(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { title: string; type: string; description?: string; url?: string; content_snippet?: string }) =>
+      createEvidence(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'evidence'] });
+    },
+  });
+}
+
+export function useAcceptEvidence(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (evidenceId: string) => acceptEvidence(evidenceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'evidence'] });
+    },
+  });
+}
+
+export function useRejectEvidence(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ evidenceId, reason }: { evidenceId: string; reason?: string }) =>
+      rejectEvidence(evidenceId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'evidence'] });
+    },
+  });
+}
+
+// Review Rounds
+export function useCreateReviewRound(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { reviewer_type?: string; reviewer_id?: string }) =>
+      createReviewRound(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'review-rounds'] });
     },
   });
 }
