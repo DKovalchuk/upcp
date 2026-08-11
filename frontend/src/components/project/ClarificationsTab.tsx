@@ -37,6 +37,7 @@ export function ClarificationsTab({ taskId, taskName }: ClarificationsTabProps) 
           key={cr.id}
           taskName={taskName}
           question={cr.question}
+          context={cr.context}
           askedBy={cr.author_id}
           askedAt={cr.created_at}
           answer={cr.answer}

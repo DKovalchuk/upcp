@@ -44,7 +44,7 @@ export function EvidenceTab({ taskId }: EvidenceTabProps) {
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
 
-  const items = evidence ?? [];
+  const items = evidence?.items ?? [];
 
   const handleAttach = async () => {
     if (!title.trim()) return;

@@ -7,6 +7,7 @@ import { formatRelativeTime } from '@/lib/format';
 interface ClarificationBannerProps {
   taskName: string;
   question: string;
+  context?: string | null;
   askedBy?: string;
   askedAt: string;
   answer?: string | null;
@@ -20,6 +21,7 @@ interface ClarificationBannerProps {
 export function ClarificationBanner({
   taskName,
   question,
+  context,
   askedBy,
   askedAt,
   answer,
@@ -47,6 +49,9 @@ export function ClarificationBanner({
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{taskName}</p>
         <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{question}</p>
+        {context && (
+          <p className="mt-1 text-xs text-muted-foreground italic line-clamp-2">Context: {context}</p>
+        )}
         <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
           <span>{formatRelativeTime(askedAt)}</span>

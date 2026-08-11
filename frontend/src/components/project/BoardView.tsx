@@ -75,7 +75,14 @@ function DraggableTaskCard({
       <div className="mt-2 flex items-center justify-between">
         <StatusBadge status={task.status} />
         {task.assignee_type === 'agent' && task.assignee_id && (
-          <AgentAvatar name={task.assignee_id} size="sm" />
+          <div className="flex items-center gap-1.5">
+            <AgentAvatar name={task.assignee_id} size="sm" />
+            {task.status === 'in-progress' && (
+              <div className="h-1 w-8 rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary animate-pulse" style={{ width: '50%' }} />
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
