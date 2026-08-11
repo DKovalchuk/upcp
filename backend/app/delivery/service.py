@@ -104,6 +104,11 @@ class TaskService:
 
     def update(self, task_id: str, **fields: str | None | int) -> Task:
         t = self.get(task_id)
+        new_status = fields.get("status")
+        if new_status is not None and new_status != t.status:
+            from app.delivery.lifecycle import validate_transition
+
+            validate_transition(t.status, str(new_status))
         for key, value in fields.items():
             if value is not None:
                 setattr(t, key, value)

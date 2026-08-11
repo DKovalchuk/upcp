@@ -10,6 +10,7 @@ from app.api.v1.gitread import router as gitread_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.quality import router as quality_router
+from app.api.v1.reaper import router as reaper_router
 from app.api.v1.reporting import router as reporting_router
 from app.api.v1.search import router as search_router
 from app.api.v1.structure import router as structure_router
@@ -124,10 +125,22 @@ app.include_router(search_router, prefix="/api/v1")
 app.include_router(agent_self_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(agent_router, prefix="/api/v1")
+app.include_router(reaper_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/auth")
 
 # MCP server
 app.include_router(create_mcp_router(), prefix="/mcp")
+
+
+# ── Startup: background stale reaper (TASK-0099 B2) ──
+@app.on_event("startup")
+async def _start_reaper() -> None:
+    import asyncio
+
+    from app.delivery.stale_reaper import stale_reaper_loop
+    from app.shared.database import SessionLocal
+
+    asyncio.create_task(stale_reaper_loop(SessionLocal))
 
 
 @app.get("/health")

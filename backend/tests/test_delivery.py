@@ -117,8 +117,8 @@ def test_get_task() -> None:
 def test_update_task() -> None:
     c = TestClient(_app())
     tid = _tid(c, _fid(c, _pid(c)))
-    resp = c.patch(f"/api/v1/tasks/{tid}", json={"status": "in_progress"})
-    assert resp.json()["status"] == "in_progress"
+    resp = c.patch(f"/api/v1/tasks/{tid}", json={"title": "Updated Title"})
+    assert resp.json()["title"] == "Updated Title"
 
 
 def test_delete_task() -> None:
