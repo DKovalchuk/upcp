@@ -3,13 +3,13 @@ import { useSubtasks } from '@/hooks/use-subtasks';
 import {
   useTaskClaims,
   useTaskHeartbeats,
-  useTaskClarifications,
-  useTaskEvidence,
-  useTaskReviewRounds,
 } from '@/hooks/use-task-execution';
 import { useTaskDetail } from '@/hooks/use-task-detail';
 import { useComponents } from '@/hooks/use-components';
 import { useModules } from '@/hooks/use-modules';
+import { ClarificationsTab } from './ClarificationsTab';
+import { EvidenceTab } from './EvidenceTab';
+import { ReviewsTab } from './ReviewsTab';
 import {
   Sheet,
   SheetContent,
@@ -31,16 +31,11 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AgentAvatar } from '@/components/ui/AgentAvatar';
 import { AgentStatusBadge } from '@/components/ui/AgentStatusBadge';
-import { ClarificationBanner } from '@/components/ui/ClarificationBanner';
-import { ReviewVerdictCard } from '@/components/ui/ReviewVerdictCard';
 import {
   Trash2,
   Plus,
   Bot,
   Clock,
-  FileText,
-  MessageCircle,
-  CheckCircle,
   GitBranch,
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -58,9 +53,6 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
   const { data: subtasks } = useSubtasks(taskId ?? '');
   const { data: claims, isLoading: isLoadingClaims } = useTaskClaims(taskId ?? '');
   const { data: heartbeats, isLoading: isLoadingHeartbeats } = useTaskHeartbeats(taskId ?? '');
-  const { data: clarifications, isLoading: isLoadingClarifications } = useTaskClarifications(taskId ?? '');
-  const { data: evidence, isLoading: isLoadingEvidence } = useTaskEvidence(taskId ?? '');
-  const { data: reviewRounds, isLoading: isLoadingReviewRounds } = useTaskReviewRounds(taskId ?? '');
 
   // UUID resolution
   const { data: components } = useComponents(projectId ?? '');
@@ -138,6 +130,15 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     <Bot className="mr-1 h-3 w-3" />
                     Execution
                   </TabsTrigger>
+                  <TabsTrigger value="clarifications">
+                    Clarifications
+                  </TabsTrigger>
+                  <TabsTrigger value="evidence">
+                    Evidence
+                  </TabsTrigger>
+                  <TabsTrigger value="reviews">
+                    Reviews
+                  </TabsTrigger>
                   <TabsTrigger value="ac">
                     AC ({acs?.length ?? 0})
                   </TabsTrigger>
@@ -175,7 +176,7 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                   </div>
                 </TabsContent>
 
-                {/* ── Execution Tab ── */}
+                {/* ── Execution Tab (claims + heartbeats only) ── */}
                 <TabsContent value="execution" className="mt-4 space-y-4">
                   {/* Agent Claims */}
                   {isLoadingClaims ? (
@@ -260,104 +261,6 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     </div>
                   ) : null}
 
-                  {/* Clarifications */}
-                  <div>
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <MessageCircle className="h-3 w-3" />
-                      Clarifications
-                    </h4>
-                    {isLoadingClarifications ? (
-                      <Skeleton className="h-20 w-full" />
-                    ) : clarifications?.items && clarifications.items.length > 0 ? (
-                      <div className="space-y-2">
-                        {clarifications.items.map((clarification) => (
-                          <ClarificationBanner
-                            key={clarification.id}
-                            taskName={task?.title ?? 'Task'}
-                            question={clarification.question}
-                            askedBy={clarification.author_id}
-                            askedAt={clarification.created_at}
-                            isBlocking={clarification.blocking}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-border p-4">
-                        <p className="text-sm text-muted-foreground text-center">No clarifications requested.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Evidence */}
-                  <div>
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <FileText className="h-3 w-3" />
-                      Evidence
-                    </h4>
-                    {isLoadingEvidence ? (
-                      <Skeleton className="h-20 w-full" />
-                    ) : evidence?.items && evidence.items.length > 0 ? (
-                      <div className="space-y-2">
-                        {evidence.items.map((item) => (
-                          <div key={item.id} className="rounded-lg border border-border p-3">
-                            <p className="text-sm font-medium">{item.title}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{item.type}</p>
-                            {item.description && (
-                              <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                            )}
-                            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>Created: {new Date(item.created_at).toLocaleString()}</span>
-                              <span>Verification: {item.verification_state}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-border p-4">
-                        <p className="text-sm text-muted-foreground text-center">No evidence attached yet.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Reviews */}
-                  <div>
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <CheckCircle className="h-3 w-3" />
-                      Reviews
-                    </h4>
-                    {isLoadingReviewRounds ? (
-                      <Skeleton className="h-20 w-full" />
-                    ) : reviewRounds?.items && reviewRounds.items.length > 0 ? (
-                      <div className="space-y-2">
-                        {reviewRounds.items.map((round) => (
-                          <ReviewVerdictCard
-                            key={round.id}
-                            agentName={round.reviewer_id ?? 'Unknown reviewer'}
-                            verdict={(round.verdict as 'approve' | 'reject' | 'needs_changes') ?? 'approve'}
-                            confidence={round.confidence ?? 0}
-                            findingsCount={0}
-                            summary={round.summary ?? undefined}
-                            createdAt={round.created_at}
-                            onAccept={
-                              round.verdict !== 'approve'
-                                ? () => handleSubmitVerdict(round.id, 'approve', round.confidence ?? 80, 'Accepted by human reviewer')
-                                : undefined
-                            }
-                            onReject={
-                              round.verdict !== 'reject'
-                                ? () => handleSubmitVerdict(round.id, 'reject', round.confidence ?? 50, 'Rejected by human reviewer')
-                                : undefined
-                            }
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-border p-4">
-                        <p className="text-sm text-muted-foreground text-center">No reviews yet.</p>
-                      </div>
-                    )}
-                  </div>
-
                   {/* Git */}
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -368,6 +271,21 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                       <p className="text-sm text-muted-foreground">No linked commits.</p>
                     </div>
                   </div>
+                </TabsContent>
+
+                {/* ── Clarifications Tab ── */}
+                <TabsContent value="clarifications" className="mt-4">
+                  <ClarificationsTab taskId={taskId ?? ''} taskName={task?.title ?? 'Task'} />
+                </TabsContent>
+
+                {/* ── Evidence Tab ── */}
+                <TabsContent value="evidence" className="mt-4">
+                  <EvidenceTab taskId={taskId ?? ''} />
+                </TabsContent>
+
+                {/* ── Reviews Tab ── */}
+                <TabsContent value="reviews" className="mt-4">
+                  <ReviewsTab taskId={taskId ?? ''} />
                 </TabsContent>
 
                 {/* ── Acceptance Criteria Tab ── */}

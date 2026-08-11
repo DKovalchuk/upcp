@@ -169,6 +169,16 @@ export async function fetchTaskClarifications(
   );
 }
 
+export async function answerClarification(
+  clarificationId: string,
+  answer: string
+): Promise<{ id: string; state: string; answer: string }> {
+  return apiRequest(`/api/v1/clarifications/${clarificationId}/answer`, {
+    method: 'POST',
+    body: JSON.stringify({ answer }),
+  });
+}
+
 // ── Agent Self-Service ──
 
 export async function getAgentMe(): Promise<AgentMe> {
