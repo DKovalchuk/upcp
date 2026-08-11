@@ -53,7 +53,7 @@ export async function fetchAgentClaims(
   );
 }
 
-export async function fetchAgentActivity(
+export async function fetchAgentActivityEvents(
   agentId: string
 ): Promise<{ items: AgentActivityEvent[] }> {
   return apiRequest<{ items: AgentActivityEvent[] }>(

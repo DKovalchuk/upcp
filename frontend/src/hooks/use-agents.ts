@@ -6,7 +6,7 @@ import {
   fetchAgent,
   createAgent,
   fetchAgentClaims,
-  fetchAgentActivity,
+  fetchAgentActivityEvents,
   fetchAgentClarifications,
 } from '@/lib/api/agents';
 import type { AgentCreate } from '@/types/agent';
@@ -47,7 +47,7 @@ export function useAgentClaims(agentId: string) {
 export function useAgentActivity(agentId: string) {
   return useQuery({
     queryKey: ['agent-activity', agentId],
-    queryFn: () => fetchAgentActivity(agentId),
+    queryFn: () => fetchAgentActivityEvents(agentId),
     enabled: !!agentId,
   });
 }

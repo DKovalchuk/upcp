@@ -12,7 +12,6 @@ import {
 import { LayoutGrid, List } from 'lucide-react';
 
 interface AgentToolbarProps {
-  search: string;
   onSearchChange: (value: string) => void;
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
@@ -21,7 +20,6 @@ interface AgentToolbarProps {
 }
 
 export function AgentToolbar({
-  search,
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
@@ -31,12 +29,10 @@ export function AgentToolbar({
   return (
     <div className="flex items-center gap-3">
       <SearchInput
-        value={search}
-        onChange={onSearchChange}
+        onSearch={onSearchChange}
         placeholder="Search agents..."
-        className="w-[250px]"
       />
-      <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+      <Select value={statusFilter} onValueChange={(v) => onStatusFilterChange(v ?? 'all')}>
         <SelectTrigger className="w-[140px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>

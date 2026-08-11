@@ -3,7 +3,6 @@
 import { AgentAvatar } from '@/components/ui/AgentAvatar';
 import { AgentStatusBadge } from '@/components/ui/AgentStatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import type { AgentProfile } from '@/types/agent';
 
 interface AgentCardProps {

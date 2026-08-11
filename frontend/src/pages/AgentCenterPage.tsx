@@ -55,7 +55,6 @@ export function AgentCenterPage() {
       </div>
 
       <AgentToolbar
-        search={search}
         onSearchChange={setSearch}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
