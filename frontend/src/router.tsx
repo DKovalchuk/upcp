@@ -30,6 +30,14 @@ const SettingsPage = React.lazy(() =>
   import('@/components/SettingsPage').then((module) => ({ default: module.SettingsPage }))
 );
 
+const AgentCenterPage = React.lazy(() =>
+  import('@/pages/AgentCenterPage').then((module) => ({ default: module.AgentCenterPage }))
+);
+
+const AgentDetailPage = React.lazy(() =>
+  import('@/pages/AgentDetailPage').then((module) => ({ default: module.AgentDetailPage }))
+);
+
 const NotFoundPage = React.lazy(() =>
   import('@/components/NotFoundPage').then((module) => ({ default: module.NotFoundPage }))
 );
@@ -215,6 +223,26 @@ const healthRoute = createRoute({
   component: () => <LazyRoute Component={HealthPage} />,
 });
 
+const agentsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/agents',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={AgentCenterPage} />
+    </AuthGuard>
+  ),
+});
+
+const agentDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/agents/$agentId',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={AgentDetailPage} />
+    </AuthGuard>
+  ),
+});
+
 const notFoundRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '*',
@@ -233,6 +261,8 @@ const routeTree = rootRoute.addChildren([
   projectAuditRoute,
   projectGitRoute,
   projectSettingsRoute,
+  agentsRoute,
+  agentDetailRoute,
   reportsRoute,
   settingsRoute,
   healthRoute,

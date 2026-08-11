@@ -9,6 +9,7 @@ export * from './dashboard';
 export * from './git';
 export * from './reports';
 export * from './audit';
+export * from './agents';
 export * from './client';
 
 // Search and health are small enough to keep here

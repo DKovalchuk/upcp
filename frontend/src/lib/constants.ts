@@ -9,6 +9,7 @@ import {
   GitBranch,
   ShieldCheck,
   ScrollText,
+  Bot,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -30,6 +31,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
       { title: 'Projects', icon: FolderKanban, path: '/projects' },
+      { title: 'Agents', icon: Bot, path: '/agents' },
     ],
   },
   {
