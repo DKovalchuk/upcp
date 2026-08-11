@@ -178,13 +178,18 @@ frontend:test:
   needs:
     - frontend:lint
   script:
-    - npm run test -- --reporter=junit --outputFile=test-results.xml
+    - npm run test -- --reporter=default --reporter=junit --outputFile=test-results.xml
+  after_script:
+    - |
+      if [ -f test-results.xml ]; then
+        echo "=== JUnit Summary ==="
+        grep -o 'failures="[0-9]*"' test-results.xml | head -5
+        grep -o 'errors="[0-9]*"' test-results.xml | head -5
+      fi
   artifacts:
+    when: always
     reports:
       junit: frontend/test-results.xml
-      coverage_report:
-        coverage_format: cobertura
-        path: frontend/coverage/cobertura-coverage.xml
     expire_in: 7 days
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

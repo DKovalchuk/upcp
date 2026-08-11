@@ -4,7 +4,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 
 ## Current Version
 
-**0.16.0** — M14 Performance & Accessibility (see `pyproject.toml` for authoritative value)
+**0.17.0** — M15 Agent Workflow (see `pyproject.toml` for authoritative value)
 
 ## Scheme
 
@@ -21,10 +21,40 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 ## Roadmap to 1.0.0
 
 ```
-0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 1.0.0
- M11        M12        M13        M14        M15        Production
- done       done       done       done       next       ready
+0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 0.18.0 ──▶ ...
+ M11        M12        M13        M14        M15        M16        ...
+ done       done       done       done       done       next
 ```
+
+### 0.17.0 — Agent Workflow
+
+**Goal**: Complete agent workflow — claim, heartbeat, clarification, evidence, review lifecycle.
+**Items**: 14 (7 backend + 7 frontend)
+**Sprints**: 4 (8 weeks)
+
+| Sprint | Items | Focus |
+|--------|-------|-------|
+| S17.1 (2w) | Backend gaps | Clarification REST, stale reaper, inbox events, lifecycle enforcement, agent metrics, agent detail endpoints |
+| S17.2 (2w) | Agent Center | Agent Center page, Agent Detail page with metrics/claims/activity/clarifications |
+| S17.3 (2w) | TaskDetail tabs | Dedicated Clarifications, Evidence, Reviews tabs; ClarificationBanner context field |
+| S17.4 (2w) | Evidence/Review UI | Attach/verify evidence, create review rounds, Playwright E2E testing, bugfixes |
+
+**Definition of Done**:
+- [x] Clarification REST endpoints (create, answer, resolve)
+- [x] Stale claim reaper (asyncio + REST trigger)
+- [x] Agent inbox events model + CRUD
+- [x] Lifecycle validation on task update
+- [x] Agent metrics (tasks completed, success rate, stale detection)
+- [x] Agent detail endpoints (claims, activity, evidence, reviews, clarifications)
+- [x] Agent Center page with grid/table view, search, filters
+- [x] Agent Detail page with profile header + 5 tabs
+- [x] TaskDetailSheet dedicated Clarifications/Evidence/Reviews tabs
+- [x] ClarificationBanner with context, answer display, answer input
+- [x] Evidence attach/verify UI
+- [x] Review round creation UI
+- [x] E2E Playwright tests (23 tests against real Docker environment)
+- [x] All 695 backend tests passing
+- [x] All 260 frontend tests passing
 
 ### 0.14.0 — Critical Fixes & Security
 
@@ -160,6 +190,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 | 0.14.0 | M12 — Critical Fixes & Security | 2026-07-30 |
 | 0.15.0 | M13 — Architecture & Backend Cleanup | 2026-08-07 |
 | 0.16.0 | M14 — Performance & Accessibility | 2026-08-07 |
+| 0.17.0 | M15 — Agent Workflow | 2026-08-11 |
 
 ## How to Update Versions
 

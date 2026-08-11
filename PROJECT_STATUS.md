@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
-Updated: 2026-08-07
-Version: 0.16.0 (see `VERSIONING.md` for scheme)
-Milestone: M14 — Performance & Accessibility (COMPLETE)
-Current Task: M15 planning
+Updated: 2026-08-11
+Version: 0.17.0 (see `VERSIONING.md` for scheme)
+Milestone: M15 — Agent Workflow (COMPLETE)
+Current Task: M16 planning
 Blockers: none
 
 ## UPCP v2 Project (Stage)
@@ -35,19 +35,26 @@ Blockers: none
 | MCP Server & REST API | 3 | 3 | 100% |
 | Project Views | 2 | 2 | 100% |
 | Settings & Accessibility | 2 | 2 | 100% |
+| Task Claim & Heartbeat | 3 | 3 | 100% |
+| Clarification Flow | 2 | 2 | 100% |
+| Evidence Attachment & Verification | 2 | 2 | 100% |
+| Review Rounds | 2 | 2 | 100% |
 | User Registration & Login | 7 | 14 | 50% |
 | RBAC & Authorization | 3 | 6 | 50% |
 | Agent CRUD & Tokens | 2 | 4 | 50% |
 | Redis Integration & Rate Limiting | 2 | 4 | 50% |
 | Secret Management | 2 | 4 | 50% |
 | Structured Logging & Metrics | 2 | 4 | 50% |
-| Task Claim & Heartbeat | 0 | 3 | 0% |
-| Clarification Flow | 0 | 2 | 0% |
-| Evidence Attachment & Verification | 0 | 2 | 0% |
-| Review Rounds | 0 | 2 | 0% |
 | Reports & Analytics | 0 | 2 | 0% |
 | Notification System | 0 | 1 | 0% |
 | Notification Channels | 0 | 2 | 0% |
+
+## Sprint History (M15)
+
+- [x] S17.1 (done) — Backend gaps: clarification REST, stale reaper, inbox events, lifecycle enforcement, agent metrics, agent detail endpoints
+- [x] S17.2 (done, !35) — Agent Center page + Agent Detail page with metrics, claims, activity, clarifications
+- [x] S17.3 (done, !36) — TaskDetailSheet dedicated tabs: Clarifications, Evidence, Reviews
+- [x] S17.4 (done, !37) — Evidence/Review UI, Playwright E2E (23 tests), bugfixes
 
 ## Sprint History (M14)
 
@@ -66,26 +73,13 @@ Blockers: none
 ## Roadmap to 1.0.0
 
 ```
-0.13.0 (done) → 0.14.0 (done) → 0.15.0 (done) → 0.16.0 (done) → 0.17.0 → 1.0.0
-   M11              M12              M13              M14         M15    Production
+0.13.0 (done) → 0.14.0 (done) → 0.15.0 (done) → 0.16.0 (done) → 0.17.0 (done) → 0.18.0 → ...
+   M11              M12              M13              M14              M15         M16
 ```
 
-### M12: 0.14.0 — Critical Fixes & Security (S14.1–S14.2) ✅ DONE
+### M15: 0.17.0 — Agent Workflow ✅ DONE
 
-### M13: 0.15.0 — Architecture & Backend Cleanup (S15.1–S15.3) ✅ DONE
-
-### M14: 0.16.0 — Performance & Accessibility (S16.1–S16.4) ✅ DONE
-
-### M15: 0.17.0 — Production Ready (TBD)
-
-**Target: 42 backlog tasks across M9, M10, M11**
-
-| Milestone | Focus | Tasks | Status |
-|-----------|-------|-------|--------|
-| M9 | Agent Workflow: claim, heartbeat, clarification, context packs | 8 | backlog |
-| M10 | Evidence & Review: evidence, DoD, review rounds | 7 | backlog |
-| M11 | Frontend: notifications, reports, graceful shutdown | 7 | backlog |
-| M8 | Runtime: graceful shutdown, OTEL tracing | 2 | backlog |
+### M16: 0.18.0 — Notifications & Reporting (TBD)
 
 ### 1.0.0 — Production Release
 

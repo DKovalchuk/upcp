@@ -7,6 +7,37 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-08-11 — M15 — Agent Workflow
+
+### Backend (S17.1)
+- Clarification REST endpoints: POST /tasks/{id}/clarifications, POST /clarifications/{id}/answer
+- Stale claim reaper: asyncio background loop + POST /internal/reaper/tick endpoint (5min stale, 15min dead)
+- Agent inbox events: AgentInboxEvent model + CRUD (create, list, mark_read, mark_all_read, count_unread)
+- Lifecycle enforcement: validate_transition() on TaskService.update() prevents illegal state changes
+- Agent metrics: tasks_completed, success_rate, is_stale, status on GET /agents/{id}
+- Agent detail endpoints: /agents/{id}/claims, /activity, /evidence, /reviews, /clarifications
+- Migration 0018: agent_inbox_events table
+
+### Frontend (S17.2–S17.4)
+- Agent Center page: grid/table view, search, filters, create dialog (/agents)
+- Agent Detail page: profile header + 5 tabs (Claims, Activity, Evidence, Reviews, Clarifications) (/agents/:id)
+- TaskDetailSheet restructured: dedicated Clarifications, Evidence, Reviews tabs (6 tabs total)
+- ClarificationBanner: context field, answer display, answer input, state-aware
+- BoardView: agent avatar + heartbeat progress bar on task cards
+- EvidenceTab: attach form, accept/reject actions
+- ReviewsTab: create review round button
+- Evidence/Review hooks: useCreateEvidence, useAcceptEvidence, useRejectEvidence, useCreateReviewRound
+
+### E2E Testing
+- 23 Playwright tests against real Docker environment (port 3082)
+- Tests: health, projects, delivery, board, task detail, agent center, agent detail, navigation, search, dark mode
+- nginx config fixes: server_name localhost, /health route to frontend
+
+### Fixed
+- TypeScript build: EvidenceCreate optional fields, null/undefined in ReviewVerdictCard, unused imports
+- nginx 502: server_name missing localhost, /health proxied to backend instead of frontend
+- TaskDetailSheet tab overflow: reduced from 8 to 6 tabs
+
 ## [0.16.0] — 2026-08-07 — M14 — Performance & Accessibility
 
 ### Performance (S16.1)

@@ -15,7 +15,7 @@ interface ReviewsTabProps {
 export function ReviewsTab({ taskId }: ReviewsTabProps) {
   const { data: reviewRounds, isLoading } = useTaskReviewRounds(taskId);
   const createReviewRound = useCreateReviewRound(taskId);
-  const rounds = reviewRounds ?? [];
+  const rounds = reviewRounds?.items ?? [];
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading...</div>;
@@ -47,8 +47,8 @@ export function ReviewsTab({ taskId }: ReviewsTabProps) {
             key={round.id}
             agentName={round.reviewer_id ?? 'Unknown'}
             verdict={(round.verdict as 'approve' | 'reject' | 'needs_changes') ?? 'approve'}
-            confidence={round.confidence}
-            summary={round.summary}
+            confidence={round.confidence ?? undefined}
+            summary={round.summary ?? undefined}
             createdAt={round.created_at}
           />
         ))
