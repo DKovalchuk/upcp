@@ -59,8 +59,8 @@ export interface EvidenceCreate {
   content_snippet?: string;
   artifact_ref?: string;
   dod_item_id?: string;
-  created_by_type: string;
-  created_by_id: string;
+  created_by_type?: string;
+  created_by_id?: string;
 }
 
 

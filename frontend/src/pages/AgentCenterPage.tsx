@@ -65,9 +65,9 @@ export function AgentCenterPage() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={Bot}
-          title="No agents"
-          description="Create your first AI agent to get started"
-          action={{ label: 'New Agent', onClick: () => setShowCreate(true) }}
+          title={search ? 'No agents found' : 'No agents'}
+          description={search ? `No agents match "${search}"` : 'Create your first AI agent to get started'}
+          action={search ? undefined : { label: 'New Agent', onClick: () => setShowCreate(true) }}
         />
       ) : viewMode === 'grid' ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

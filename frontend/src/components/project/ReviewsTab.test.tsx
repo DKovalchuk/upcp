@@ -39,9 +39,11 @@ describe('ReviewsTab', () => {
 
   it('renders review rounds', () => {
     mockUseTaskReviewRounds.mockReturnValue({
-      data: [
-        { id: 'r1', task_id: 't1', reviewer_id: 'reviewer-1', state: 'completed', verdict: 'approve', confidence: 90, summary: 'Looks good', created_at: '2026-08-01T00:00:00Z' },
-      ],
+      data: {
+        items: [
+          { id: 'r1', task_id: 't1', reviewer_id: 'reviewer-1', state: 'completed', verdict: 'approve', confidence: 90, summary: 'Looks good', created_at: '2026-08-01T00:00:00Z' },
+        ],
+      },
       isLoading: false,
     } as any);
     renderTab();

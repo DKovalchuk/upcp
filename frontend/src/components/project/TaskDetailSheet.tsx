@@ -62,7 +62,7 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
 
   const open = !!taskId;
 
-  const { task, isLoading, isReleasing, newAC, setNewAC, newDoD, setNewDoD, newSubtask, setNewSubtask, activeTab, setActiveTab, confirmDelete, setConfirmDelete, handleAddAC, handleAddDoD, handleAddSubtask, handleStatusChange, handleDelete, handleReleaseClaim, handleSubmitVerdict } = detail;
+  const { task, isLoading, isReleasing, newAC, setNewAC, newDoD, setNewDoD, newSubtask, setNewSubtask, activeTab, setActiveTab, confirmDelete, setConfirmDelete, handleAddAC, handleAddDoD, handleAddSubtask, handleStatusChange, handleDelete, handleReleaseClaim } = detail;
 
   return (
     <>
@@ -139,14 +139,8 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                   <TabsTrigger value="reviews">
                     Reviews
                   </TabsTrigger>
-                  <TabsTrigger value="ac">
-                    AC ({acs?.length ?? 0})
-                  </TabsTrigger>
-                  <TabsTrigger value="dod">
-                    DoD ({dods?.length ?? 0})
-                  </TabsTrigger>
-                  <TabsTrigger value="subtasks">
-                    Subtasks ({subtasks?.length ?? 0})
+                  <TabsTrigger value="quality">
+                    Quality
                   </TabsTrigger>
                 </TabsList>
 
@@ -288,75 +282,84 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                   <ReviewsTab taskId={taskId ?? ''} />
                 </TabsContent>
 
-                {/* ── Acceptance Criteria Tab ── */}
-                <TabsContent value="ac" className="mt-4 space-y-3">
-                  <ListSection
-                    items={acs ?? []}
-                    renderItem={(ac) => (
-                      <span className="text-sm">{ac.description}</span>
-                    )}
-                    emptyText="No acceptance criteria yet."
-                  />
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add acceptance criterion..."
-                      value={newAC}
-                      onChange={(e) => setNewAC(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddAC()}
-                      className="h-9"
+                {/* ── Quality Tab (AC + DoD + Subtasks) ── */}
+                <TabsContent value="quality" className="mt-4 space-y-6">
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                      Acceptance Criteria ({acs?.length ?? 0})
+                    </h4>
+                    <ListSection
+                      items={acs ?? []}
+                      renderItem={(ac) => (
+                        <span className="text-sm">{ac.description}</span>
+                      )}
+                      emptyText="No acceptance criteria yet."
                     />
-                    <Button size="sm" onClick={handleAddAC} disabled={!newAC.trim()}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="Add acceptance criterion..."
+                        value={newAC}
+                        onChange={(e) => setNewAC(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddAC()}
+                        className="h-9"
+                      />
+                      <Button size="sm" onClick={handleAddAC} disabled={!newAC.trim()}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </TabsContent>
 
-                {/* ── DoD Tab ── */}
-                <TabsContent value="dod" className="mt-4 space-y-3">
-                  <ListSection
-                    items={dods ?? []}
-                    renderItem={(dod) => (
-                      <span className="text-sm">{dod.name}</span>
-                    )}
-                    emptyText="No DoD items yet."
-                  />
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add DoD item..."
-                      value={newDoD}
-                      onChange={(e) => setNewDoD(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddDoD()}
-                      className="h-9"
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                      Definition of Done ({dods?.length ?? 0})
+                    </h4>
+                    <ListSection
+                      items={dods ?? []}
+                      renderItem={(dod) => (
+                        <span className="text-sm">{dod.name}</span>
+                      )}
+                      emptyText="No DoD items yet."
                     />
-                    <Button size="sm" onClick={handleAddDoD} disabled={!newDoD.trim()}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="Add DoD item..."
+                        value={newDoD}
+                        onChange={(e) => setNewDoD(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddDoD()}
+                        className="h-9"
+                      />
+                      <Button size="sm" onClick={handleAddDoD} disabled={!newDoD.trim()}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </TabsContent>
 
-                {/* ── Subtasks Tab ── */}
-                <TabsContent value="subtasks" className="mt-4 space-y-3">
-                  <ListSection
-                    items={subtasks ?? []}
-                    renderItem={(st) => (
-                      <div className="flex items-center gap-2">
-                        <StatusBadge status={st.status} size="sm" />
-                        <span className="text-sm">{st.title}</span>
-                      </div>
-                    )}
-                    emptyText="No subtasks yet."
-                  />
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add subtask..."
-                      value={newSubtask}
-                      onChange={(e) => setNewSubtask(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
-                      className="h-9"
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                      Subtasks ({subtasks?.length ?? 0})
+                    </h4>
+                    <ListSection
+                      items={subtasks ?? []}
+                      renderItem={(st) => (
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={st.status} size="sm" />
+                          <span className="text-sm">{st.title}</span>
+                        </div>
+                      )}
+                      emptyText="No subtasks yet."
                     />
-                    <Button size="sm" onClick={handleAddSubtask} disabled={!newSubtask.trim()}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="Add subtask..."
+                        value={newSubtask}
+                        onChange={(e) => setNewSubtask(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                        className="h-9"
+                      />
+                      <Button size="sm" onClick={handleAddSubtask} disabled={!newSubtask.trim()}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>

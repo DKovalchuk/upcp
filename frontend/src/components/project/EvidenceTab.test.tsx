@@ -32,16 +32,18 @@ describe('EvidenceTab', () => {
   });
 
   it('renders empty state', () => {
-    mockUseTaskEvidence.mockReturnValue({ data: [], isLoading: false } as any);
+    mockUseTaskEvidence.mockReturnValue({ data: { items: [] }, isLoading: false } as any);
     renderTab();
     expect(screen.getByText('No evidence')).toBeDefined();
   });
 
   it('renders evidence items', () => {
     mockUseTaskEvidence.mockReturnValue({
-      data: [
-        { id: 'e1', task_id: 't1', type: 'test_output', title: 'Test Results', description: 'All tests pass', verification_state: 'unverified', created_at: '2026-08-01T00:00:00Z', created_by_id: 'agent-1' },
-      ],
+      data: {
+        items: [
+          { id: 'e1', task_id: 't1', type: 'test_output', title: 'Test Results', description: 'All tests pass', verification_state: 'unverified', created_at: '2026-08-01T00:00:00Z', created_by_id: 'agent-1' },
+        ],
+      },
       isLoading: false,
     } as any);
     renderTab();
