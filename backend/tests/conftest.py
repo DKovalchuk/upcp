@@ -11,14 +11,7 @@ from collections.abc import Generator
 os.environ.setdefault("UPCP_DISABLE_AUTH", "true")
 os.environ.setdefault("UPCP_DISABLE_RATE_LIMIT", "true")
 
-import pytest
-from fastapi import FastAPI
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
-
-# Import ALL model modules so Base.metadata knows about every table.
-# These must be after env setup but before any fixture usage.
+# ── All imports after env setup (E402 suppressed) ─────────────
 import app.delivery.models  # noqa: E402, F401
 import app.gitread.models  # noqa: E402, F401
 import app.identity.agents  # noqa: E402, F401
@@ -28,8 +21,13 @@ import app.projects.models  # noqa: E402, F401
 import app.quality.models  # noqa: E402, F401
 import app.reporting.models  # noqa: E402, F401
 import app.structure.models  # noqa: E402, F401
-from app.shared.database import Base, get_session
-from app.shared.errors import register_error_handlers
+import pytest  # noqa: E402
+from app.shared.database import Base, get_session  # noqa: E402
+from app.shared.errors import register_error_handlers  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from sqlalchemy import create_engine, event  # noqa: E402
+from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
 
 
 def _set_sqlite_pragma(dbapi_conn, _connection_record) -> None:  # noqa: ANN001
