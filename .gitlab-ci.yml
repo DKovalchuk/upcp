@@ -153,7 +153,7 @@ backend:test:
     POSTGRES_DB: upcp_ci
     DATABASE_URL: "postgresql+psycopg://upcp_ci:upcp_ci@postgres:5432/upcp_ci"
     UPCP_ENV: ci
-    UPCP_SECRET_KEY: ci-test-only
+    UPCP_SECRET_KEY: ci-test-only-secure-key-for-testing-32b
   before_script:
     - apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
     - pip install --quiet -r backend/requirements.txt pytest-xdist

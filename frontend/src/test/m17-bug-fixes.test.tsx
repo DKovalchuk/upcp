@@ -130,14 +130,6 @@ describe('TopBar navigation', () => {
 
 describe('SettingsPage version', () => {
   it('displays version from environment variable', async () => {
-    vi.mock('next-themes', () => ({
-      useTheme: () => ({ theme: 'light', setTheme: vi.fn() }),
-    }));
-
-    vi.mock('@/hooks/use-health', () => ({
-      useHealth: () => ({ data: { status: 'ok', db: { latency_ms: 1 } } }),
-    }));
-
     const { SettingsPage } = await import('@/components/SettingsPage');
 
     render(React.createElement(SettingsPage));
