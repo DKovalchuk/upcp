@@ -167,7 +167,8 @@ class TestFullLifecycle:
         finding = rrs.add_finding(
             round_id=str(rnd.id),
             severity="minor",
-            description="Missing docstring",
+            category="style",
+            message="Missing docstring",
         )
         assert finding.severity == "minor"
 
