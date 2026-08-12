@@ -130,13 +130,6 @@ describe('TopBar navigation', () => {
 
 describe('SettingsPage version', () => {
   it('displays version from environment variable', async () => {
-    vi.stubGlobal('import.meta', {
-      env: {
-        VITE_APP_VERSION: '0.18.0',
-        VITE_API_URL: '/api/v1',
-      },
-    });
-
     vi.mock('next-themes', () => ({
       useTheme: () => ({ theme: 'light', setTheme: vi.fn() }),
     }));
@@ -149,7 +142,10 @@ describe('SettingsPage version', () => {
 
     render(React.createElement(SettingsPage));
 
-    const versionElements = screen.getAllByText('0.18.0');
+    // Version is displayed on the About tab; click it first
+    fireEvent.click(screen.getByRole('tab', { name: /about/i }));
+
+    const versionElements = screen.getAllByText('0.19.0');
     expect(versionElements.length).toBeGreaterThan(0);
   });
 });
