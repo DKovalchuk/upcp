@@ -18,6 +18,7 @@ import { QualityPage } from './QualityPage';
 import { AuditPage } from './AuditPage';
 import { ReportsPage } from './ReportsPage';
 import { GitIntegrationPage } from './GitIntegrationPage';
+import { ProjectOverview } from './ProjectOverview';
 
 const PROJECT_FIELDS = [
   { name: 'name', label: 'Name', required: true },
@@ -125,41 +126,7 @@ export function ProjectDetail() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Name</p>
-                  <p>{project.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Slug</p>
-                  <p className="font-mono text-sm">{project.slug}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <StatusBadge status={project.status} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Created</p>
-                  <p>{new Date(project.created_at).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Updated</p>
-                  <p>{new Date(project.updated_at).toLocaleDateString()}</p>
-                </div>
-                {project.description && (
-                  <div className="col-span-2">
-                    <p className="text-sm font-medium text-muted-foreground">Description</p>
-                    <p>{project.description}</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <ProjectOverview project={project} />
         </TabsContent>
 
         <TabsContent value="structure" className="mt-6">
