@@ -52,8 +52,8 @@ class TestFullLifecycle:
         es = EvidenceService(db_session)
         evidence = es.create(
             task_id=str(task.id),
-            evidence_type="test_result",
-            filename="test_output.txt",
+            type="test_result",
+            title="test_output.txt",
             created_by_type="agent",
             created_by_id="agent-1",
         )
@@ -133,8 +133,10 @@ class TestFullLifecycle:
         es = EvidenceService(db_session)
         evidence = es.create(
             task_id=str(task.id),
-            evidence_type="code_review",
-            filename="review.md",
+            type="code_review",
+            title="review.md",
+            created_by_type="human",
+            created_by_id="user-1",
         )
 
         es.reject(str(evidence.id), verified_by_type="human", verified_by_id="user-1")

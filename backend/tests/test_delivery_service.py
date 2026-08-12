@@ -50,8 +50,9 @@ class TestFeatureService:
         project = _make_project(db_session)
         fs = FeatureService(db_session)
         fs.create(project_id=str(project.id), name="Auth")
+        db_session.commit()
         with pytest.raises(Conflict, match="slug 'auth' already exists"):
-            fs.create(project_id=str(project.id), name="Authentication")
+            fs.create(project_id=str(project.id), name="Auth")
 
     def test_get_feature(self, db_session: Session) -> None:
         """Feature can be retrieved by ID."""
