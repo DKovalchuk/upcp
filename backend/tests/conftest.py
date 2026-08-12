@@ -12,15 +12,15 @@ os.environ.setdefault("UPCP_DISABLE_AUTH", "true")
 os.environ.setdefault("UPCP_DISABLE_RATE_LIMIT", "true")
 
 # ── Import ALL models so metadata is complete ──────────────────
+import app.delivery.models  # noqa: F401
+import app.gitread.models  # noqa: F401
 import app.identity.agents  # noqa: F401
 import app.identity.models  # noqa: F401
 import app.identity.rbac  # noqa: F401
 import app.projects.models  # noqa: F401
-import app.structure.models  # noqa: F401
-import app.delivery.models  # noqa: F401
 import app.quality.models  # noqa: F401
-import app.gitread.models  # noqa: F401
 import app.reporting.models  # noqa: F401
+import app.structure.models  # noqa: F401
 
 import pytest
 from app.shared.database import Base, get_session
