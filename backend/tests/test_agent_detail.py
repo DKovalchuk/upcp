@@ -55,6 +55,16 @@ def client():
         user = User(id=f"u-{uid}", email=f"t-{uid}@x.com", password_hash="x", display_name="T")
         session.add(user)
         session.flush()
+        # Create the mock current user so ownership checks can verify superuser status
+        mock_user = User(
+            id="test-user",
+            email="test@test.com",
+            password_hash="x",
+            display_name="Test",
+            is_superuser=True,
+        )
+        session.merge(mock_user)
+        session.flush()
         p = Project(name=f"P-{uid}", slug=f"p-{uid}")
         session.add(p)
         session.flush()
@@ -83,6 +93,7 @@ def client():
         s = _TestSession()
         s.query(AgentToken).filter(AgentToken.id.like("tok-%")).delete(synchronize_session=False)
         s.query(Agent).filter(Agent.name.like("A-%")).delete(synchronize_session=False)
+        s.query(User).filter(User.id.in_(["test-user"])).delete(synchronize_session=False)
         s.query(User).filter(User.id.like("u-%")).delete(synchronize_session=False)
         s.query(Project).filter(Project.slug.like("p-%")).delete(synchronize_session=False)
         s.commit()

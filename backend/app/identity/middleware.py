@@ -21,6 +21,7 @@ PUBLIC_PATHS = frozenset(
         "/docs",
         "/openapi.json",
         "/redoc",
+        "/mcp/health",
     }
 )
 
@@ -44,10 +45,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if path in PUBLIC_PATHS:
             return await call_next(request)
 
-        if not path.startswith("/api/v1/"):
-            return await call_next(request)
-
-        if path.startswith("/mcp"):
+        if not path.startswith("/api/v1/") and not path.startswith("/mcp"):
             return await call_next(request)
 
         auth_header = request.headers.get("authorization", "")

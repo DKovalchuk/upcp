@@ -76,13 +76,13 @@ app.add_middleware(CorrelationMiddleware)
 try:
     from app.shared.rate_limit_middleware import RateLimitMiddleware
 
-    if settings.env != "test":
+    if not settings.disable_rate_limit:
         app.add_middleware(RateLimitMiddleware)
 except ImportError:
     pass
 
-# Auth middleware — protects all /api/v1/ routes except public ones
-if settings.env != "test":
+# Auth middleware — protects all /api/v1/ and /mcp/ routes except public ones
+if not settings.disable_auth:
     app.add_middleware(AuthMiddleware)
 
 # CORS — configured via UPCP_CORS_ORIGINS and UPCP_CORS_ALLOW_HEADERS env vars
@@ -106,7 +106,7 @@ async def security_headers(request: Request, call_next: object) -> Response:
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
     )
     return response
 

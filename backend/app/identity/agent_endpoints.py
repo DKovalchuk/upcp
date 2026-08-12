@@ -105,9 +105,7 @@ def get_agent(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    agent = db.query(Agent).filter_by(id=agent_id).first()
-    if agent is None:
-        raise HTTPException(status_code=404, detail="Agent not found")
+    agent = _require_agent(db, agent_id, user.user_id)
 
     tokens = db.query(AgentToken).filter_by(agent_id=agent_id).all()
 
@@ -284,7 +282,7 @@ def agent_claims(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id)
+    _require_agent(db, agent_id, user.user_id)
 
     claims = (
         db.query(TaskClaim)
@@ -320,7 +318,7 @@ def agent_activity(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id)
+    _require_agent(db, agent_id, user.user_id)
 
     events = (
         db.query(AgentInboxEvent)
@@ -351,7 +349,7 @@ def agent_evidence(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id)
+    _require_agent(db, agent_id, user.user_id)
 
     items = (
         db.query(Evidence)
@@ -382,7 +380,7 @@ def agent_reviews(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id)
+    _require_agent(db, agent_id, user.user_id)
 
     items = (
         db.query(ReviewRound)
@@ -413,7 +411,7 @@ def agent_clarifications(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id)
+    _require_agent(db, agent_id, user.user_id)
 
     items = (
         db.query(ClarificationRequest)
@@ -438,6 +436,25 @@ def agent_clarifications(
     }
 
 
-def _require_agent(db: Session, agent_id: str) -> None:
-    if db.query(Agent).filter_by(id=agent_id).first() is None:
+def _require_agent(db: Session, agent_id: str, user_id: str | None = None) -> Agent:
+    """Return agent if found; enforce ownership when *user_id* is given.
+
+    A non-admin user may only access agents they created.
+    Superusers bypass the ownership check.
+    """
+    agent = db.query(Agent).filter_by(id=agent_id).first()
+    if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
+
+    if user_id is not None:
+        from app.identity.models import User
+
+        user = db.query(User).filter_by(id=user_id).first()
+        is_admin = user is not None and user.is_superuser
+        if agent.created_by != user_id and not is_admin:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to access this agent",
+            )
+
+    return agent
