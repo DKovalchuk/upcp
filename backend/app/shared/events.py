@@ -34,7 +34,7 @@ class EventBus:
                 logger.warning(
                     "Event handler failed for '%s': %s",
                     event_type,
-                    handler.__qualname__,
+                    getattr(handler, "__qualname__", repr(handler)),
                     exc_info=True,
                 )
 
