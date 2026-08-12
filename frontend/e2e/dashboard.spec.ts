@@ -1,11 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { gotoPage, mockWorkflowApis } from './fixtures/helpers';
 import {
-  MOCK_AGENT_ACTIVITY,
   MOCK_AGENT_ACTIVITY_STALE,
   MOCK_AGENT_ACTIVITY_EMPTY,
-  MOCK_NOTIFICATIONS,
-  MOCK_NOTIFICATIONS_EMPTY,
 } from './fixtures/mock-data';
 
 test.describe('Dashboard', () => {

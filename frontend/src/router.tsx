@@ -1,3 +1,4 @@
+/* oxlint-disable react/only-export-components */
 import { createRouter, createRoute, createRootRoute, Navigate } from '@tanstack/react-router';
 import { AppShell } from '@/components/layouts/AppShell';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -68,7 +69,7 @@ function RouteLoadingFallback() {
   );
 }
 
-// eslint-disable-next-line react(only-export-components)
+// eslint-disable-next-line react/only-export-components
 function LazyRoute({ Component }: { Component: React.ComponentType }) {
   return (
     <ErrorBoundary>
@@ -80,7 +81,7 @@ function LazyRoute({ Component }: { Component: React.ComponentType }) {
 }
 
 // Auth guard - redirects to /login if not authenticated
-// eslint-disable-next-line react(only-export-components)
+// eslint-disable-next-line react/only-export-components
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -302,6 +303,7 @@ const routeTree = rootRoute.addChildren([
   notFoundRoute,
 ]);
 
+// eslint-disable-next-line react/only-export-components
 export const router = createRouter({ routeTree });
 
 declare module '@tanstack/react-router' {

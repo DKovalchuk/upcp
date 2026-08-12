@@ -1,19 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { gotoPage, mockWorkflowApis } from './fixtures/helpers';
 import {
-  MOCK_CLAIMS,
   MOCK_CLAIMS_EMPTY,
-  MOCK_HEARTBEATS,
   MOCK_HEARTBEATS_EMPTY,
   MOCK_CLARIFICATIONS,
   MOCK_CLARIFICATIONS_EMPTY,
-  MOCK_AGENT_ACTIVITY,
   MOCK_AGENT_ACTIVITY_STALE,
   MOCK_AGENT_ACTIVITY_EMPTY,
 } from './fixtures/mock-data';
 
 // Helper: open task detail and switch to Execution tab
-async function openExecutionTab(page: import('@playwright/test').Page, taskId = 'task-2') {
+async function openExecutionTab(page: import('@playwright/test').Page, _taskId = 'task-2') {
   await gotoPage(page, '/projects/proj-1/delivery');
   await mockWorkflowApis(page);
   // Click the task row to open the sheet

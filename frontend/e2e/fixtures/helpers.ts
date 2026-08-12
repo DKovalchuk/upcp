@@ -1,4 +1,4 @@
-import { type Page, type Route, type BrowserContext } from '@playwright/test';
+import { type Page, type Route } from '@playwright/test';
 import {
   MOCK_USER,
   MOCK_TOKENS,

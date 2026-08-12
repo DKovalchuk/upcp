@@ -1,11 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { gotoPage, mockWorkflowApis } from './fixtures/helpers';
 import {
-  MOCK_EVIDENCE,
   MOCK_EVIDENCE_ACCEPTED,
   MOCK_EVIDENCE_REJECTED,
   MOCK_EVIDENCE_EMPTY,
-  MOCK_REVIEW_ROUNDS,
   MOCK_REVIEW_ROUNDS_PENDING,
   MOCK_REVIEW_ROUNDS_EMPTY,
   MOCK_REVIEW_FINDINGS,
@@ -150,7 +148,7 @@ test.describe('Evidence & Review', () => {
       const findingsText = page.getByText(/style|minor|variable name/i);
       // Findings may or may not be visible depending on card implementation
       // This test verifies the data is available
-      const isVisible = await findingsText.isVisible().catch(() => false);
+      void findingsText;
       // If not visible in card, findings data is still available via API
       expect(true).toBeTruthy();
     });

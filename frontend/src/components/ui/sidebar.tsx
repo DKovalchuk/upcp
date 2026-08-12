@@ -1,3 +1,4 @@
+/* oxlint-disable react/only-export-components */
 "use client"
 
 import * as React from "react"
@@ -720,5 +721,7 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  useSidebar,
 }
+
+// eslint-disable-next-line react/only-export-components
+export { useSidebar }
