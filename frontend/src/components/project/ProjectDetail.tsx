@@ -42,6 +42,7 @@ const TAB_ROUTES: Record<string, string> = {
   audit: 'audit',
   git: 'git',
   reports: 'reports',
+  settings: 'settings',
 };
 
 export function ProjectDetail() {
@@ -120,6 +121,7 @@ export function ProjectDetail() {
           <TabsTrigger value="audit">Audit</TabsTrigger>
           <TabsTrigger value="git">Git</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -182,6 +184,28 @@ export function ProjectDetail() {
 
         <TabsContent value="reports" className="mt-6">
           <ReportsPage />
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Project Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Health Score</p>
+                <p className="text-2xl font-bold">{project.status === 'active' ? 'Active' : project.status}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Created</p>
+                <p>{new Date(project.created_at).toLocaleDateString()}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+                <p>{new Date(project.updated_at).toLocaleDateString()}</p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
