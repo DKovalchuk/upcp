@@ -49,6 +49,22 @@ def reaper_tick(session: Session) -> dict[str, int]:
             task_id=claim.task_id,
             message=f"Claim on task {claim.task_id} is stale (no heartbeat for >{STALE_MINUTES}min)",
         )
+        try:
+            from app.reporting.trigger import NotificationTrigger
+
+            task = session.get(Task, claim.task_id)
+            NotificationTrigger(session).trigger(
+                "claim.stale",
+                entity_type="task",
+                entity_id=claim.task_id,
+                actor_id="system",
+                metadata={
+                    "agent_id": claim.agent_id,
+                    "task_title": task.title if task else claim.task_id,
+                },
+            )
+        except Exception:  # noqa: BLE001
+            pass
         stale_count += 1
 
     # Find active claims that are dead (no heartbeat for > DEAD_MINUTES)

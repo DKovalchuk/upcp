@@ -47,6 +47,20 @@ class WorkflowService:
         validate_transition(task.status, "claimed")
         task.status = "claimed"
         self._session.flush()
+
+        try:
+            from app.reporting.trigger import NotificationTrigger
+
+            NotificationTrigger(self._session).trigger(
+                "task.claimed",
+                entity_type="task",
+                entity_id=task_id,
+                actor_id=agent_id,
+                metadata={"task_title": task.title},
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         return claim
 
     def release(self, task_id: str, *, agent_id: str) -> None:
@@ -168,6 +182,20 @@ class WorkflowService:
             task.status = "needs_clarification"
 
         self._session.flush()
+
+        try:
+            from app.reporting.trigger import NotificationTrigger
+
+            NotificationTrigger(self._session).trigger(
+                "clarification.asked",
+                entity_type="task",
+                entity_id=task_id,
+                actor_id=agent_id,
+                metadata={"question": question},
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         return cr
 
     def answer_clarification(
@@ -197,6 +225,21 @@ class WorkflowService:
                 task.status = "in_progress"
 
         self._session.flush()
+
+        try:
+            from app.reporting.trigger import NotificationTrigger
+
+            NotificationTrigger(self._session).trigger(
+                "clarification.answered",
+                entity_type="task",
+                entity_id=cr.task_id,
+                actor_id=answered_by,
+                target_user_id=cr.author_id,
+                metadata={"answer": answer},
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         return cr
 
     def resolve_clarification(self, clarification_id: str) -> ClarificationRequest:
