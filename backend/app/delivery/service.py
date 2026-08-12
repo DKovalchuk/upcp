@@ -1,8 +1,12 @@
+import logging
+
 from sqlalchemy.orm import Session
 
 from app.delivery.models import Feature, Subtask, Task
 from app.shared.errors import Conflict, NotFound
 from app.shared.text import slugify
+
+logger = logging.getLogger(__name__)
 
 
 class FeatureService:
@@ -131,7 +135,7 @@ class TaskService:
                     },
                 )
             except Exception:  # noqa: BLE001
-                pass  # notification failure should not block task update
+                logger.warning("Notification trigger failed for task.status_changed", exc_info=True)
 
         return t
 

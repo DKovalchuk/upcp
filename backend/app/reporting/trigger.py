@@ -56,6 +56,19 @@ class NotificationTrigger:
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    def _resolve_target(self, entity_type: str, entity_id: str) -> str:
+        """Resolve notification target from entity context.
+
+        Falls back to 'system' only when no user can be determined.
+        """
+        if entity_type == "task":
+            from app.delivery.models import Task
+
+            task = self._session.get(Task, entity_id)
+            if task and task.assignee_id:
+                return task.assignee_id
+        return "system"
+
     def trigger(
         self,
         event_type: str,
@@ -91,7 +104,7 @@ class NotificationTrigger:
         except KeyError:
             message = msg_tpl
 
-        user_id = target_user_id or default_target
+        user_id = target_user_id or self._resolve_target(entity_type, entity_id)
 
         notification = Notification(
             user_id=user_id,

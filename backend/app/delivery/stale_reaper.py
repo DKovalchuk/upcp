@@ -64,7 +64,7 @@ def reaper_tick(session: Session) -> dict[str, int]:
                 },
             )
         except Exception:  # noqa: BLE001
-            pass
+            logger.warning("Notification trigger failed for claim.stale", exc_info=True)
         stale_count += 1
 
     # Find active claims that are dead (no heartbeat for > DEAD_MINUTES)

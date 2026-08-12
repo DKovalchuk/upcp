@@ -6,7 +6,7 @@ TASK-0075
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.delivery.models import ClarificationRequest, TaskClaim
+from app.delivery.models import AgentInboxEvent, ClarificationRequest, TaskClaim
 from app.identity.agent_auth import get_current_agent
 from app.identity.agents import Agent
 from app.identity.dependencies import CurrentAgent
@@ -82,11 +82,28 @@ def agent_me(
 )
 def agent_inbox(
     agent: CurrentAgent = Depends(get_current_agent),
-    since: str | None = None,
-) -> dict[str, list[dict[str, str]]]:
-    """Return agent events (inbox)."""
-    # MVP: empty inbox — events will be populated by workflow actions
-    return {"events": []}
+    db: Session = Depends(get_session),
+    unread_only: bool = False,
+) -> dict[str, list[dict[str, object]]]:
+    """Return agent events (inbox) from AgentInboxEvent table."""
+    query = db.query(AgentInboxEvent).filter_by(agent_id=agent.agent_id)
+    if unread_only:
+        query = query.filter_by(is_read=False)
+    events = query.order_by(AgentInboxEvent.created_at.desc()).limit(50).all()
+
+    return {
+        "events": [
+            {
+                "id": e.id,
+                "event_type": e.event_type,
+                "task_id": e.task_id,
+                "message": e.message,
+                "is_read": e.is_read,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in events
+        ]
+    }
 
 
 @router.get(

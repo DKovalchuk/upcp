@@ -4,7 +4,6 @@ import hashlib
 import uuid
 
 import app.audit.models  # noqa: F401
-import app.auth.models  # noqa: F401
 import app.gitread.models  # noqa: F401
 import app.identity.agents  # noqa: F401
 import app.identity.models  # noqa: F401

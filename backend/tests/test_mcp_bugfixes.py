@@ -30,7 +30,6 @@ def _db():
     """Create tables, yield, then drop."""
     # Ensure all models are imported so Base.metadata knows about them
     import app.audit.models  # noqa: F401
-    import app.auth.models  # noqa: F401
     import app.delivery.models  # noqa: F401
     import app.gitread.models  # noqa: F401
     import app.projects.models  # noqa: F401
