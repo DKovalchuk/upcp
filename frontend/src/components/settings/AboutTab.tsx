@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info, Server, CheckCircle, XCircle } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
-const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.19.0';
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.21.0';
 
 export function AboutTab() {
   const { data: health } = useHealth();

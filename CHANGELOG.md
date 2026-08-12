@@ -7,6 +7,31 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-08-12 — M19 — Test Quality & Architecture
+
+### S21.1: Test Infrastructure (TASK-0112)
+- Centralized conftest.py with all model imports for create_all()
+- Added pytest markers: slow, integration, unit
+- Added @vitest/coverage-v8 to frontend
+
+### S21.2: Service-Layer Tests (TASK-0113)
+- test_delivery_service.py: FeatureService, TaskService, SubtaskService unit tests
+- test_quality_service.py: EvidenceService, ReviewRoundService, QualityGate unit tests
+- test_reporting_service.py: ReportService, NotificationService unit tests
+- test_lifecycle_integration.py: full project→feature→task→evidence→review→complete
+
+### S21.3: Event Bus (TASK-0114)
+- shared/events.py: EventBus with subscribe/publish/error handling
+- shared/event_setup.py: wires events to NotificationTrigger
+- Replaced 7 direct NotificationTrigger calls with event_bus.publish()
+- Wired setup_event_handlers() to app lifespan
+- test_event_bus.py: 7 EventBus tests
+
+### Bug Fixes
+- Fixed 403 on GET /agents/{id} — removed ownership check for read access
+- Fixed Base UI error #31 — removed Tooltip wrapper around DropdownMenuTrigger
+- Fixed pipeline warnings: JWT key length, vi.mock hoisting, lint warnings, bandit B310, pip-audit fallback
+
 ## [0.20.0] — 2026-08-12 — M16 + M18 — Notifications, Analytics & UX
 
 ### M16: Notifications & Reporting (S18.2-S18.4)
