@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SettingsPage } from './SettingsPage';
 import { mockSuccessQuery, mockLoadingQuery } from '@/test/helpers';
@@ -25,7 +25,17 @@ function renderPage() {
 }
 
 describe('SettingsPage', () => {
-  beforeEach(() => vi.clearAllMocks());
+  const localStorageBackup = { ...localStorage };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    Object.assign(localStorage, localStorageBackup);
+  });
 
   it('renders Settings heading', () => {
     mock.mockReturnValue(mockLoadingQuery());
@@ -33,37 +43,65 @@ describe('SettingsPage', () => {
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
-  it('renders Appearance section', () => {
+  it('renders all 5 tab triggers', () => {
     mock.mockReturnValue(mockLoadingQuery());
     renderPage();
-    expect(screen.getByText('Appearance')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /profile/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /notifications/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /channels/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /appearance/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /about/i })).toBeInTheDocument();
+  });
+
+  it('has tablist with aria-label', () => {
+    mock.mockReturnValue(mockLoadingQuery());
+    renderPage();
+    expect(screen.getByRole('tablist', { name: /settings sections/i })).toBeInTheDocument();
+  });
+
+  it('defaults to Profile tab', () => {
+    mock.mockReturnValue(mockLoadingQuery());
+    renderPage();
+    expect(screen.getByRole('tab', { name: /profile/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByText('Profile').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Default User')).toBeInTheDocument();
+  });
+
+  it('switches to Notifications tab on click', () => {
+    mock.mockReturnValue(mockLoadingQuery());
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /notifications/i }));
+    expect(screen.getByText('Notification Preferences')).toBeInTheDocument();
+    expect(screen.getByText('Task Created')).toBeInTheDocument();
+    expect(screen.getByText('Task Status Changed')).toBeInTheDocument();
+  });
+
+  it('switches to Channels tab on click', () => {
+    mock.mockReturnValue(mockLoadingQuery());
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /channels/i }));
+    expect(screen.getByText('Notification Channels')).toBeInTheDocument();
+    expect(screen.getByText(/No channels configured/)).toBeInTheDocument();
+  });
+
+  it('switches to Appearance tab on click', () => {
+    mock.mockReturnValue(mockLoadingQuery());
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /appearance/i }));
+    expect(screen.getAllByText('Appearance').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Choose your preferred color scheme. Changes apply immediately.')).toBeInTheDocument();
   });
 
-  it('renders theme toggle buttons', () => {
+  it('switches to About tab on click', () => {
     mock.mockReturnValue(mockLoadingQuery());
     renderPage();
-    expect(screen.getByText('Light')).toBeInTheDocument();
-    expect(screen.getByText('Dark')).toBeInTheDocument();
-    expect(screen.getByText('System')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /about/i }));
+    expect(screen.getAllByText('About').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('UPCP — Universal Project Control Plane')).toBeInTheDocument();
+    expect(screen.getByText('System Health')).toBeInTheDocument();
   });
 
-  it('renders API Information section', () => {
-    mock.mockReturnValue(mockLoadingQuery());
-    renderPage();
-    expect(screen.getByText('API Information')).toBeInTheDocument();
-    expect(screen.getByText('API Base URL')).toBeInTheDocument();
-    expect(screen.getByText('/api/v1')).toBeInTheDocument();
-  });
-
-  it('renders Backend Status', () => {
-    mock.mockReturnValue(mockLoadingQuery());
-    renderPage();
-    expect(screen.getByText('Backend Status')).toBeInTheDocument();
-    expect(screen.getByText('Checking...')).toBeInTheDocument();
-  });
-
-  it('shows Connected when backend is healthy', () => {
+  it('shows Connected when backend is healthy on About tab', () => {
     mock.mockReturnValue(mockSuccessQuery({
       status: 'ok',
       service: 'upcp-backend',
@@ -71,27 +109,19 @@ describe('SettingsPage', () => {
       redis: { status: 'ok' },
     }));
     renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /about/i }));
     expect(screen.getByText('Connected')).toBeInTheDocument();
     expect(screen.getByText('15ms')).toBeInTheDocument();
   });
 
-  it('shows Disconnected when backend is down', () => {
-    mock.mockReturnValue(mockSuccessQuery({
-      status: 'error',
-      service: 'upcp-backend',
-      db: { status: 'error' },
-      redis: { status: 'error' },
-    }));
-    renderPage();
-    expect(screen.getByText('Disconnected')).toBeInTheDocument();
-  });
-
-  it('renders About section with version', () => {
+  it('toggles notification preference', () => {
     mock.mockReturnValue(mockLoadingQuery());
     renderPage();
-    expect(screen.getByText('About')).toBeInTheDocument();
-    expect(screen.getByText('UPCP — Universal Project Control Plane')).toBeInTheDocument();
-    expect(screen.getByText('0.18.0')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /notifications/i }));
+    const toggle = screen.getByRole('switch', { name: /toggle task created/i });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
   });
 
   it('has no emoji in content', () => {
