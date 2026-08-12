@@ -11,6 +11,7 @@ from app.api.v1.audit import router as audit_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.delivery import router as delivery_router
 from app.api.v1.gitread import router as gitread_router
+from app.api.v1.notification_channels import router as notification_channels_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.quality import router as quality_router
@@ -143,6 +144,7 @@ app.include_router(audit_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(agent_self_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(notification_channels_router, prefix="/api/v1")
 app.include_router(agent_router, prefix="/api/v1")
 app.include_router(reaper_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/auth")
