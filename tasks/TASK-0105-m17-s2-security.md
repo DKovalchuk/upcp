@@ -3,7 +3,7 @@
 **Spec:** SPEC-0020
 **Milestone:** M17
 **Sprint:** S19.2
-**Status:** PENDING
+**Status:** DONE
 **Size:** L (8 points)
 **Model:** Pro (security review)
 

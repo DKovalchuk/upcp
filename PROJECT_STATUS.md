@@ -1,11 +1,24 @@
 # PROJECT_STATUS
 
 Updated: 2026-08-12
-Version: 0.17.0 (see `VERSIONING.md` for scheme)
-Milestone: M15 — Agent Workflow (COMPLETE)
-Current Task: M16 S18.2-S18.4 (pending) + M17 planning
+Version: 0.19.0 (see `VERSIONING.md` for scheme)
+Milestone: M17 — Security & Stability (COMPLETE)
+Current Task: M18 S20.1 (next sprint)
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` for post-M15 plan (M16-M20, ~23 weeks)
+
+## M17 Summary — Security & Stability
+
+All 4 sprints completed and merged:
+
+| Sprint | TASK | Focus | Status |
+|--------|------|-------|--------|
+| S19.1 | TASK-0104 | Critical bug fixes (5 frontend bugs) | ✅ Done |
+| S19.2 | TASK-0105 | Security hardening (MCP auth, LLM, CSP, ownership, env flags) | ✅ Done |
+| S19.3 | TASK-0106 | Database hardening (17 indexes, 26 ondelete, N+1 fix) | ✅ Done |
+| S19.4 | TASK-0107 | Architecture cleanup (logging, dead code, inbox, lifespan, target) | ✅ Done |
+
+**Evidence:** 732 tests pass, ruff + mypy clean, all pipelines green
 
 ## UPCP v2 Project (Stage)
 
