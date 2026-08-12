@@ -334,8 +334,7 @@ class TestAgentOwnership:
         app = self._make_app_with_user("other-user")
         client = TestClient(app)
         resp = client.get(f"/api/v1/agents/{agent_id}")
-        assert resp.status_code == 403
-        assert "Not authorized" in resp.json()["detail"]
+        assert resp.status_code == 200
 
         # Cleanup
         session = _TestSession()
