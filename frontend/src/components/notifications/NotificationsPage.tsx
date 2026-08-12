@@ -145,7 +145,7 @@ export function NotificationsPage() {
     },
   });
 
-  const notifications = data?.items ?? [];
+  const notifications = useMemo(() => data?.items ?? [], [data]);
   const unreadCount = countData?.count ?? 0;
 
   const filteredNotifications = useMemo(() => {

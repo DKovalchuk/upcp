@@ -239,7 +239,7 @@ function FeatureSection({
   onDelete: () => void;
 }) {
   const { data: tasksData, isLoading: tasksLoading } = useTasks(feature.id);
-  const tasks = tasksData?.items ?? [];
+  const tasks = useMemo(() => tasksData?.items ?? [], [tasksData]);
   const taskCount = tasksData?.total ?? tasks.length;
   const createTask = useCreateTask();
   const [showCreateTask, setShowCreateTask] = useState(false);

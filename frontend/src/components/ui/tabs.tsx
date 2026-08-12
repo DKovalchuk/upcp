@@ -77,4 +77,5 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   )
 }
 
+// eslint-disable-next-line react/only-export-components
 export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }

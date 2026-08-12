@@ -27,7 +27,7 @@ export function ReportsPage() {
 
   const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
   const { data, isLoading, error } = useReports(projectId, { offset, limit });
-  const reports = data?.items ?? [];
+  const reports = useMemo(() => data?.items ?? [], [data]);
   const total = data?.total ?? 0;
   const createReport = useCreateReport();
   const [generating, setGenerating] = useState(false);

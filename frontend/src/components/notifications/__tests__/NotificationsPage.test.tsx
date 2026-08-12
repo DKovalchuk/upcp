@@ -2,7 +2,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationsPage } from '../NotificationsPage';
-import { mockSuccessQuery, mockLoadingQuery } from '@/test/helpers';
 
 vi.mock('@/lib/api', () => ({
   fetchNotifications: vi.fn(),
@@ -26,14 +25,11 @@ vi.mock('@/lib/toast', () => ({
   },
 }));
 
-import { fetchNotifications, fetchUnreadCount, markNotificationRead, markAllNotificationsRead } from '@/lib/api';
-import { showToast } from '@/lib/toast';
+import { fetchNotifications, fetchUnreadCount, markNotificationRead } from '@/lib/api';
 
 const mockFetchNotifications = vi.mocked(fetchNotifications);
 const mockFetchUnreadCount = vi.mocked(fetchUnreadCount);
 const mockMarkRead = vi.mocked(markNotificationRead);
-const mockMarkAll = vi.mocked(markAllNotificationsRead);
-const mockShowToast = vi.mocked(showToast);
 
 const SAMPLE_NOTIFICATIONS = [
   {

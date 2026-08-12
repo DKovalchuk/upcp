@@ -66,7 +66,7 @@ export function TaskDistributionChart({ projectId }: { projectId: string }) {
     enabled: !!projectId,
   });
 
-  const tasks = data?.items ?? [];
+  const tasks = useMemo(() => data?.items ?? [], [data]);
 
   const distribution = useMemo(() => {
     const counts: Record<string, number> = {};

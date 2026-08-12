@@ -43,7 +43,7 @@ export function AuditPage() {
     { offset, limit }
   );
 
-  const events = data?.items ?? [];
+  const events = useMemo(() => data?.items ?? [], [data]);
   const total = data?.total ?? 0;
 
   const filteredEvents = useMemo(() => {

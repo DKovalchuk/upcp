@@ -58,6 +58,7 @@ const SetupPage = React.lazy(() =>
   import('@/components/auth/SetupPage').then((module) => ({ default: module.SetupPage }))
 );
 
+// eslint-disable-next-line react/only-export-components
 function RouteLoadingFallback() {
   return (
     <div className="space-y-4">
@@ -67,6 +68,7 @@ function RouteLoadingFallback() {
   );
 }
 
+// eslint-disable-next-line react(only-export-components)
 function LazyRoute({ Component }: { Component: React.ComponentType }) {
   return (
     <ErrorBoundary>
@@ -78,6 +80,7 @@ function LazyRoute({ Component }: { Component: React.ComponentType }) {
 }
 
 // Auth guard - redirects to /login if not authenticated
+// eslint-disable-next-line react(only-export-components)
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 

@@ -695,6 +695,7 @@ function SidebarMenuSubButton({
   })
 }
 
+// eslint-disable-next-line react/only-export-components
 export {
   Sidebar,
   SidebarContent,
