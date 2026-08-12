@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from app.api.v1.agent_self import router as agent_self_router
+from app.api.v1.analytics import router as analytics_router
 from app.api.v1.audit import router as audit_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.delivery import router as delivery_router
@@ -145,6 +146,7 @@ app.include_router(search_router, prefix="/api/v1")
 app.include_router(agent_self_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(notification_channels_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(agent_router, prefix="/api/v1")
 app.include_router(reaper_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/auth")
