@@ -3,6 +3,7 @@
 TASK-0074, TASK-0099
 """
 
+import logging
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
@@ -11,6 +12,8 @@ from app.delivery.lifecycle import validate_transition
 from app.delivery.models import ClarificationRequest, Heartbeat, Task, TaskClaim
 from app.shared.errors import Conflict, NotFound
 from app.shared.text import new_id
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowService:
@@ -59,7 +62,7 @@ class WorkflowService:
                 metadata={"task_title": task.title},
             )
         except Exception:  # noqa: BLE001
-            pass
+            logger.warning("Notification trigger failed for task.claimed", exc_info=True)
 
         return claim
 
@@ -194,7 +197,7 @@ class WorkflowService:
                 metadata={"question": question},
             )
         except Exception:  # noqa: BLE001
-            pass
+            logger.warning("Notification trigger failed for clarification.asked", exc_info=True)
 
         return cr
 
@@ -238,7 +241,7 @@ class WorkflowService:
                 metadata={"answer": answer},
             )
         except Exception:  # noqa: BLE001
-            pass
+            logger.warning("Notification trigger failed for clarification.answered", exc_info=True)
 
         return cr
 

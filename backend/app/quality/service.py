@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from sqlalchemy import func
@@ -14,6 +15,8 @@ from app.quality.models import (
 )
 from app.shared.errors import AppError, Conflict, NotFound
 from app.shared.text import utcnow
+
+logger = logging.getLogger(__name__)
 
 
 class QualityError(AppError):
@@ -75,7 +78,7 @@ class EvidenceService:
                 metadata={"evidence_title": title},
             )
         except Exception:  # noqa: BLE001
-            pass
+            logger.warning("Notification trigger failed for evidence.attached", exc_info=True)
 
         return e
 
@@ -234,7 +237,7 @@ class ReviewRoundService:
                 metadata={"verdict": verdict},
             )
         except Exception:  # noqa: BLE001
-            pass
+            logger.warning("Notification trigger failed for review event", exc_info=True)
 
         return rr
 

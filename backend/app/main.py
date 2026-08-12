@@ -1,3 +1,7 @@
+import asyncio
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -38,9 +42,24 @@ try:
 except ImportError:
     pass
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
+    """Application lifespan — start background tasks on startup, cancel on shutdown."""
+    from app.delivery.stale_reaper import stale_reaper_loop
+    from app.shared.database import SessionLocal
+
+    reaper_task = asyncio.create_task(stale_reaper_loop(SessionLocal))
+    try:
+        yield
+    finally:
+        reaper_task.cancel()
+
+
 app = FastAPI(
     title="UPCP Backend",
     version="0.1.0",
+    lifespan=lifespan,
     openapi_tags=[
         {"name": "projects", "description": "Project CRUD operations"},
         {"name": "structure", "description": "Components and modules within projects"},
@@ -130,17 +149,6 @@ app.include_router(auth_router, prefix="/auth")
 
 # MCP server
 app.include_router(create_mcp_router(), prefix="/mcp")
-
-
-# ── Startup: background stale reaper (TASK-0099 B2) ──
-@app.on_event("startup")
-async def _start_reaper() -> None:
-    import asyncio
-
-    from app.delivery.stale_reaper import stale_reaper_loop
-    from app.shared.database import SessionLocal
-
-    asyncio.create_task(stale_reaper_loop(SessionLocal))
 
 
 @app.get("/health")
