@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ProfileTab } from '@/components/settings/ProfileTab';
 import { NotificationsTab } from '@/components/settings/NotificationsTab';
-import { ChannelsTab } from '@/components/settings/ChannelsTab';
+import { ChannelsSettingsTab } from '@/components/settings/ChannelsSettingsTab';
 import { AppearanceTab } from '@/components/settings/AppearanceTab';
 import { AboutTab } from '@/components/settings/AboutTab';
 import { Settings, User, Bell, Radio, Palette, Info } from 'lucide-react';
@@ -46,7 +46,7 @@ export function SettingsPage() {
           <NotificationsTab />
         </TabsContent>
         <TabsContent value="channels" id="settings-panel-channels" role="tabpanel" aria-label="Channel settings">
-          <ChannelsTab />
+          <ChannelsSettingsTab />
         </TabsContent>
         <TabsContent value="appearance" id="settings-panel-appearance" role="tabpanel" aria-label="Appearance settings">
           <AppearanceTab />

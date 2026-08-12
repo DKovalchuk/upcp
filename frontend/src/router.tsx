@@ -34,6 +34,10 @@ const NotificationsPage = React.lazy(() =>
   import('@/components/notifications/NotificationsPage').then((module) => ({ default: module.NotificationsPage }))
 );
 
+const AnalyticsPage = React.lazy(() =>
+  import('@/components/analytics/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage }))
+);
+
 const AgentCenterPage = React.lazy(() =>
   import('@/pages/AgentCenterPage').then((module) => ({ default: module.AgentCenterPage }))
 );
@@ -247,6 +251,16 @@ const agentDetailRoute = createRoute({
   ),
 });
 
+const analyticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/analytics',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={AnalyticsPage} />
+    </AuthGuard>
+  ),
+});
+
 const notificationsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/notifications',
@@ -279,6 +293,7 @@ const routeTree = rootRoute.addChildren([
   agentDetailRoute,
   reportsRoute,
   settingsRoute,
+  analyticsRoute,
   notificationsRoute,
   healthRoute,
   notFoundRoute,
