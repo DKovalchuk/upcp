@@ -3,6 +3,7 @@ import { createRouter, createRoute, createRootRoute, Navigate } from '@tanstack/
 import { AppShell } from '@/components/layouts/AppShell';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { SSEProvider } from '@/components/SSEProvider';
 import React, { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -100,7 +101,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 const rootRoute = createRootRoute({
   component: () => (
     <AuthProvider>
-      <AppShell />
+      <SSEProvider>
+        <AppShell />
+      </SSEProvider>
     </AuthProvider>
   ),
 });

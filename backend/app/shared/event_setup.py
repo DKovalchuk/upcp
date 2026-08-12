@@ -1,4 +1,4 @@
-"""Wire event bus to NotificationTrigger.
+"""Wire event bus to NotificationTrigger and SSE broadcast.
 
 Call `setup_event_handlers()` once at app startup.
 """
@@ -26,12 +26,32 @@ _SUBSCRIBED_EVENTS = [
     "review.rejected",
 ]
 
+# Critical events that should trigger toasts on the frontend
+_CRITICAL_EVENTS = frozenset(
+    {
+        "clarification.asked",
+        "review.completed",
+        "review.rejected",
+    }
+)
+
 
 def _handle_notification(event_type: str, session: Session, **kwargs: Any) -> None:
-    """Generic handler: forward event to NotificationTrigger."""
+    """Forward event to NotificationTrigger and broadcast via SSE."""
+    from app.reporting.sse import sse_manager
     from app.reporting.trigger import NotificationTrigger
 
     NotificationTrigger(session).trigger(event_type, **kwargs)
+
+    # Broadcast to SSE clients
+    sse_manager.broadcast(
+        "notification",
+        {
+            "event_type": event_type,
+            "critical": event_type in _CRITICAL_EVENTS,
+            **{k: str(v) for k, v in kwargs.items() if k != "session"},
+        },
+    )
 
 
 def setup_event_handlers() -> None:

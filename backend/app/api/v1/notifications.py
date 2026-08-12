@@ -1,9 +1,13 @@
 """Notification API routes — TASK-0085."""
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.reporting.service import NotificationService
+from app.reporting.sse import sse_manager
 from app.shared.database import get_session
 from app.shared.errors import NotFound
 
@@ -85,3 +89,35 @@ def mark_all_read(
     svc = NotificationService(session)
     count = svc.mark_all_read(user_id)
     return {"count": count}
+
+
+@router.get(
+    "/notifications/stream",
+    summary="SSE stream for real-time notifications",
+    description="Server-Sent Events stream. Sends keepalive every 15s.",
+)
+async def notifications_stream() -> StreamingResponse:
+    client_id, queue = sse_manager.connect()
+
+    async def event_generator():  # type: ignore[no-untyped-def]
+        try:
+            while True:
+                try:
+                    message = await asyncio.wait_for(queue.get(), timeout=15)
+                    yield message
+                except TimeoutError:
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            sse_manager.disconnect(client_id)
+
+    return StreamingResponse(
+        event_generator(),  # type: ignore[no-untyped-call]
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
