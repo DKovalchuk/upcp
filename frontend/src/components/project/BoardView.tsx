@@ -4,6 +4,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   closestCenter,
@@ -53,6 +54,7 @@ function DraggableTaskCard({
   return (
     <div
       ref={setNodeRef}
+      role="listitem"
       data-draggable
       {...listeners}
       {...attributes}
@@ -102,6 +104,8 @@ function DroppableColumn({
     <div
       ref={setNodeRef}
       data-droppable
+      role="list"
+      aria-labelledby={`board-col-${columnKey}`}
       className={`min-h-[200px] space-y-2 rounded-lg border border-dashed p-2 transition-colors ${
         isOver ? 'border-primary bg-primary/5' : ''
       }`}
@@ -117,7 +121,8 @@ export function BoardView({ projectId, features, search, onSelectTask }: BoardVi
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
   );
 
   const { data, isLoading } = useQuery({
@@ -210,11 +215,11 @@ export function BoardView({ projectId, features, search, onSelectTask }: BoardVi
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" role="group" aria-label="Task board">
         {BOARD_COLUMNS.map((col) => (
           <div key={col.key} className="space-y-2">
             <div className="flex items-center gap-2 px-1">
-              <h3 className="text-sm font-medium text-muted-foreground">
+              <h3 className="text-sm font-medium text-muted-foreground" id={`board-col-${col.key}`}>
                 {col.label}
               </h3>
               <span className="text-xs text-muted-foreground">
