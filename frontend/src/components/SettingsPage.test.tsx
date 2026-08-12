@@ -8,6 +8,10 @@ vi.mock('@/hooks/use-health', () => ({
   useHealth: vi.fn(),
 }));
 
+vi.mock('@/hooks/use-analytics', () => ({
+  useNotificationChannels: vi.fn(() => ({ data: { items: [] }, isLoading: false })),
+}));
+
 vi.mock('next-themes', () => ({
   useTheme: vi.fn(() => ({ theme: 'light', setTheme: vi.fn() })),
 }));
