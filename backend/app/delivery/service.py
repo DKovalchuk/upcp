@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.delivery.models import Feature, Subtask, Task
 from app.shared.errors import Conflict, NotFound
+from app.shared.events import event_bus
 from app.shared.text import slugify
 
 logger = logging.getLogger(__name__)
@@ -120,22 +121,18 @@ class TaskService:
         self._session.flush()
 
         if new_status is not None and str(new_status) != old_status:
-            try:
-                from app.reporting.trigger import NotificationTrigger
-
-                NotificationTrigger(self._session).trigger(
-                    "task.status_changed",
-                    entity_type="task",
-                    entity_id=task_id,
-                    actor_id=str(fields.get("assignee_id", "system")),
-                    metadata={
-                        "old_status": old_status,
-                        "new_status": str(new_status),
-                        "task_title": t.title,
-                    },
-                )
-            except Exception:  # noqa: BLE001
-                logger.warning("Notification trigger failed for task.status_changed", exc_info=True)
+            event_bus.publish(
+                "task.status_changed",
+                session=self._session,
+                entity_type="task",
+                entity_id=task_id,
+                actor_id=str(fields.get("assignee_id", "system")),
+                metadata={
+                    "old_status": old_status,
+                    "new_status": str(new_status),
+                    "task_title": t.title,
+                },
+            )
 
         return t
 

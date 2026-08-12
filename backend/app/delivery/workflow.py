@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.delivery.lifecycle import validate_transition
 from app.delivery.models import ClarificationRequest, Heartbeat, Task, TaskClaim
 from app.shared.errors import Conflict, NotFound
+from app.shared.events import event_bus
 from app.shared.text import new_id
 
 logger = logging.getLogger(__name__)
@@ -51,18 +52,14 @@ class WorkflowService:
         task.status = "claimed"
         self._session.flush()
 
-        try:
-            from app.reporting.trigger import NotificationTrigger
-
-            NotificationTrigger(self._session).trigger(
-                "task.claimed",
-                entity_type="task",
-                entity_id=task_id,
-                actor_id=agent_id,
-                metadata={"task_title": task.title},
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Notification trigger failed for task.claimed", exc_info=True)
+        event_bus.publish(
+            "task.claimed",
+            session=self._session,
+            entity_type="task",
+            entity_id=task_id,
+            actor_id=agent_id,
+            metadata={"task_title": task.title},
+        )
 
         return claim
 
@@ -186,18 +183,14 @@ class WorkflowService:
 
         self._session.flush()
 
-        try:
-            from app.reporting.trigger import NotificationTrigger
-
-            NotificationTrigger(self._session).trigger(
-                "clarification.asked",
-                entity_type="task",
-                entity_id=task_id,
-                actor_id=agent_id,
-                metadata={"question": question},
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Notification trigger failed for clarification.asked", exc_info=True)
+        event_bus.publish(
+            "clarification.asked",
+            session=self._session,
+            entity_type="task",
+            entity_id=task_id,
+            actor_id=agent_id,
+            metadata={"question": question},
+        )
 
         return cr
 
@@ -229,19 +222,15 @@ class WorkflowService:
 
         self._session.flush()
 
-        try:
-            from app.reporting.trigger import NotificationTrigger
-
-            NotificationTrigger(self._session).trigger(
-                "clarification.answered",
-                entity_type="task",
-                entity_id=cr.task_id,
-                actor_id=answered_by,
-                target_user_id=cr.author_id,
-                metadata={"answer": answer},
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Notification trigger failed for clarification.answered", exc_info=True)
+        event_bus.publish(
+            "clarification.answered",
+            session=self._session,
+            entity_type="task",
+            entity_id=cr.task_id,
+            actor_id=answered_by,
+            target_user_id=cr.author_id,
+            metadata={"answer": answer},
+        )
 
         return cr
 

@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.delivery.inbox_events import create_agent_event
 from app.delivery.lifecycle import validate_transition
 from app.delivery.models import Task, TaskClaim
+from app.shared.events import event_bus
 
 logger = logging.getLogger(__name__)
 
@@ -49,22 +50,18 @@ def reaper_tick(session: Session) -> dict[str, int]:
             task_id=claim.task_id,
             message=f"Claim on task {claim.task_id} is stale (no heartbeat for >{STALE_MINUTES}min)",
         )
-        try:
-            from app.reporting.trigger import NotificationTrigger
-
-            task = session.get(Task, claim.task_id)
-            NotificationTrigger(session).trigger(
-                "claim.stale",
-                entity_type="task",
-                entity_id=claim.task_id,
-                actor_id="system",
-                metadata={
-                    "agent_id": claim.agent_id,
-                    "task_title": task.title if task else claim.task_id,
-                },
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Notification trigger failed for claim.stale", exc_info=True)
+        task = session.get(Task, claim.task_id)
+        event_bus.publish(
+            "claim.stale",
+            session=session,
+            entity_type="task",
+            entity_id=claim.task_id,
+            actor_id="system",
+            metadata={
+                "agent_id": claim.agent_id,
+                "task_title": task.title if task else claim.task_id,
+            },
+        )
         stale_count += 1
 
     # Find active claims that are dead (no heartbeat for > DEAD_MINUTES)

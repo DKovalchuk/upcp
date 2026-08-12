@@ -50,7 +50,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     """Application lifespan — start background tasks on startup, cancel on shutdown."""
     from app.delivery.stale_reaper import stale_reaper_loop
     from app.shared.database import SessionLocal
+    from app.shared.event_setup import setup_event_handlers
 
+    setup_event_handlers()
     reaper_task = asyncio.create_task(stale_reaper_loop(SessionLocal))
     try:
         yield

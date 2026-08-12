@@ -14,6 +14,7 @@ from app.quality.models import (
     ReviewRound,
 )
 from app.shared.errors import AppError, Conflict, NotFound
+from app.shared.events import event_bus
 from app.shared.text import utcnow
 
 logger = logging.getLogger(__name__)
@@ -67,18 +68,14 @@ class EvidenceService:
         self._session.add(e)
         self._session.flush()
 
-        try:
-            from app.reporting.trigger import NotificationTrigger
-
-            NotificationTrigger(self._session).trigger(
-                "evidence.attached",
-                entity_type="task",
-                entity_id=task_id,
-                actor_id=created_by_id,
-                metadata={"evidence_title": title},
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Notification trigger failed for evidence.attached", exc_info=True)
+        event_bus.publish(
+            "evidence.attached",
+            session=self._session,
+            entity_type="task",
+            entity_id=task_id,
+            actor_id=created_by_id,
+            metadata={"evidence_title": title},
+        )
 
         return e
 
@@ -225,19 +222,15 @@ class ReviewRoundService:
         rr.completed_at = utcnow()
         self._session.flush()
 
-        try:
-            from app.reporting.trigger import NotificationTrigger
-
-            event_type = "review.completed" if verdict == "approve" else "review.rejected"
-            NotificationTrigger(self._session).trigger(
-                event_type,
-                entity_type="task",
-                entity_id=rr.task_id,
-                actor_id=rr.reviewer_id or "system",
-                metadata={"verdict": verdict},
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Notification trigger failed for review event", exc_info=True)
+        event_type = "review.completed" if verdict == "approve" else "review.rejected"
+        event_bus.publish(
+            event_type,
+            session=self._session,
+            entity_type="task",
+            entity_id=rr.task_id,
+            actor_id=rr.reviewer_id or "system",
+            metadata={"verdict": verdict},
+        )
 
         return rr
 
