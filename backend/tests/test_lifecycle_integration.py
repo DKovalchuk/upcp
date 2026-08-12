@@ -63,13 +63,13 @@ class TestFullLifecycle:
         assert evidence.verification_state == "unverified"
 
         # 6. Verify and accept evidence
-        es.verify(str(evidence.id), verified_by_type="human", verified_by_id="user-1")
+        es.verify(str(evidence.id), verified_by_type="agent", verified_by_id="agent-1")
         evidence = es.get(str(evidence.id))
-        assert evidence.verification_state == "verified"
+        assert evidence.verification_state == "agent_verified"
 
         es.accept(str(evidence.id), verified_by_type="human", verified_by_id="user-1")
         evidence = es.get(str(evidence.id))
-        assert evidence.verification_state == "accepted"
+        assert evidence.verification_state == "human_accepted"
 
         # 7. Pass DoD items
         ds.update(str(dod1.id), status="passed")
@@ -101,19 +101,15 @@ class TestFullLifecycle:
         ts = TaskService(db_session)
         task = ts.create(feature_id=str(feature.id), title="Task")
 
-        # backlog → ready
         task = ts.update(str(task.id), status="ready")
         assert task.status == "ready"
 
-        # ready → claimed
         task = ts.update(str(task.id), status="claimed")
         assert task.status == "claimed"
 
-        # claimed → in_progress
         task = ts.update(str(task.id), status="in_progress")
         assert task.status == "in_progress"
 
-        # in_progress → ready_for_review
         task = ts.update(str(task.id), status="ready_for_review")
         assert task.status == "ready_for_review"
 
@@ -126,7 +122,6 @@ class TestFullLifecycle:
         ts = TaskService(db_session)
         task = ts.create(feature_id=str(feature.id), title="Task")
 
-        # backlog → done is invalid
         with pytest.raises(InvalidTransition):
             ts.update(str(task.id), status="done")
 
@@ -158,12 +153,16 @@ class TestFullLifecycle:
         task = ts.create(feature_id=str(feature.id), title="Task")
 
         rrs = ReviewRoundService(db_session)
-        rnd = rrs.create(task_id=str(task.id), round_number=1)
-        assert rnd.status == "pending"
+        rnd = rrs.create(
+            task_id=str(task.id),
+            requested_by_type="agent",
+            requested_by_id="agent-1",
+        )
+        assert rnd.state == "pending"
 
         rrs.start(str(rnd.id))
         rnd = rrs.get(str(rnd.id))
-        assert rnd.status == "in_progress"
+        assert rnd.state == "in_progress"
 
         finding = rrs.add_finding(
             round_id=str(rnd.id),
