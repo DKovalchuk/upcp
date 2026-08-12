@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
 Updated: 2026-08-12
-Version: 0.19.0 (see `VERSIONING.md` for scheme)
-Milestone: M17 — Security & Stability (COMPLETE)
-Current Task: M18 S20.1 (next sprint)
+Version: 0.20.0 (see `VERSIONING.md` for scheme)
+Milestone: M19 — Test Quality & Architecture (IN PROGRESS)
+Current Task: M19 S21.2 — Service-Layer Tests (TASK-0113)
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` for post-M15 plan (M16-M20, ~23 weeks)
 
