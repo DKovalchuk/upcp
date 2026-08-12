@@ -99,6 +99,14 @@ vi.mock('@/components/ui/sidebar', () => ({
   SidebarTrigger: () => React.createElement('div'),
 }));
 
+vi.mock('@/hooks/use-health', () => ({
+  useHealth: () => ({ data: { status: 'ok', version: '0.19.0' }, isLoading: false }),
+}));
+
+vi.mock('@/components/settings/ChannelsSettingsTab', () => ({
+  ChannelsSettingsTab: () => React.createElement('div', { 'data-testid': 'channels-tab' }),
+}));
+
 describe('TopBar navigation', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
