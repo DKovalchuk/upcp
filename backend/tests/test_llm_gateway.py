@@ -77,21 +77,23 @@ def test_llm_gateway_unknown_provider() -> None:
             assert "Unknown LLM provider" in str(e)
 
 
-def test_local_provider_generate_summary() -> None:
-    """Test local provider generates summary."""
+def test_local_provider_raises_not_implemented() -> None:
+    """Test local provider raises NotImplementedError (no fake data)."""
     provider = LocalProvider()
-    summary = provider.generate_summary("Test text for summarization")
-    assert "Summary generated locally" in summary
-    assert "Test text for summarization" in summary[:100]
+    try:
+        provider.generate_summary("Test text for summarization")
+        raise AssertionError("Should have raised NotImplementedError")
+    except NotImplementedError as e:
+        assert "not yet implemented" in str(e)
 
 
 def test_disabled_provider_raises_error() -> None:
-    """Test disabled provider raises NotImplementedError."""
-    from app.llm.gateway import _DisabledProvider
+    """Test disabled/null provider raises NotImplementedError."""
+    from app.llm.gateway import _NullProvider
 
-    provider = _DisabledProvider()
+    provider = _NullProvider()
     try:
         provider.generate_summary("Test text")
         raise AssertionError("Should have raised NotImplementedError")
     except NotImplementedError as e:
-        assert "LLM is disabled" in str(e)
+        assert "LLM not configured" in str(e)

@@ -1,4 +1,9 @@
+import os
 from collections.abc import Generator
+
+# Disable auth and rate limiting in tests via explicit flags (not env="test")
+os.environ.setdefault("UPCP_DISABLE_AUTH", "true")
+os.environ.setdefault("UPCP_DISABLE_RATE_LIMIT", "true")
 
 # Import all identity models so Base.metadata knows about them.
 import app.identity.agents  # noqa: F401
