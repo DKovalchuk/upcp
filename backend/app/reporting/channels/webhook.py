@@ -40,7 +40,7 @@ class WebhookChannel(BaseChannel):
         last_error: Exception | None = None
         for attempt in range(MAX_RETRIES):
             try:
-                with urlopen(req, timeout=30) as resp:
+                with urlopen(req, timeout=30) as resp:  # nosec B310 — webhook only uses HTTP(S)
                     if resp.status < 400:
                         return
                 last_error = RuntimeError(f"HTTP {resp.status}")
