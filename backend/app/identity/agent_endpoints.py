@@ -229,9 +229,7 @@ def create_agent_token(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    agent = db.query(Agent).filter_by(id=agent_id).first()
-    if agent is None:
-        raise HTTPException(status_code=404, detail="Agent not found")
+    _require_agent(db, agent_id, user.user_id)
 
     raw_token = secrets.token_urlsafe(48)
     token_hash = _hash_token(raw_token)
@@ -267,6 +265,9 @@ def revoke_agent_token(
     if record is None:
         raise HTTPException(status_code=404, detail="Token not found")
 
+    # Enforce ownership: only agent owner or admin can revoke
+    _require_agent(db, record.agent_id, user.user_id)
+
     record.revoked_at = datetime.now(UTC)
     db.flush()
 
@@ -282,7 +283,7 @@ def agent_claims(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id, user.user_id)
+    _require_agent(db, agent_id)
 
     claims = (
         db.query(TaskClaim)
@@ -323,7 +324,7 @@ def agent_activity(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id, user.user_id)
+    _require_agent(db, agent_id)
 
     events = (
         db.query(AgentInboxEvent)
@@ -354,7 +355,7 @@ def agent_evidence(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id, user.user_id)
+    _require_agent(db, agent_id)
 
     items = (
         db.query(Evidence)
@@ -385,7 +386,7 @@ def agent_reviews(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id, user.user_id)
+    _require_agent(db, agent_id)
 
     items = (
         db.query(ReviewRound)
@@ -416,7 +417,7 @@ def agent_clarifications(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    _require_agent(db, agent_id, user.user_id)
+    _require_agent(db, agent_id)
 
     items = (
         db.query(ClarificationRequest)
@@ -444,8 +445,8 @@ def agent_clarifications(
 def _require_agent(db: Session, agent_id: str, user_id: str | None = None) -> Agent:
     """Return agent if found; enforce ownership when *user_id* is given.
 
-    A non-admin user may only access agents they created.
-    Superusers bypass the ownership check.
+    Read-only access (GET) is allowed for any authenticated user.
+    Write access (token create/revoke) requires ownership or admin role.
     """
     agent = db.query(Agent).filter_by(id=agent_id).first()
     if agent is None:
@@ -459,7 +460,7 @@ def _require_agent(db: Session, agent_id: str, user_id: str | None = None) -> Ag
         if agent.created_by != user_id and not is_admin:
             raise HTTPException(
                 status_code=403,
-                detail="Not authorized to access this agent",
+                detail="Not authorized to manage this agent",
             )
 
     return agent
