@@ -4,6 +4,8 @@ Tests FeatureService, TaskService, SubtaskService directly against a database se
 Uses the shared db_session fixture from conftest.py.
 """
 
+import uuid
+
 import pytest
 from app.delivery.lifecycle import InvalidTransition
 from app.delivery.service import FeatureService, SubtaskService, TaskService
@@ -13,8 +15,6 @@ from app.quality.service import QualityError
 from app.shared.errors import Conflict, NotFound
 from app.shared.text import slugify
 from sqlalchemy.orm import Session
-
-import uuid
 
 
 def _make_project(session: Session, name: str = "Test Project") -> Project:
