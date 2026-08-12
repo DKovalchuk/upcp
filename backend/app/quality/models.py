@@ -11,7 +11,9 @@ class AcceptanceCriterion(Base):
     __tablename__ = "acceptance_criterion"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    task_id: Mapped[str] = mapped_column(String(36), ForeignKey("task.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
     description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -24,7 +26,9 @@ class DoDItem(Base):
     __tablename__ = "dod_item"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    task_id: Mapped[str] = mapped_column(String(36), ForeignKey("task.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     required_evidence_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
@@ -38,9 +42,11 @@ class Evidence(Base):
     __tablename__ = "evidence"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    task_id: Mapped[str] = mapped_column(String(36), ForeignKey("task.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
     dod_item_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("dod_item.id"), nullable=True
+        String(36), ForeignKey("dod_item.id", ondelete="SET NULL"), nullable=True
     )
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -71,7 +77,9 @@ class ReviewRound(Base):
     __tablename__ = "review_round"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    task_id: Mapped[str] = mapped_column(String(36), ForeignKey("task.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
     requested_by_type: Mapped[str] = mapped_column(String(50), nullable=False)
     requested_by_id: Mapped[str] = mapped_column(String(255), nullable=False)
     reviewer_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -95,16 +103,16 @@ class ReviewFinding(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     review_round_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("review_round.id"), nullable=False
+        String(36), ForeignKey("review_round.id", ondelete="CASCADE"), nullable=False
     )
     severity: Mapped[str] = mapped_column(String(50), nullable=False)
     category: Mapped[str] = mapped_column(String(50), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     evidence_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("evidence.id"), nullable=True
+        String(36), ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True
     )
     dod_item_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("dod_item.id"), nullable=True
+        String(36), ForeignKey("dod_item.id", ondelete="SET NULL"), nullable=True
     )
     suggestion: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

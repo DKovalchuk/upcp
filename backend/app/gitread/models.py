@@ -11,7 +11,9 @@ class GitProvider(Base):
     __tablename__ = "git_provider"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("project.id"), nullable=False)
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("project.id", ondelete="CASCADE"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     provider_type: Mapped[str] = mapped_column(String(50), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -24,7 +26,7 @@ class GitBranch(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     provider_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("git_provider.id"), nullable=False
+        String(36), ForeignKey("git_provider.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     last_commit_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
@@ -37,7 +39,7 @@ class GitCommit(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     provider_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("git_provider.id"), nullable=False
+        String(36), ForeignKey("git_provider.id", ondelete="CASCADE"), nullable=False
     )
     sha: Mapped[str] = mapped_column(String(40), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
@@ -51,7 +53,7 @@ class GitPullRequest(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     provider_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("git_provider.id"), nullable=False
+        String(36), ForeignKey("git_provider.id", ondelete="CASCADE"), nullable=False
     )
     number: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -292,9 +292,14 @@ def agent_claims(
         .all()
     )
 
+    # Batch-load tasks to avoid N+1
+    task_ids = [c.task_id for c in claims if c.task_id]
+    tasks = db.query(Task).filter(Task.id.in_(task_ids)).all() if task_ids else []
+    task_map = {t.id: t for t in tasks}
+
     items = []
     for c in claims:
-        task = db.get(Task, c.task_id)
+        task = task_map.get(c.task_id)
         items.append(
             {
                 "id": c.id,
