@@ -172,6 +172,6 @@ class TestFullLifecycle:
         )
         assert finding.severity == "minor"
 
-        rrs.submit_verdict(round_id=str(rnd.id), verdict="approved", summary="Looks good")
+        rrs.submit_verdict(round_id=str(rnd.id), verdict="approved", confidence=90, summary="Looks good")
         rnd = rrs.get(str(rnd.id))
         assert rnd.verdict == "approved"
