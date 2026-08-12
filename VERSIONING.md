@@ -4,7 +4,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 
 ## Current Version
 
-**0.17.0** — M15 Agent Workflow (see `pyproject.toml` for authoritative value)
+**0.19.0** — M17 Security & Stability (see `pyproject.toml` for authoritative value)
 
 ## Scheme
 
@@ -23,7 +23,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 ```
 0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 0.18.0 ──▶ 0.19.0 ──▶ 0.20.0 ──▶ 0.21.0 ──▶ 0.22.0 ──▶ ...
  M11        M12        M13        M14        M15        M16         M17         M18         M19         M20
- done       done       done       done       done       next        plan        plan        plan        plan
+ done       done       done       done       done       partial     done        next        plan        plan
 ```
 
 See `ROADMAP_UNIFIED.md` for full post-M15 plan.

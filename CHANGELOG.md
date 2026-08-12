@@ -7,6 +7,33 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-08-12 — M17 — Security & Stability
+
+### Security Hardening (S19.2 — TASK-0105)
+- MCP endpoints now require JWT Bearer token or X-Agent-Token (was: unauthenticated)
+- LLM providers no longer return fake summaries — NullProvider raises NotImplementedError (501 for callers)
+- CSP header hardened: removed unsafe-eval, added wasm-unsafe-eval
+- Agent detail endpoints enforce ownership — non-admin users can only manage agents they created
+- Auth/rate-limit middleware use explicit UPCP_DISABLE_AUTH / UPCP_DISABLE_RATE_LIMIT flags (was: env="test" guard)
+
+### Database Hardening (S19.3 — TASK-0106)
+- Migration 0019: 17 indexes on FK/status columns + 26 ForeignKeys with explicit ondelete (CASCADE/SET NULL)
+- N+1 fix: agent_claims endpoint uses batch IN query instead of per-claim get
+
+### Architecture Cleanup (S19.4 — TASK-0107)
+- Notification triggers: all 7 exception handlers now log warnings instead of silently swallowing
+- Deleted dead auth/ module (legacy RBAC, replaced by identity/)
+- Agent inbox now queries AgentInboxEvent table (was: empty stub returning [])
+- Migrated @app.on_event('startup') to lifespan context manager (no more deprecation warnings)
+- Notification target resolves from task assignee (fallback: "system" only when no user found)
+
+### Critical Bug Fixes (S19.1 — TASK-0104)
+- Fixed fetchProjectTasks URL query string construction
+- Project Settings route now shows correct tab
+- TopBar Profile/Settings items navigate to /settings
+- SettingsPage version reads from VITE_APP_VERSION (was: hardcoded "0.14.0")
+- Dashboard "New Project" navigates to /projects
+
 ## [0.17.0] — 2026-08-11 — M15 — Agent Workflow
 
 ### Backend (S17.1)
