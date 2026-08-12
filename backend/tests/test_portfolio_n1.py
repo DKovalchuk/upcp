@@ -55,7 +55,9 @@ def _seed_data(session, n_projects: int = 5, n_features: int = 3, n_tasks: int =
         projects.append(p)
 
         for f_idx in range(n_features):
-            f = Feature(project_id=p.id, name=f"F{p_idx}-{f_idx}", slug=f"{prefix}-f{p_idx}-{f_idx}")
+            f = Feature(
+                project_id=p.id, name=f"F{p_idx}-{f_idx}", slug=f"{prefix}-f{p_idx}-{f_idx}"
+            )
             session.add(f)
             session.flush()
             all_features.append(f)
