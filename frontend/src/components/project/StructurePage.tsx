@@ -174,16 +174,19 @@ function ComponentCard({
 
   return (
     <Card>
-      <CardHeader
-        className="cursor-pointer select-none py-3"
+      <button
+        type="button"
+        className="flex w-full cursor-pointer select-none items-center justify-between py-3 text-left"
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-controls={`component-modules-${component.id}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             )}
             <div>
               <CardTitle className="text-base">{component.name}</CardTitle>
@@ -210,9 +213,10 @@ function ComponentCard({
             {component.description}
           </p>
         )}
-      </CardHeader>
+      </button>
 
       {isExpanded && (
+        <div id={`component-modules-${component.id}`}>
         <CardContent className="pt-0">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-muted-foreground">
@@ -284,6 +288,7 @@ function ComponentCard({
             submitLabel="Create Module"
           />
         </CardContent>
+        </div>
       )}
     </Card>
   );

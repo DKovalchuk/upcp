@@ -50,21 +50,31 @@ export function BreadcrumbBar() {
 
   return (
     <nav className="flex items-center gap-1 px-4 py-2 text-sm text-muted-foreground lg:px-6" aria-label="Breadcrumb">
-      <Link to="/" className="flex items-center gap-1 hover:text-foreground">
-        <Home className="h-4 w-4" />
-        <span>Home</span>
-      </Link>
-      {breadcrumbs.map((crumb) => (
-        <span key={crumb.path} className="flex items-center gap-1">
-          <ChevronRight className="h-4 w-4" />
-          <Link
-            to={crumb.path}
-            className="hover:text-foreground capitalize"
-          >
-            {crumb.title}
+      <ol className="flex items-center gap-1">
+        <li>
+          <Link to="/" className="flex items-center gap-1 hover:text-foreground">
+            <Home className="h-4 w-4" aria-hidden="true" />
+            <span>Home</span>
           </Link>
-        </span>
-      ))}
+        </li>
+        {breadcrumbs.map((crumb, index) => {
+          const isLast = index === breadcrumbs.length - 1;
+          return (
+            <li key={crumb.path} className="flex items-center gap-1">
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              {isLast ? (
+                <span aria-current="page" className="font-medium text-foreground">
+                  {crumb.title}
+                </span>
+              ) : (
+                <Link to={crumb.path} className="hover:text-foreground capitalize">
+                  {crumb.title}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </nav>
   );
 }

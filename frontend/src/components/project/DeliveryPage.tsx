@@ -272,15 +272,18 @@ function FeatureSection({
 
   return (
     <div className="rounded-lg border">
-      <div
-        className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-muted/50"
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left hover:bg-muted/50"
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-controls={`feature-tasks-${feature.id}`}
       >
         <div className="flex items-center gap-3">
           {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           )}
           <div>
             <span className="font-medium">{feature.name}</span>
@@ -301,10 +304,10 @@ function FeatureSection({
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
+      </button>
 
       {isExpanded && (
-        <div className="border-t px-4 py-3">
+        <div id={`feature-tasks-${feature.id}`} className="border-t px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-muted-foreground">Tasks</span>
             <Button
