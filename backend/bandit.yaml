@@ -1,5 +1,6 @@
 exclude_dirs: ["tests"]
 skips:
   - B105   # hardcoded_password_string — false positive on "bearer", "0.0"
+  - B110   # try_except_pass — intentional for notification trigger failures (must not block main operations)
   - B404   # import_subprocess — intentional for gitread
   - B603   # subprocess_call — intentional for gitread
