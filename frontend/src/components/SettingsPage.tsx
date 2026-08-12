@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Settings, Palette, Server, Info, Sun, Moon, Monitor, CheckCircle, XCircle } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
-const APP_VERSION = '0.14.0';
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.18.0';
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();

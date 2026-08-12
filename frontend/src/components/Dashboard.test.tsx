@@ -4,11 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Dashboard } from './Dashboard';
 import { mockSuccessQuery, mockLoadingQuery, mockErrorQuery } from '@/test/helpers';
 
-// Mock Link component
+// Mock Link component and useNavigate
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, to, ...props }: any) => (
     <a href={to} {...props}>{children}</a>
   ),
+  useNavigate: () => vi.fn(),
 }));
 
 // Mock the hooks

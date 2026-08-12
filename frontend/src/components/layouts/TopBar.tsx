@@ -1,5 +1,6 @@
 import { Search, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -46,6 +47,7 @@ interface TopBarProps {
 
 export function TopBar({ onCommandOpen }: TopBarProps) {
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className="flex h-12 items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 lg:px-6">
@@ -88,8 +90,8 @@ export function TopBar({ onCommandOpen }: TopBarProps) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => {}}>Profile</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {}}>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate({ to: '/settings' })}>Profile</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate({ to: '/settings' })}>Settings</DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>

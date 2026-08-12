@@ -91,7 +91,7 @@ describe('SettingsPage', () => {
     renderPage();
     expect(screen.getByText('About')).toBeInTheDocument();
     expect(screen.getByText('UPCP — Universal Project Control Plane')).toBeInTheDocument();
-    expect(screen.getByText('0.14.0')).toBeInTheDocument();
+    expect(screen.getByText('0.18.0')).toBeInTheDocument();
   });
 
   it('has no emoji in content', () => {

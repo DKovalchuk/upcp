@@ -32,11 +32,11 @@ export async function fetchProjectTasks(
   if (filters?.status) params.set('status', filters.status);
   if (filters?.feature_id) params.set('feature_id', filters.feature_id);
   if (filters?.assignee_type) params.set('assignee_type', filters.assignee_type);
+  if (pagination?.offset !== undefined) params.set('offset', String(pagination.offset));
+  if (pagination?.limit !== undefined) params.set('limit', String(pagination.limit));
   const qs = params.toString();
-  const pag = paginationParams(pagination);
-  const sep = qs && pag ? '&' : pag ? '' : qs ? '?' : '';
   return apiRequest<PaginatedResponse<Task>>(
-    `/api/v1/projects/${projectId}/tasks${sep}${qs}${pag}`
+    `/api/v1/projects/${projectId}/tasks${qs ? '?' + qs : ''}`
   );
 }
 
