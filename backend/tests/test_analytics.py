@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 from app.delivery.models import Feature, Task, TaskClaim
-from app.project.models import Project
+from app.projects.models import Project
 from app.reporting.analytics import AnalyticsService
 from app.shared.database import Base
 from app.shared.text import new_id
