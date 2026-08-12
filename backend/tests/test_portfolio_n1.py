@@ -32,8 +32,11 @@ def _db():
 @pytest.fixture()
 def session(_db):
     s = _TestSession()
-    yield s
-    s.close()
+    try:
+        yield s
+        s.rollback()
+    finally:
+        s.close()
 
 
 def _seed_data(session, n_projects: int = 5, n_features: int = 3, n_tasks: int = 4):
