@@ -1,3 +1,9 @@
+"""Shared test fixtures for UPCP backend tests.
+
+All models are imported here so Base.metadata.create_all() knows about every table.
+Test files should use the `db_session` fixture instead of creating their own engines.
+"""
+
 import os
 from collections.abc import Generator
 
@@ -5,10 +11,17 @@ from collections.abc import Generator
 os.environ.setdefault("UPCP_DISABLE_AUTH", "true")
 os.environ.setdefault("UPCP_DISABLE_RATE_LIMIT", "true")
 
-# Import all identity models so Base.metadata knows about them.
+# ── Import ALL models so metadata is complete ──────────────────
 import app.identity.agents  # noqa: F401
 import app.identity.models  # noqa: F401
 import app.identity.rbac  # noqa: F401
+import app.projects.models  # noqa: F401
+import app.structure.models  # noqa: F401
+import app.delivery.models  # noqa: F401
+import app.quality.models  # noqa: F401
+import app.gitread.models  # noqa: F401
+import app.reporting.models  # noqa: F401
+
 import pytest
 from app.shared.database import Base, get_session
 from app.shared.errors import register_error_handlers
