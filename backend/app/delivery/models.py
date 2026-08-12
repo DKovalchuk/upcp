@@ -21,9 +21,11 @@ class Feature(Base):
     __tablename__ = "feature"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("project.id"), nullable=False)
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("project.id", ondelete="CASCADE"), nullable=False
+    )
     component_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("component.id"), nullable=True
+        String(36), ForeignKey("component.id", ondelete="SET NULL"), nullable=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -39,12 +41,14 @@ class Task(Base):
     __tablename__ = "task"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    feature_id: Mapped[str] = mapped_column(String(36), ForeignKey("feature.id"), nullable=False)
+    feature_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("feature.id", ondelete="CASCADE"), nullable=False
+    )
     component_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("component.id"), nullable=True
+        String(36), ForeignKey("component.id", ondelete="SET NULL"), nullable=True
     )
     module_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("module.id"), nullable=True
+        String(36), ForeignKey("module.id", ondelete="SET NULL"), nullable=True
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -62,7 +66,9 @@ class Subtask(Base):
     __tablename__ = "subtask"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    task_id: Mapped[str] = mapped_column(String(36), ForeignKey("task.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="todo")
@@ -76,7 +82,9 @@ class ClarificationRequest(Base):
     __tablename__ = "clarification_request"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    task_id: Mapped[str] = mapped_column(String(36), ForeignKey("task.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
     author_type: Mapped[str] = mapped_column(String(50), nullable=False)
     author_id: Mapped[str] = mapped_column(String(36), nullable=False)
     question: Mapped[str] = mapped_column(Text, nullable=False)
@@ -97,9 +105,11 @@ class TaskDependency(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    task_id: Mapped[str] = mapped_column(String(36), ForeignKey("task.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
     blocked_by_task_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("task.id"), nullable=False
+        String(36), ForeignKey("task.id", ondelete="CASCADE"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
@@ -117,7 +127,9 @@ class TaskClaim(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    task_id: Mapped[str] = mapped_column(String(36), ForeignKey("task.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
     agent_id: Mapped[str] = mapped_column(String(255), nullable=False)
     state: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
     claimed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -133,7 +145,9 @@ class Heartbeat(Base):
     __tablename__ = "heartbeat"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    claim_id: Mapped[str] = mapped_column(String(36), ForeignKey("task_claim.id"), nullable=False)
+    claim_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("task_claim.id", ondelete="CASCADE"), nullable=False
+    )
     progress_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     current_step: Mapped[str] = mapped_column(String(255), nullable=False)
     next_step: Mapped[str] = mapped_column(String(255), nullable=False)

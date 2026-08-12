@@ -399,6 +399,7 @@ class TestAgentOwnership:
 
     def test_nonexistent_agent_returns_404(self) -> None:
         """Non-existent agent ID returns 404."""
+        Base.metadata.create_all(bind=_test_engine)
         app = self._make_app_with_user("any-user")
         client = TestClient(app)
         resp = client.get("/api/v1/agents/nonexistent-id")
