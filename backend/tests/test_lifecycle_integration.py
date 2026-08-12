@@ -3,6 +3,8 @@
 Project → Feature → Task → Evidence → Review → Complete
 """
 
+import uuid
+
 import pytest
 from app.delivery.service import FeatureService, TaskService
 from app.projects.models import Project
@@ -15,8 +17,9 @@ from app.quality.service import (
 from sqlalchemy.orm import Session
 
 
-def _make_project(session: Session, slug: str = "test-project") -> Project:
-    p = Project(name="Test Project", slug=slug, description="Lifecycle test")
+def _make_project(session: Session) -> Project:
+    slug = f"life-{uuid.uuid4().hex[:8]}"
+    p = Project(name="Lifecycle Test", slug=slug, description="Lifecycle test")
     session.add(p)
     session.flush()
     return p
@@ -57,16 +60,16 @@ class TestFullLifecycle:
             created_by_type="agent",
             created_by_id="agent-1",
         )
-        assert evidence.status == "submitted"
+        assert evidence.verification_state == "unverified"
 
         # 6. Verify and accept evidence
         es.verify(str(evidence.id), verified_by_type="human", verified_by_id="user-1")
         evidence = es.get(str(evidence.id))
-        assert evidence.status == "verified"
+        assert evidence.verification_state == "verified"
 
         es.accept(str(evidence.id), verified_by_type="human", verified_by_id="user-1")
         evidence = es.get(str(evidence.id))
-        assert evidence.status == "accepted"
+        assert evidence.verification_state == "accepted"
 
         # 7. Pass DoD items
         ds.update(str(dod1.id), status="passed")
@@ -75,9 +78,6 @@ class TestFullLifecycle:
         # 8. Complete task
         task = ts.complete(str(task.id))
         assert task.status == "done"
-
-        # Notifications may or may not be created depending on trigger wiring
-        # The key assertion is that the lifecycle completes without error
 
     def test_complete_fails_with_unpassed_dod(self, db_session: Session) -> None:
         project = _make_project(db_session)
@@ -89,26 +89,33 @@ class TestFullLifecycle:
         ds = DoDItemService(db_session)
         ds.create(task_id=str(task.id), name="Tests pass")
 
-        # Try to complete without passing DoD
         from app.quality.service import QualityError
 
         with pytest.raises(QualityError):
             ts.complete(str(task.id))
 
-    def test_task_status_transition(self, db_session: Session) -> None:
+    def test_task_valid_transitions(self, db_session: Session) -> None:
         project = _make_project(db_session)
         fs = FeatureService(db_session)
         feature = fs.create(project_id=str(project.id), name="Feature")
         ts = TaskService(db_session)
         task = ts.create(feature_id=str(feature.id), title="Task")
 
-        # Valid transition: backlog → in_progress
+        # backlog → ready
+        task = ts.update(str(task.id), status="ready")
+        assert task.status == "ready"
+
+        # ready → claimed
+        task = ts.update(str(task.id), status="claimed")
+        assert task.status == "claimed"
+
+        # claimed → in_progress
         task = ts.update(str(task.id), status="in_progress")
         assert task.status == "in_progress"
 
-        # Valid transition: in_progress → review
-        task = ts.update(str(task.id), status="review")
-        assert task.status == "review"
+        # in_progress → ready_for_review
+        task = ts.update(str(task.id), status="ready_for_review")
+        assert task.status == "ready_for_review"
 
     def test_invalid_transition_raises(self, db_session: Session) -> None:
         from app.delivery.lifecycle import InvalidTransition
@@ -119,7 +126,7 @@ class TestFullLifecycle:
         ts = TaskService(db_session)
         task = ts.create(feature_id=str(feature.id), title="Task")
 
-        # Invalid transition: backlog → done
+        # backlog → done is invalid
         with pytest.raises(InvalidTransition):
             ts.update(str(task.id), status="done")
 
@@ -141,7 +148,7 @@ class TestFullLifecycle:
 
         es.reject(str(evidence.id), verified_by_type="human", verified_by_id="user-1")
         evidence = es.get(str(evidence.id))
-        assert evidence.status == "rejected"
+        assert evidence.verification_state == "rejected"
 
     def test_review_round_flow(self, db_session: Session) -> None:
         project = _make_project(db_session)

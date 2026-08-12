@@ -1,5 +1,7 @@
 """Unit tests for reporting services."""
 
+import uuid
+
 import pytest
 from app.delivery.models import Feature, Task
 from app.projects.models import Project
@@ -11,7 +13,8 @@ from sqlalchemy.orm import Session
 @pytest.fixture()
 def project(db_session: Session) -> Project:
     """Create a test project."""
-    project = Project(name="Test Project", slug="test-project")
+    slug = f"rtest-{uuid.uuid4().hex[:8]}"
+    project = Project(name="Test Project", slug=slug)
     db_session.add(project)
     db_session.flush()
     return project
@@ -20,7 +23,8 @@ def project(db_session: Session) -> Project:
 @pytest.fixture()
 def feature(db_session: Session, project: Project) -> Feature:
     """Create a test feature."""
-    feature = Feature(project_id=project.id, name="Test Feature", slug="test-feature")
+    slug = f"rfeat-{uuid.uuid4().hex[:8]}"
+    feature = Feature(project_id=project.id, name="Test Feature", slug=slug)
     db_session.add(feature)
     db_session.flush()
     return feature

@@ -4,6 +4,8 @@ Tests EvidenceService, ReviewRoundService, AcceptanceCriterionService,
 DoDItemService, and QualityStatsService.
 """
 
+import uuid
+
 import pytest
 from app.delivery.models import Feature, Task
 from app.projects.models import Project
@@ -47,7 +49,8 @@ def session(_db):
 
 @pytest.fixture()
 def project(session):
-    p = Project(name="Test Project", slug="test-project")
+    slug = f"qtest-{uuid.uuid4().hex[:8]}"
+    p = Project(name="Test Project", slug=slug)
     session.add(p)
     session.flush()
     return p
@@ -55,7 +58,8 @@ def project(session):
 
 @pytest.fixture()
 def feature(session, project):
-    f = Feature(project_id=project.id, name="Test Feature", slug="test-feature")
+    slug = f"qfeat-{uuid.uuid4().hex[:8]}"
+    f = Feature(project_id=project.id, name="Test Feature", slug=slug)
     session.add(f)
     session.flush()
     return f

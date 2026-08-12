@@ -14,10 +14,13 @@ from app.shared.errors import Conflict, NotFound
 from app.shared.text import slugify
 from sqlalchemy.orm import Session
 
+import uuid
+
 
 def _make_project(session: Session, name: str = "Test Project") -> Project:
-    """Create a project for testing."""
-    p = Project(name=name, slug=slugify(name), description=f"Test project {name}")
+    """Create a project for testing with a unique slug."""
+    slug = f"{slugify(name)}-{uuid.uuid4().hex[:8]}"
+    p = Project(name=name, slug=slug, description=f"Test project {name}")
     session.add(p)
     session.flush()
     return p
