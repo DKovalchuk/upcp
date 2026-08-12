@@ -12,7 +12,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   fetchNotifications,
   fetchUnreadCount,
@@ -105,24 +104,17 @@ export function NotificationBell() {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <DropdownMenuTrigger
-              className="relative flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
-              aria-label={`Notifications (${unreadCount} unread)`}
-            />
-          }
-        >
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground animate-badge-pop">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </TooltipTrigger>
-        <TooltipContent>Notifications</TooltipContent>
-      </Tooltip>
+      <DropdownMenuTrigger
+        className="relative flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
+        aria-label={`Notifications (${unreadCount} unread)`}
+      >
+        <Bell className="h-4 w-4" />
+        {unreadCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground animate-badge-pop">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
         <DropdownMenuLabel className="flex items-center justify-between">

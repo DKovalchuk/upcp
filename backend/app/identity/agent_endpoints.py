@@ -105,7 +105,7 @@ def get_agent(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
-    agent = _require_agent(db, agent_id, user.user_id)
+    agent = _require_agent(db, agent_id)
 
     tokens = db.query(AgentToken).filter_by(agent_id=agent_id).all()
 
