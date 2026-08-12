@@ -111,11 +111,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     : [];
 
   const actionCommands: Command[] = [
-    { id: 'new-project', label: 'New Project', icon: Plus, shortcut: 'N P', category: 'Actions', action: () => { go('/projects'); setTimeout(() => window.dispatchEvent(new CustomEvent('upcp:action', { detail: 'new-project' })), 100); } },
+    { id: 'new-project', label: 'New Project', icon: Plus, shortcut: 'N P', category: 'Actions', action: () => { go('/projects'); setTimeout(() => typeof window !== 'undefined' && window.dispatchEvent(new CustomEvent('upcp:action', { detail: 'new-project' })), 100); } },
     ...(projectId
       ? [
-          { id: 'new-feature', label: 'New Feature', icon: Plus, shortcut: 'N F', category: 'Actions', action: () => { go(`/projects/${projectId}/delivery`); setTimeout(() => window.dispatchEvent(new CustomEvent('upcp:action', { detail: 'new-feature' })), 100); } },
-          { id: 'refresh', label: 'Refresh Data', icon: Zap, shortcut: 'R', category: 'Actions', action: () => { window.dispatchEvent(new CustomEvent('upcp:action', { detail: 'refresh' })); onOpenChange(false); } },
+          { id: 'new-feature', label: 'New Feature', icon: Plus, shortcut: 'N F', category: 'Actions', action: () => { go(`/projects/${projectId}/delivery`); setTimeout(() => typeof window !== 'undefined' && window.dispatchEvent(new CustomEvent('upcp:action', { detail: 'new-feature' })), 100); } },
+          { id: 'refresh', label: 'Refresh Data', icon: Zap, shortcut: 'R', category: 'Actions', action: () => { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('upcp:action', { detail: 'refresh' })); onOpenChange(false); } },
         ]
       : []),
   ];
