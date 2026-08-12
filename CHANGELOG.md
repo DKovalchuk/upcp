@@ -7,6 +7,56 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-08-12 — M16 + M18 — Notifications, Analytics & UX
+
+### M16: Notifications & Reporting (S18.2-S18.4)
+
+#### Notification Channels (S18.2 — TASK-0101)
+- NotificationChannel model: email/webhook channels with config, active toggle
+- NotificationDelivery model: delivery tracking with status/errors
+- Migration 0020: notification_channel + notification_delivery tables + indexes
+- EmailChannel: SMTP send with TLS, config validation
+- WebhookChannel: HTTP POST with HMAC-SHA256 signature, 3x retry
+- ChannelService: CRUD, dispatch to all active channels, test send
+- REST API: list, create, delete, toggle, test endpoints
+
+#### Analytics Service (S18.3 — TASK-0102)
+- AnalyticsService: project_trends, agent_performance, team_velocity, health_history, agents_overview
+- 5 REST API endpoints with query params (weeks, days, project_id, agent_id)
+
+#### Analytics Frontend (S18.4 — TASK-0103)
+- AnalyticsPage with TrendChart, VelocityChart, AgentPerformanceCard
+- ChannelsSettingsTab: backend-backed channel CRUD (replaces localStorage)
+- /analytics route added
+- 8 new API functions, 5 new hooks
+
+### M18: UX Polish, Accessibility & Settings (S20.1-S20.4)
+
+#### Accessibility (S20.1 — TASK-0108)
+- BoardView: KeyboardSensor for accessible drag-and-drop
+- FeatureSection/ComponentCard: div→button with aria-expanded/controls
+- BreadcrumbBar: ol/li structure with aria-current="page"
+- SavedViewsDropdown: aria-labels on trigger/delete buttons
+
+#### Settings Redesign (S20.2 — TASK-0109)
+- 5-tab settings page: Profile, Notifications, Channels, Appearance, About
+- ARIA: tablist, tab, tabpanel roles with aria-label/aria-selected
+- Toggle switches: role=switch with aria-checked
+
+#### Notification UX (S20.3 — TASK-0110)
+- Full /notifications page with type filter (Select dropdown) and read/unread toggle
+- Click-to-navigate on notifications, error handling with toast
+- Mark individual/all read with error handling
+
+#### Project Dashboard (S20.4 — TASK-0111)
+- HealthScoreCard: SVG ring chart with score and trend indicator
+- TaskDistributionChart: SVG donut chart with legend
+- VelocitySparkline: SVG bar chart (8 weeks)
+- RecentActivity: audit event feed
+
+### CI/CD Pipeline
+- Restructured: CI (lint+test) → CD (build+deploy:dev auto on develop, deploy:stage manual on main)
+
 ## [0.19.0] — 2026-08-12 — M17 — Security & Stability
 
 ### Security Hardening (S19.2 — TASK-0105)
