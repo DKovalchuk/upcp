@@ -2,13 +2,16 @@
 # UPCP CI/CD Pipeline
 # ══════════════════════════════════════════════════════════════
 #
-# Flow:
-#   feature/* → MR → develop   (lint → test → build)
-#   develop   → MR → main      (lint → test → build)
-#   main      → deploy:stage   (manual confirmation)
+# CI (continuous integration):
+#   feature/* → MR → develop   (lint → test)
+#   develop   → MR → main      (lint → test)
+#
+# CD (continuous delivery):
+#   develop   → build → deploy:dev    (automatic)
+#   main      → build → deploy:stage  (manual)
 #
 # Stage ordering: lint → test → build → deploy
-# Pipeline stops at first failed stage — no downstream jobs run.
+# Pipeline stops at first failed stage.
 
 stages:
   - lint
@@ -16,7 +19,7 @@ stages:
   - build
   - deploy
 
-# ── Workflow rules (prevent duplicate pipelines) ───────────────
+# ── Workflow rules ────────────────────────────────────────────
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -88,7 +91,7 @@ variables:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
 
 # ══════════════════════════════════════════════════════════════
-# LINT — stage 1: parallel within stage, pipeline stops if any fails
+# CI: LINT — stage 1
 # ══════════════════════════════════════════════════════════════
 
 backend:lint:
@@ -131,7 +134,7 @@ frontend:lint:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ══════════════════════════════════════════════════════════════
-# TEST — stage 2: runs only after ALL lint jobs pass
+# CI: TEST — stage 2
 # ══════════════════════════════════════════════════════════════
 
 backend:test:
@@ -275,7 +278,7 @@ container:scan:backend:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ══════════════════════════════════════════════════════════════
-# BUILD — stage 3: runs only after ALL tests pass
+# CD: BUILD — stage 3 (only on develop push and main push)
 # ══════════════════════════════════════════════════════════════
 
 build:backend:
@@ -307,23 +310,55 @@ build:frontend:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ══════════════════════════════════════════════════════════════
-# DEPLOY — stage 4: main only, manual
+# CD: DEPLOY — stage 4
 # ══════════════════════════════════════════════════════════════
+
+deploy:dev:
+  stage: deploy
+  image: docker:24
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
+    DOCKER_TLS_CERTDIR: ""
+    REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
+    GIT_STRATEGY: clone
+  environment:
+    name: dev
+    url: http://localhost:3080
+  resource_group: dev
+  needs:
+    - build:backend
+    - build:frontend
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
+    - docker pull $REGISTRY/backend:dev
+    - docker pull $REGISTRY/frontend:dev
+    - docker tag $REGISTRY/backend:dev upcp-backend:stage
+    - docker tag $REGISTRY/frontend:dev upcp-frontend:stage
+    - docker compose -f docker-compose.stage.yml build nginx
+    - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
+    - echo "Waiting for app health check..."
+    - for i in $(seq 1 30); do
+        wget -qO- http://localhost:38081/health && break || sleep 2;
+      done
+    - echo "Dev deployment complete."
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
 
 deploy:stage:
   stage: deploy
   image: docker:24
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
+    DOCKER_TLS_CERTDIR: ""
     REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
     GIT_STRATEGY: clone
-    GIT_CLEAN_FLAGS: -ffdx
-  before_script:
-    - ls -la nginx.stage.conf || (echo "nginx.stage.conf missing after checkout!" && exit 1)
   environment:
     name: stage
     url: http://localhost:3080
   resource_group: stage
+  needs:
+    - build:backend
+    - build:frontend
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
     - docker pull $REGISTRY/backend:dev
@@ -337,9 +372,6 @@ deploy:stage:
         wget -qO- http://localhost:38081/health && break || sleep 2;
       done
     - echo "Stage deployment complete."
-  needs:
-    - build:backend
-    - build:frontend
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual

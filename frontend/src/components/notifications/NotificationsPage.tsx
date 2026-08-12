@@ -8,9 +8,8 @@ import {
   Inbox,
   ArrowRight,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import {
@@ -202,7 +201,7 @@ export function NotificationsPage() {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v ?? 'all')}>
             <SelectTrigger className="w-[180px]" aria-label="Filter by type">
               <SelectValue placeholder="All types" />
             </SelectTrigger>

@@ -62,7 +62,7 @@ export function HealthScoreCard({ projectId }: { projectId: string }) {
   }
 
   const score = health?.score ?? 0;
-  const issues = health?.breakdown ?? {};
+  const issues = health?.breakdown ?? { blocked: 0, stale_claims: 0, failed_dod: 0, open_clarifications: 0, rejected: 0 };
   const totalIssues =
     issues.blocked +
     issues.stale_claims +

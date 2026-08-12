@@ -6,7 +6,7 @@ import { useCreateComponent, useDeleteComponent } from '@/hooks/use-components';
 import { useCreateModule, useDeleteModule } from '@/hooks/use-modules';
 import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
 import { componentFields, moduleFields } from '@/components/forms/entity-fields';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';

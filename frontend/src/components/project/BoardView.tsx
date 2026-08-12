@@ -51,13 +51,15 @@ function DraggableTaskCard({
     data: { task },
   });
 
+  const { role: _role, ...restAttributes } = attributes;
+
   return (
     <div
       ref={setNodeRef}
       role="listitem"
       data-draggable
       {...listeners}
-      {...attributes}
+      {...restAttributes}
       className={`cursor-grab rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50 ${
         isDragging ? 'opacity-50' : ''
       }`}
