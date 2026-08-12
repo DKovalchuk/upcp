@@ -104,6 +104,7 @@ class TaskService:
 
     def update(self, task_id: str, **fields: str | None | int) -> Task:
         t = self.get(task_id)
+        old_status = t.status
         new_status = fields.get("status")
         if new_status is not None and new_status != t.status:
             from app.delivery.lifecycle import validate_transition
@@ -113,6 +114,25 @@ class TaskService:
             if value is not None:
                 setattr(t, key, value)
         self._session.flush()
+
+        if new_status is not None and str(new_status) != old_status:
+            try:
+                from app.reporting.trigger import NotificationTrigger
+
+                NotificationTrigger(self._session).trigger(
+                    "task.status_changed",
+                    entity_type="task",
+                    entity_id=task_id,
+                    actor_id=str(fields.get("assignee_id", "system")),
+                    metadata={
+                        "old_status": old_status,
+                        "new_status": str(new_status),
+                        "task_title": t.title,
+                    },
+                )
+            except Exception:  # noqa: BLE001
+                pass  # notification failure should not block task update
+
         return t
 
     def delete(self, task_id: str) -> None:

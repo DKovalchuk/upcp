@@ -21,40 +21,78 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 ## Roadmap to 1.0.0
 
 ```
-0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 0.18.0 ──▶ ...
- M11        M12        M13        M14        M15        M16        ...
- done       done       done       done       done       next
+0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 0.18.0 ──▶ 0.19.0 ──▶ 0.20.0 ──▶ 0.21.0 ──▶ 0.22.0 ──▶ ...
+ M11        M12        M13        M14        M15        M16         M17         M18         M19         M20
+ done       done       done       done       done       next        plan        plan        plan        plan
 ```
 
-### 0.17.0 — Agent Workflow
+See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 
-**Goal**: Complete agent workflow — claim, heartbeat, clarification, evidence, review lifecycle.
-**Items**: 14 (7 backend + 7 frontend)
-**Sprints**: 4 (8 weeks)
+### 0.18.0 — Notifications & Reporting (M16, in progress)
 
-| Sprint | Items | Focus |
-|--------|-------|-------|
-| S17.1 (2w) | Backend gaps | Clarification REST, stale reaper, inbox events, lifecycle enforcement, agent metrics, agent detail endpoints |
-| S17.2 (2w) | Agent Center | Agent Center page, Agent Detail page with metrics/claims/activity/clarifications |
-| S17.3 (2w) | TaskDetail tabs | Dedicated Clarifications, Evidence, Reviews tabs; ClarificationBanner context field |
-| S17.4 (2w) | Evidence/Review UI | Attach/verify evidence, create review rounds, Playwright E2E testing, bugfixes |
+**Goal**: Auto-generate notifications from workflow events, add email/webhook channels, build analytics dashboard.
+**Spec**: SPEC-0019
+**Sprints**: 4 (1-week sprints)
 
-**Definition of Done**:
-- [x] Clarification REST endpoints (create, answer, resolve)
-- [x] Stale claim reaper (asyncio + REST trigger)
-- [x] Agent inbox events model + CRUD
-- [x] Lifecycle validation on task update
-- [x] Agent metrics (tasks completed, success rate, stale detection)
-- [x] Agent detail endpoints (claims, activity, evidence, reviews, clarifications)
-- [x] Agent Center page with grid/table view, search, filters
-- [x] Agent Detail page with profile header + 5 tabs
-- [x] TaskDetailSheet dedicated Clarifications/Evidence/Reviews tabs
-- [x] ClarificationBanner with context, answer display, answer input
-- [x] Evidence attach/verify UI
-- [x] Review round creation UI
-- [x] E2E Playwright tests (23 tests against real Docker environment)
-- [x] All 695 backend tests passing
-- [x] All 260 frontend tests passing
+| Sprint | TASK | Focus | Status |
+|--------|------|-------|--------|
+| S18.1 | TASK-0100 | NotificationTrigger + event hooks | ✅ DONE |
+| S18.2 | TASK-0101 | NotificationChannel + EmailChannel + WebhookChannel | PENDING |
+| S18.3 | TASK-0102 | AnalyticsService + 5 API endpoints | PENDING |
+| S18.4 | TASK-0103 | Analytics dashboard frontend + Channel Settings UI | PENDING |
+
+### 0.19.0 — Security & Stability (M17, planned)
+
+**Goal**: Fix all critical/high findings from M16 audit. Harden security, fix bugs, add DB indexes.
+**Spec**: SPEC-0020
+**Sprints**: 4 (1-week sprints)
+
+| Sprint | TASK | Focus |
+|--------|------|-------|
+| S19.1 | TASK-0104 | Critical bug fixes: query string, Project Settings route, TopBar no-ops |
+| S19.2 | TASK-0105 | Security hardening: MCP auth, LLM providers, CSP, agent ownership |
+| S19.3 | TASK-0106 | Database hardening: migration 0020 (indexes + ondelete), N+1 fixes |
+| S19.4 | TASK-0107 | Architecture cleanup: error logging, dead code, agent inbox, lifespan |
+
+### 0.20.0 — UX Polish, Accessibility & Settings (M18, planned)
+
+**Goal**: Fix accessibility gaps, redesign settings, improve notification UX, enhance project dashboard.
+**Spec**: SPEC-0021
+**Sprints**: 4 (1-week sprints)
+
+| Sprint | TASK | Focus |
+|--------|------|-------|
+| S20.1 | TASK-0108 | Accessibility: keyboard DnD, ARIA, breadcrumb UUID resolution |
+| S20.2 | TASK-0109 | Settings redesign: tabbed settings with Profile, Notifications, Channels, About |
+| S20.3 | TASK-0110 | Notification UX: full /notifications page, click-to-navigate |
+| S20.4 | TASK-0111 | Project dashboard: health chart, velocity chart, overview enhancement |
+
+### 0.21.0 — Test Quality & Architecture (M19, planned)
+
+**Goal**: Unify test infrastructure, add service-layer tests, implement event bus.
+**Spec**: SPEC-0022
+**Sprints**: 3 (1-week sprints)
+
+| Sprint | TASK | Focus |
+|--------|------|-------|
+| S21.1 | TASK-0112 | Test infrastructure: conftest unification, pytest markers |
+| S21.2 | TASK-0113 | Service-layer tests + lifecycle integration test |
+| S21.3 | TASK-0114 | Event bus implementation + frontend test coverage |
+
+### 0.22.0 — Extended Features (M20, planned)
+
+**Goal**: Real-time notifications, file uploads, bulk operations, task comments, audit export.
+**Spec**: SPEC-0023
+**Sprints**: 4 (1-week sprints)
+
+| Sprint | TASK | Focus |
+|--------|------|-------|
+| S22.1 | TASK-0115 | Real-time notifications via SSE |
+| S22.2 | TASK-0116 | File uploads for evidence |
+| S22.3 | TASK-0117 | Bulk task operations |
+| S22.4 | TASK-0118 | Task comments + audit export |
+
+**1.0.0 candidacy**: After M20 complete + production hardening sprint.
 
 ### 0.14.0 — Critical Fixes & Security
 
@@ -191,6 +229,11 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 | 0.15.0 | M13 — Architecture & Backend Cleanup | 2026-08-07 |
 | 0.16.0 | M14 — Performance & Accessibility | 2026-08-07 |
 | 0.17.0 | M15 — Agent Workflow | 2026-08-11 |
+| 0.18.0 | M16 — Notifications & Reporting | planned |
+| 0.19.0 | M17 — Security & Stability | planned |
+| 0.20.0 | M18 — UX Polish, A11y & Settings | planned |
+| 0.21.0 | M19 — Test Quality & Architecture | planned |
+| 0.22.0 | M20 — Extended Features | planned |
 
 ## How to Update Versions
 

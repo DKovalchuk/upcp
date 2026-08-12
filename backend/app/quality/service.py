@@ -63,6 +63,20 @@ class EvidenceService:
         )
         self._session.add(e)
         self._session.flush()
+
+        try:
+            from app.reporting.trigger import NotificationTrigger
+
+            NotificationTrigger(self._session).trigger(
+                "evidence.attached",
+                entity_type="task",
+                entity_id=task_id,
+                actor_id=created_by_id,
+                metadata={"evidence_title": title},
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         return e
 
     def get(self, evidence_id: str) -> Evidence:
@@ -207,6 +221,21 @@ class ReviewRoundService:
         rr.summary = summary
         rr.completed_at = utcnow()
         self._session.flush()
+
+        try:
+            from app.reporting.trigger import NotificationTrigger
+
+            event_type = "review.completed" if verdict == "approve" else "review.rejected"
+            NotificationTrigger(self._session).trigger(
+                event_type,
+                entity_type="task",
+                entity_id=rr.task_id,
+                actor_id=rr.reviewer_id or "system",
+                metadata={"verdict": verdict},
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         return rr
 
     def list_findings(self, round_id: str) -> list[ReviewFinding]:

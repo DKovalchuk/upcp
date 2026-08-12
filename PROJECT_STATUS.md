@@ -1,10 +1,11 @@
 # PROJECT_STATUS
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 Version: 0.17.0 (see `VERSIONING.md` for scheme)
 Milestone: M15 — Agent Workflow (COMPLETE)
-Current Task: M16 planning
+Current Task: M16 S18.2-S18.4 (pending) + M17 planning
 Blockers: none
+Roadmap: See `ROADMAP_UNIFIED.md` for post-M15 plan (M16-M20, ~23 weeks)
 
 ## UPCP v2 Project (Stage)
 
@@ -73,15 +74,31 @@ Blockers: none
 ## Roadmap to 1.0.0
 
 ```
-0.13.0 (done) → 0.14.0 (done) → 0.15.0 (done) → 0.16.0 (done) → 0.17.0 (done) → 0.18.0 → ...
-   M11              M12              M13              M14              M15         M16
+0.17.0 (done) → 0.18.0 → 0.19.0 → 0.20.0 → 0.21.0 → 0.22.0 → 1.0.0
+   M15           M16       M17       M18       M19       M20      (after M20)
 ```
 
-### M15: 0.17.0 — Agent Workflow ✅ DONE
+See `ROADMAP_UNIFIED.md` for full plan with sprint breakdown.
 
-### M16: 0.18.0 — Notifications & Reporting (TBD)
+### M16: 0.18.0 — Notifications & Reporting (S18.1 done, S18.2-S18.4 pending)
+### M17: 0.19.0 — Security & Stability (planned, SPEC-0020)
+### M18: 0.20.0 — UX Polish, Accessibility & Settings (planned, SPEC-0021)
+### M19: 0.21.0 — Test Quality & Architecture (planned, SPEC-0022)
+### M20: 0.22.0 — Extended Features (planned, SPEC-0023)
+### 1.0.0 — Production Release (after M20 + hardening sprint)
 
-### 1.0.0 — Production Release
+### Comprehensive Audit (2026-08-12)
+
+Full audit across all dimensions. See `AUDIT_M16_COMPREHENSIVE.md`.
+
+**Scorecard:** 6.5/10
+- Stability: 7/10 | Reliability: 7/10 | Code Quality: 6/10
+- UX: 6/10 | Architecture: 7/10 | Completeness: 6/10
+
+**Key findings:** 2 Critical, 14 High, 28 Medium, 16 Low
+- Critical: query string bug, MCP auth bypass
+- High: LLM stubs, broken Project Settings route, TopBar no-ops, missing indexes
+- All findings mapped to M17-M20 tasks
 
 ## S15.1 Progress (Complete)
 
