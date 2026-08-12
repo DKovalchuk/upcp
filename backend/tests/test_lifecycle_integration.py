@@ -15,8 +15,8 @@ from app.quality.service import (
 from sqlalchemy.orm import Session
 
 
-def _make_project(session: Session) -> Project:
-    p = Project(name="Test Project", description="Lifecycle test")
+def _make_project(session: Session, slug: str = "test-project") -> Project:
+    p = Project(name="Test Project", slug=slug, description="Lifecycle test")
     session.add(p)
     session.flush()
     return p
