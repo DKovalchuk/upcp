@@ -9,6 +9,7 @@ import {
   fetchDoDItem,
   createDoDItem,
   updateDoDItem,
+  uploadEvidenceFile,
   deleteDoDItem,
   submitReviewVerdict,
   createEvidence,
@@ -170,6 +171,18 @@ export function useCreateEvidence(taskId: string) {
   return useMutation({
     mutationFn: (data: { title: string; type: string; description?: string; url?: string; content_snippet?: string }) =>
       createEvidence(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'evidence'] });
+    },
+  });
+}
+
+export function useUploadEvidenceFile(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ file, title, dodItemId }: { file: File; title: string; dodItemId?: string }) =>
+      uploadEvidenceFile(taskId, file, title, dodItemId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'evidence'] });
     },
