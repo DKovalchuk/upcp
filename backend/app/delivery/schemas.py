@@ -96,3 +96,19 @@ class TaskListResponse(BaseModel):
     total: int
     offset: int
     limit: int
+
+
+class TaskBulkUpdates(BaseModel):
+    status: str | None = Field(default=None, pattern=r"^[a-z_]+$")
+    priority: int | None = Field(default=None, ge=0, le=10)
+    assignee_type: str | None = Field(default=None, min_length=1, max_length=255)
+    assignee_id: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class BulkTaskUpdate(BaseModel):
+    task_ids: list[str] = Field(..., max_length=100)
+    updates: TaskBulkUpdates
+
+
+class BulkTaskResponse(BaseModel):
+    updated: int

@@ -70,6 +70,16 @@ export async function completeTask(id: string): Promise<{ id: string; status: st
   });
 }
 
+export async function bulkUpdateTasks(
+  taskIds: string[],
+  updates: { status?: string; priority?: number; assignee_type?: string; assignee_id?: string }
+): Promise<{ updated: number }> {
+  return apiRequest<{ updated: number }>('/api/v1/tasks/bulk', {
+    method: 'PATCH',
+    body: JSON.stringify({ task_ids: taskIds, updates }),
+  });
+}
+
 // ── Subtasks ──
 
 export async function fetchSubtasks(taskId: string): Promise<Subtask[]> {

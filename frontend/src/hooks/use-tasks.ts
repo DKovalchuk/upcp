@@ -6,6 +6,7 @@ import {
   updateTask,
   deleteTask,
   completeTask,
+  bulkUpdateTasks,
 } from '@/lib/api';
 import type { TaskCreate, TaskUpdate } from '@/types/task';
 
@@ -77,6 +78,23 @@ export function useCompleteTask() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks', id] });
+    },
+  });
+}
+
+export function useBulkUpdateTasks() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      taskIds,
+      updates,
+    }: {
+      taskIds: string[];
+      updates: { status?: string; priority?: number; assignee_type?: string; assignee_id?: string };
+    }) => bulkUpdateTasks(taskIds, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 }

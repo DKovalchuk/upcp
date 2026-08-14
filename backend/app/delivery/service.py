@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.delivery.models import Feature, Subtask, Task
-from app.shared.errors import Conflict, NotFound
+from app.shared.errors import Conflict, NotFound, ValidationError
 from app.shared.events import event_bus
 from app.shared.text import slugify
 
@@ -140,6 +140,48 @@ class TaskService:
         t = self.get(task_id)
         self._session.delete(t)
         self._session.flush()
+
+    def bulk_update(
+        self,
+        task_ids: list[str],
+        *,
+        status: str | None = None,
+        priority: int | None = None,
+        assignee_type: str | None = None,
+        assignee_id: str | None = None,
+    ) -> int:
+        """Update multiple tasks. Returns count of successfully updated tasks."""
+        if not task_ids:
+            return 0
+
+        if status is not None:
+            # Validate transition for first task to catch bulk-invalid transitions
+            first = self._session.get(Task, task_ids[0])
+            if first:
+                from app.delivery.lifecycle import InvalidTransition, validate_transition
+
+                try:
+                    validate_transition(first.status, status)
+                except InvalidTransition as exc:
+                    raise ValidationError(str(exc)) from exc
+
+        updated = 0
+        for tid in task_ids:
+            t = self._session.get(Task, tid)
+            if not t:
+                continue
+            if status is not None:
+                t.status = status
+            if priority is not None:
+                t.priority = priority
+            if assignee_type is not None:
+                t.assignee_type = assignee_type
+            if assignee_id is not None:
+                t.assignee_id = assignee_id
+            updated += 1
+
+        self._session.flush()
+        return updated
 
     def list_tasks(
         self, feature_id: str, *, offset: int = 0, limit: int = 20
