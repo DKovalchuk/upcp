@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
-Updated: 2026-08-12
+Updated: 2026-08-14
 Version: 0.21.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 — Test Quality & Architecture (COMPLETE)
-Current Task: M20 (next milestone)
+Current Task: M20 S22.4 (next sprint)
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` for post-M15 plan (M16-M20, ~23 weeks)
 

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.delivery.models import Feature, Subtask, Task
 from app.delivery.schemas import (
+    BulkTaskUpdate,
     FeatureCreate,
     FeatureResponse,
     FeatureUpdate,
@@ -16,6 +17,7 @@ from app.delivery.schemas import (
 )
 from app.delivery.service import FeatureService, SubtaskService, TaskService
 from app.shared.database import get_session
+from app.shared.errors import ValidationError
 from app.shared.pagination import PaginationParams, pagination_dependency
 
 router = APIRouter(tags=["delivery"])
@@ -179,6 +181,31 @@ def create_task(
             module_id=body.module_id,
         )
     )
+
+
+@router.patch(
+    "/tasks/bulk",
+    summary="Bulk update tasks",
+    description="Update multiple tasks at once with status, priority, or assignee changes.",
+)
+def bulk_update_tasks(
+    body: BulkTaskUpdate,
+    session: Session = Depends(get_session),
+) -> dict[str, int]:  # noqa: B008
+    svc = TaskService(session)
+    try:
+        count = svc.bulk_update(
+            body.task_ids,
+            status=body.updates.status,
+            priority=body.updates.priority,
+            assignee_type=body.updates.assignee_type,
+            assignee_id=body.updates.assignee_id,
+        )
+    except ValidationError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    return {"updated": count}
 
 
 @router.get(
