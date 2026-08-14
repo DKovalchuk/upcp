@@ -93,6 +93,46 @@ export async function fetchSubtask(id: string): Promise<Subtask> {
   return apiRequest<Subtask>(`/api/v1/subtasks/${id}`);
 }
 
+// ── Comments ──
+
+export interface Comment {
+  id: string;
+  task_id: string;
+  author_type: string;
+  author_id: string;
+  body: string;
+  parent_id: string | null;
+  created_at: string | null;
+}
+
+export async function fetchComments(taskId: string): Promise<Comment[]> {
+  const data = await apiRequest<{ items: Comment[] }>(`/api/v1/tasks/${taskId}/comments`);
+  return data.items ?? [];
+}
+
+export async function createComment(
+  taskId: string,
+  body: string,
+  authorType?: string,
+  authorId?: string,
+  parentId?: string
+): Promise<Comment> {
+  const params = new URLSearchParams({ body });
+  if (authorType) params.set('author_type', authorType);
+  if (authorId) params.set('author_id', authorId);
+  if (parentId) params.set('parent_id', parentId);
+  return apiRequest<Comment>(`/api/v1/tasks/${taskId}/comments?${params}`, {
+    method: 'POST',
+  });
+}
+
+// ── Audit Export ──
+
+export async function exportAuditCsv(projectId: string): Promise<string> {
+  const response = await fetch(`/api/v1/audit/export?project_id=${projectId}&format=csv`);
+  return response.text();
+}
+
 export async function createSubtask(taskId: string, data: SubtaskCreate): Promise<Subtask> {
   return apiRequest<Subtask>(`/api/v1/tasks/${taskId}/subtasks`, {
     method: 'POST',

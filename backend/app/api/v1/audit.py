@@ -2,6 +2,7 @@ import contextlib
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
 from app.audit.schemas import AuditEventResponse
@@ -69,4 +70,70 @@ def list_audit_events(
         "total": total,
         "offset": pagination.offset,
         "limit": pagination.limit,
+    }
+
+
+@router.get(
+    "/audit/export",
+    summary="Export audit events",
+    description="Export audit events as CSV or JSON.",
+    response_model=None,
+)
+def export_audit_events(
+    project_id: str = Query(...),
+    format: str = Query("json", pattern=r"^(csv|json)$"),
+    session: Session = Depends(get_session),  # noqa: B008
+) -> dict[str, object] | PlainTextResponse:
+    """Export all audit events for a project as CSV or JSON."""
+    service = AuditService(session)
+    events, _ = service.list_events(project_id, offset=0, limit=10000)
+
+    if format == "csv":
+        import csv
+        import io
+
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=[
+                "timestamp",
+                "event_type",
+                "entity_type",
+                "entity_id",
+                "actor_type",
+                "actor_id",
+                "note",
+            ],
+        )
+        writer.writeheader()
+        for e in events:
+            writer.writerow(
+                {
+                    "timestamp": e.timestamp.isoformat(),
+                    "event_type": e.event_type,
+                    "entity_type": e.entity_type,
+                    "entity_id": e.entity_id,
+                    "actor_type": e.actor_type,
+                    "actor_id": e.actor_id,
+                    "note": e.note or "",
+                }
+            )
+
+        return PlainTextResponse(content=output.getvalue(), media_type="text/csv")
+
+    return {
+        "items": [
+            {
+                "id": e.id,
+                "timestamp": e.timestamp.isoformat(),
+                "event_type": e.event_type,
+                "entity_type": e.entity_type,
+                "entity_id": e.entity_id,
+                "actor_type": e.actor_type,
+                "actor_id": e.actor_id,
+                "note": e.note,
+            }
+            for e in events
+        ],
+        "total": len(events),
     }

@@ -15,9 +15,9 @@ from app.delivery.schemas import (
     TaskResponse,
     TaskUpdate,
 )
-from app.delivery.service import FeatureService, SubtaskService, TaskService
+from app.delivery.service import CommentService, FeatureService, SubtaskService, TaskService
 from app.shared.database import get_session
-from app.shared.errors import ValidationError
+from app.shared.errors import NotFound, ValidationError
 from app.shared.pagination import PaginationParams, pagination_dependency
 
 router = APIRouter(tags=["delivery"])
@@ -380,4 +380,72 @@ def list_subtasks(
         "total": total,
         "offset": pagination.offset,
         "limit": pagination.limit,
+    }
+
+
+# ── Comment endpoints ──
+
+
+@router.post(
+    "/tasks/{task_id}/comments",
+    status_code=201,
+    summary="Create a comment on a task",
+    description="Add a comment or reply to a task.",
+)
+def create_comment(
+    task_id: str,
+    body: str = "",
+    author_type: str = "human",
+    author_id: str = "default",
+    parent_id: str | None = None,
+    session: Session = Depends(get_session),
+) -> dict[str, str | None]:  # noqa: B008
+    svc = CommentService(session)
+    try:
+        c = svc.create(
+            task_id=task_id,
+            author_type=author_type,
+            author_id=author_id,
+            body=body,
+            parent_id=parent_id,
+        )
+    except NotFound as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    return {
+        "id": c.id,
+        "task_id": c.task_id,
+        "author_type": c.author_type,
+        "author_id": c.author_id,
+        "body": c.body,
+        "parent_id": c.parent_id,
+        "created_at": c.created_at.isoformat() if c.created_at else None,
+    }
+
+
+@router.get(
+    "/tasks/{task_id}/comments",
+    summary="List comments for a task",
+    description="List all comments on a task, ordered by creation time.",
+)
+def list_comments(
+    task_id: str,
+    session: Session = Depends(get_session),
+) -> dict[str, list[dict[str, str | None]]]:  # noqa: B008
+    svc = CommentService(session)
+    comments = svc.list_by_task(task_id)
+    return {
+        "items": [
+            {
+                "id": c.id,
+                "task_id": c.task_id,
+                "author_type": c.author_type,
+                "author_id": c.author_id,
+                "body": c.body,
+                "parent_id": c.parent_id,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+            }
+            for c in comments
+        ]
     }

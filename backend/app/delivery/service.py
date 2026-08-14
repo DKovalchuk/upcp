@@ -2,7 +2,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from app.delivery.models import Feature, Subtask, Task
+from app.delivery.models import Comment, Feature, Subtask, Task
 from app.shared.errors import Conflict, NotFound, ValidationError
 from app.shared.events import event_bus
 from app.shared.text import slugify
@@ -266,3 +266,41 @@ class SubtaskService:
         q = self._session.query(Subtask).filter_by(task_id=task_id)
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
+
+
+class CommentService:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def create(
+        self,
+        *,
+        task_id: str,
+        author_type: str,
+        author_id: str,
+        body: str,
+        parent_id: str | None = None,
+    ) -> Comment:
+        if parent_id:
+            parent = self._session.get(Comment, parent_id)
+            if not parent or parent.task_id != task_id:
+                raise NotFound(f"parent comment '{parent_id}' not found")
+
+        c = Comment(
+            task_id=task_id,
+            author_type=author_type,
+            author_id=author_id,
+            body=body,
+            parent_id=parent_id,
+        )
+        self._session.add(c)
+        self._session.flush()
+        return c
+
+    def list_by_task(self, task_id: str) -> list[Comment]:
+        return (
+            self._session.query(Comment)
+            .filter_by(task_id=task_id)
+            .order_by(Comment.created_at.asc())
+            .all()
+        )
