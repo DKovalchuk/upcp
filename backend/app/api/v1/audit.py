@@ -77,6 +77,7 @@ def list_audit_events(
     "/audit/export",
     summary="Export audit events",
     description="Export audit events as CSV or JSON.",
+    response_model=None,
 )
 def export_audit_events(
     project_id: str = Query(...),
