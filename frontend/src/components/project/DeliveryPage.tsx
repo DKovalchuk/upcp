@@ -176,6 +176,11 @@ export function DeliveryPage() {
               onDelete={() =>
                 setConfirmDelete({ id: feature.id, name: feature.name })
               }
+              selectedTaskIds={selectedTaskIds}
+              setSelectedTaskIds={setSelectedTaskIds}
+              showBulkStatus={showBulkStatus}
+              setShowBulkStatus={setShowBulkStatus}
+              bulkUpdate={bulkUpdate}
             />
           ))}
           {total > limit && (
@@ -229,6 +234,11 @@ function FeatureSection({
   search,
   onSelectTask,
   onDelete,
+  selectedTaskIds,
+  setSelectedTaskIds,
+  showBulkStatus,
+  setShowBulkStatus,
+  bulkUpdate,
 }: {
   feature: {
     id: string;
@@ -242,6 +252,11 @@ function FeatureSection({
   search: string;
   onSelectTask: (taskId: string) => void;
   onDelete: () => void;
+  selectedTaskIds: Set<string>;
+  setSelectedTaskIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  showBulkStatus: boolean;
+  setShowBulkStatus: React.Dispatch<React.SetStateAction<boolean>>;
+  bulkUpdate: { mutateAsync: (args: { taskIds: string[]; updates: { status?: string } }) => Promise<unknown>; isPending: boolean };
 }) {
   const { data: tasksData, isLoading: tasksLoading } = useTasks(feature.id);
   const tasks = useMemo(() => tasksData?.items ?? [], [tasksData]);
