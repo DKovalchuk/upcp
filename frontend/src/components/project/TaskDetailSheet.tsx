@@ -10,6 +10,7 @@ import { useModules } from '@/hooks/use-modules';
 import { ClarificationsTab } from './ClarificationsTab';
 import { EvidenceTab } from './EvidenceTab';
 import { ReviewsTab } from './ReviewsTab';
+import { CommentsTab } from './CommentsTab';
 import {
   Sheet,
   SheetContent,
@@ -138,6 +139,9 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                   </TabsTrigger>
                   <TabsTrigger value="reviews">
                     Reviews
+                  </TabsTrigger>
+                  <TabsTrigger value="comments">
+                    Comments
                   </TabsTrigger>
                   <TabsTrigger value="quality">
                     Quality
@@ -280,6 +284,11 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                 {/* ── Reviews Tab ── */}
                 <TabsContent value="reviews" className="mt-4">
                   <ReviewsTab taskId={taskId ?? ''} />
+                </TabsContent>
+
+                {/* ── Comments Tab ── */}
+                <TabsContent value="comments" className="mt-4">
+                  <CommentsTab taskId={taskId ?? ''} />
                 </TabsContent>
 
                 {/* ── Quality Tab (AC + DoD + Subtasks) ── */}

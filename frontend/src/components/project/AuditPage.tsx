@@ -16,7 +16,10 @@ import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import { formatRelativeTime } from '@/lib/format';
-import { ScrollText } from 'lucide-react';
+import { ScrollText, Download } from 'lucide-react';
+import { exportAuditCsv } from '@/lib/api';
+import { showToast } from '@/lib/toast';
+import { Button } from '@/components/ui/button';
 import type { AuditEvent } from '@/types/audit';
 
 const EVENT_COLORS: Record<string, string> = {
@@ -76,6 +79,29 @@ export function AuditPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-9 w-[200px]"
         />
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-9"
+          onClick={async () => {
+            try {
+              const csv = await exportAuditCsv(projectId);
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `audit-${projectId}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+              showToast.success('Audit exported');
+            } catch {
+              showToast.error('Export failed');
+            }
+          }}
+        >
+          <Download className="mr-1 h-3 w-3" />
+          Export CSV
+        </Button>
         <Select value={eventType} onValueChange={(v) => setEventType(v ?? '')}>
           <SelectTrigger className="h-9 w-[160px]">
             <SelectValue placeholder="All event types" />

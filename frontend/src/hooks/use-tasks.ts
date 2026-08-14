@@ -7,6 +7,8 @@ import {
   deleteTask,
   completeTask,
   bulkUpdateTasks,
+  fetchComments,
+  createComment,
 } from '@/lib/api';
 import type { TaskCreate, TaskUpdate } from '@/types/task';
 
@@ -95,6 +97,26 @@ export function useBulkUpdateTasks() {
     }) => bulkUpdateTasks(taskIds, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
+
+export function useComments(taskId: string) {
+  return useQuery({
+    queryKey: ['comments', taskId],
+    queryFn: () => fetchComments(taskId),
+    enabled: !!taskId,
+  });
+}
+
+export function useCreateComment(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ body, parentId }: { body: string; parentId?: string }) =>
+      createComment(taskId, body, undefined, undefined, parentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', taskId] });
     },
   });
 }
