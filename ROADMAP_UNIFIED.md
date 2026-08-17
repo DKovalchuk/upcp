@@ -1,24 +1,23 @@
-# UPCP Unified Roadmap — Post-M15 to Production
+# UPCP Unified Roadmap — Post-M15
 
 **Created:** 2026-08-12
+**Updated:** 2026-08-17
 **Source:** M16 Comprehensive Audit + existing plans
 **Sprint size:** 1 week
-**Current:** 0.17.0 (M15 complete)
-**Next:** 0.18.0 (M16 S18.1 done)
+**Current:** 0.21.0 (M19 complete, M20 on branch)
+**Next:** Merge M20 → 0.22.0, then M18 remaining sprints
 
 ---
 
 ## Milestone Overview
 
 ```
-0.17.0 (done) ──▶ 0.18.0 ──▶ 0.19.0 ──▶ 0.20.0 ──▶ 0.21.0 ──▶ 0.22.0 ──▶ ...
-   M15              M16         M17         M18         M19         M20
-   Agent            Notif &     Security    UX Polish   Test        Extended
-   Workflow         Reporting   & Stability & A11y      Quality     Features
+0.17.0 ✅ ──▶ 0.18.0 ──▶ 0.19.0 ✅ ──▶ 0.20.0 ──▶ 0.21.0 ✅ ──▶ 0.22.0 → ...
+   M15          M16         M17          M18          M19          M20
+   done      in progress    done        planned       done     on branch
 ```
 
-**1.0.0 is NOT planned here.** M20 is the last milestone before 1.0.0 candidacy.
-1.0.0 requires: all M20 done, full E2E coverage, production deployment guide, performance benchmarks.
+After M20: M18 remaining (S20.1-S20.4) → M16 remaining (S18.2-S18.4) → Production hardening.
 
 ---
 
@@ -125,12 +124,12 @@
 **Sprints:** 4
 **Source:** Audit §7 Missing Components
 
-| Sprint | TASK | Focus | Points |
-|--------|------|-------|--------|
-| S22.1 | TASK-0115 | WebSocket notification push (SSE fallback) | 8 |
-| S22.2 | TASK-0116 | File uploads for evidence (local storage + S3 adapter) | 8 |
-| S22.3 | TASK-0117 | Bulk task operations (multi-select, bulk status change, bulk assign) | 5 |
-| S22.4 | TASK-0118 | Task comments/discussion threads + audit export (CSV/JSON) | 8 |
+| Sprint | TASK | Focus | Points | Status |
+|--------|------|-------|--------|--------|
+| S22.1 | TASK-0115 | SSE notification push | 8 | ✅ DONE |
+| S22.2 | TASK-0116 | File uploads for evidence | 8 | ✅ DONE |
+| S22.3 | TASK-0117 | Bulk task operations | 5 | ✅ DONE |
+| S22.4 | TASK-0118 | Task comments + audit export | 8 | ✅ DONE |
 
 **Exit criteria:**
 - Real-time notifications via SSE (no more 30s polling for critical events)
@@ -145,18 +144,20 @@
 
 ## Version Summary
 
-| Version | Milestone | Sprints | Weeks | Key Deliverable |
-|---------|-----------|---------|-------|-----------------|
-| 0.17.0 | M15 ✅ | 4 | 8 | Agent Workflow |
-| 0.18.0 | M16 | 4 | 4 | Notifications + Analytics |
-| 0.19.0 | M17 | 4 | 4 | Security + Stability |
-| 0.20.0 | M18 | 4 | 4 | UX + A11y + Settings |
-| 0.21.0 | M19 | 3 | 3 | Tests + Architecture |
-| 0.22.0 | M20 | 4 | 4 | Extended Features |
-| **Total** | | **23** | **23 weeks** | |
+| Version | Milestone | Sprints | Status | Key Deliverable |
+|---------|-----------|---------|--------|-----------------|
+| 0.17.0 | M15 ✅ | 4/4 | DONE | Agent Workflow |
+| 0.18.0 | M16 | 1/4 | IN PROGRESS | Notifications + Analytics |
+| 0.19.0 | M17 ✅ | 4/4 | DONE | Security + Stability |
+| 0.20.0 | M18 | 0/4 | PLANNED | UX + A11y + Settings |
+| 0.21.0 | M19 ✅ | 3/3 | DONE | Tests + Architecture |
+| 0.22.0 | M20 | 4/4 | ON BRANCH | Extended Features |
 
-**Estimated completion:** ~6 months from now (February 2027)
-**1.0.0 candidacy:** After M20 + production hardening sprint
+### After M20 (remaining work)
+
+1. **M18 (0.20.0)** — S20.1-S20.4: Accessibility, Settings redesign, Notification UX, Dashboard
+2. **M16 (0.18.0)** — S18.2-S18.4: Notification channels, Analytics service, Analytics frontend
+3. **Production hardening** — E2E coverage, deployment guide, performance benchmarks
 
 ---
 
