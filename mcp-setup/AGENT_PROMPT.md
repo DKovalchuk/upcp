@@ -40,10 +40,12 @@ curl -s http://upcp.local:3070/mcp/
 
 ```bash
 cd /path/to/upcp
-docker compose -f docker-compose.stage.yml up -d
+docker compose --env-file .env.stage up -d
 # Подождать ~15 секунд, затем повторить проверку
 curl -s http://upcp.local:3070/health
 ```
+
+**Примечание:** Порт 3070 задан в `.env.stage`. Для другого окружения используйте соответствующий `.env.*` файл.
 
 ### 1.2 Убедиться, что Python 3.10+ доступен
 

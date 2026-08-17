@@ -334,6 +334,6 @@ When working on UPCP:
 5. **Use TDD** — write failing test first, then implement
 6. **Feature branches** — never push directly to develop
 7. **Update PROJECT_STATUS.md** after completing work
-8. **Non-standard ports** — 3070 (frontend), 38081 (backend), 36382 (Redis)
+8. **Non-standard ports** — configured via `.env.*` files (see `docs/11-docker-and-ports.md`)
 9. **DDD boundaries** — respect context boundaries, don't import across contexts
 10. **Token economy** — keep context small, read only what's needed

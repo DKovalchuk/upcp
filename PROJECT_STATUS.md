@@ -80,9 +80,9 @@ All 4 sprints completed and merged:
 ## Stage Deployment
 
 - **MR !15**: develop → main merged (2026-07-30)
-- **Stage**: deployed and healthy on localhost:3070
-- **Backend**: localhost:38081 (healthy, DB + Redis connected)
-- **Fixes**: Redis port 36382 (avoids dev conflict), hardcoded UPCP_SECRET_KEY
+- **Stage**: deployed and healthy (ports from `.env.stage`)
+- **Backend**: healthy, DB + Redis connected
+- **Fixes**: Redis port conflict resolved, hardcoded UPCP_SECRET_KEY
 
 ## Roadmap to 1.0.0
 

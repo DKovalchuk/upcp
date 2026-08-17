@@ -2,13 +2,46 @@
 
 Local development environments for UPCP.
 
-## Overview
+## Port Configuration
 
-| Environment | Frontend | Backend API | DB | Redis | Compose File |
-|-------------|----------|-------------|-----|-------|--------------|
-| **Stage** | http://localhost:3070 | http://localhost:38081 | 127.0.0.1:35433 | 127.0.0.1:36382 | `docker-compose.stage.yml` |
-| **Dev** | http://localhost:3072 | http://localhost:38080 | 127.0.0.1:35432 | 127.0.0.1:36380 | `docker-compose.yml` |
-| **Test** | http://localhost:3071 | http://localhost:38082 | 127.0.0.1:35434 | — | `docker-compose.test.yml` |
+Ports are configured via per-environment `.env` files. Each file defines all external-facing ports:
+
+| File | Environment | Frontend | Backend | DB | Redis |
+|------|-------------|----------|---------|-----|-------|
+| `.env.dev` | Dev | 3072 | 38080 | 35432 | 36380 |
+| `.env.test` | Test | 3071 | 38082 | 35434 | — |
+| `.env.stage` | Stage | 3070 | 38081 | 35433 | 36382 |
+
+**To change a port:** edit the corresponding `.env.*` file. No code changes needed.
+
+**Override at runtime:**
+```bash
+UPCP_PORT_FRONTEND=4000 docker compose --env-file .env.dev up -d
+```
+
+## Quick Commands
+
+```bash
+# Start with env file
+docker compose --env-file .env.stage up -d    # stage
+docker compose --env-file .env.dev up -d      # dev
+docker compose --env-file .env.test up -d     # test
+
+# Health check (ports from .env.* files)
+curl http://localhost:38081/health   # stage (default)
+curl http://localhost:38080/health   # dev (default)
+curl http://localhost:38082/health   # test (default)
+
+# Login
+curl -X POST http://localhost:38081/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"admin123"}'
+
+# Stop all
+docker compose --env-file .env.stage down
+docker compose --env-file .env.dev down
+docker compose --env-file .env.test down
+```
 
 ## Users
 
@@ -17,30 +50,6 @@ Local development environments for UPCP.
 | **Stage** | `admin@example.com` | `admin123` | Admin |
 | **Dev** | `admin@dev.com` | `dev12345` | Dev Admin |
 | **Test** | `admin@test.com` | `test12345` | Test Admin |
-
-## Quick Commands
-
-```bash
-# Start all
-docker compose -f docker-compose.stage.yml up -d    # stage
-docker compose -f docker-compose.yml up -d           # dev
-docker compose -f docker-compose.test.yml up -d      # test
-
-# Health check
-curl http://localhost:38081/health   # stage
-curl http://localhost:38080/health   # dev
-curl http://localhost:38082/health   # test
-
-# Login
-curl -X POST http://localhost:38081/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"admin123"}'
-
-# Stop all
-docker compose -f docker-compose.stage.yml down
-docker compose -f docker-compose.yml down
-docker compose -f docker-compose.test.yml down
-```
 
 ## Environment Differences
 
@@ -64,7 +73,7 @@ Setup endpoint is rate-limited (1 per 24h). To add users manually:
 
 ```bash
 # Via Docker exec
-docker compose -f docker-compose.yml exec app python -c "
+docker compose --env-file .env.dev exec app python -c "
 import bcrypt
 from sqlalchemy import text
 from app.shared.database import engine

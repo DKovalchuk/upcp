@@ -1,9 +1,10 @@
 // Comprehensive UI Test — Agent Workflow + Evidence + Reviews
-// Tests against real backend on localhost:3072
+// Tests against real backend (port from env or default 3072)
 
 import { test, expect, type Page } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:3072';
+const PORT = process.env.UPCP_PORT_FRONTEND || '3072';
+const BASE_URL = `http://localhost:${PORT}`;
 
 // Collect console errors and failed network requests
 let consoleErrors: string[] = [];

@@ -2,16 +2,20 @@
 """Populate UPCP project with M17-M20 features, tasks, components, and modules.
 
 Uses MCP for feature/task CRUD and direct DB for component/module creation.
-Stage environment: API on port 3070, DB on port 35433.
+Stage environment: ports from env, DB on port 35433.
 """
 
 import json
+import os
 import uuid
 import urllib.request
 
+_port = os.environ.get("UPCP_PORT_FRONTEND", "3070")
+_db_port = os.environ.get("UPCP_PORT_POSTGRES", "35433")
+
 PROJECT_ID = "d9313eae-7e0b-4060-85ca-2e5591faefd2"
-MCP_URL = "http://localhost:3070/mcp/"
-DB_DSN = "postgresql://upcp:upcp_local_change_me@127.0.0.1:35433/upcp"
+MCP_URL = f"http://localhost:{_port}/mcp/"
+DB_DSN = f"postgresql://upcp:upcp_local_change_me@127.0.0.1:{_db_port}/upcp"
 
 
 def mcp_call(tool_name: str, arguments: dict) -> dict:

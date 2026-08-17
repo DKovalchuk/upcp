@@ -16,7 +16,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upcp_local_change_me}
       POSTGRES_DB: ${POSTGRES_DB:-upcp}
     ports:
-      - "127.0.0.1:35433:5432"
+      - "127.0.0.1:${UPCP_PORT_POSTGRES:-35433}:5432"
     volumes:
       - ./data/postgres-stage:/var/lib/postgresql/data
     healthcheck:
@@ -80,7 +80,7 @@ services:
       dockerfile: Dockerfile.nginx
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3070:80"
+      - "127.0.0.1:${UPCP_PORT_FRONTEND:-3070}:80"
     depends_on:
       - app
       - frontend

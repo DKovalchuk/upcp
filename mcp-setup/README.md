@@ -15,9 +15,11 @@
 ### 1. Убедиться, что UPCP запущен
 
 ```bash
-docker compose -f docker-compose.stage.yml up -d
+docker compose --env-file .env.stage up -d
 curl -s http://upcp.local:3070/mcp/
 ```
+
+**Примечание:** Порт зависит от `.env.*` файла. См. `docs/11-docker-and-ports.md`.
 
 ### 2. Проверить мост
 
