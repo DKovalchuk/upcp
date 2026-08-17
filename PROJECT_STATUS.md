@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
-Updated: 2026-08-14
+Updated: 2026-08-17
 Version: 0.21.0 (see `VERSIONING.md` for scheme)
-Milestone: M20 — Extended Features (COMPLETE)
-Current Task: M20 COMPLETE
+Milestone: M19 — Test Quality & Architecture (COMPLETE)
+Current Task: M20 S22.3+S22.4 on branch (ready for MR), S22.1+S22.2 pending
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` for post-M15 plan (M16-M20, ~23 weeks)
 
@@ -84,21 +84,20 @@ All 4 sprints completed and merged:
 - **Backend**: healthy, DB + Redis connected
 - **Fixes**: Redis port conflict resolved, hardcoded UPCP_SECRET_KEY
 
-## Roadmap to 1.0.0
+## Roadmap
 
 ```
-0.17.0 (done) → 0.18.0 → 0.19.0 → 0.20.0 → 0.21.0 → 0.22.0 → 1.0.0
-   M15           M16       M17       M18       M19       M20      (after M20)
+0.17.0 ✅ → 0.18.0 → 0.19.0 ✅ → 0.20.0 → 0.21.0 ✅ → 0.22.0 → ...
+   M15         M16        M17         M18         M19         M20
 ```
 
 See `ROADMAP_UNIFIED.md` for full plan with sprint breakdown.
 
 ### M16: 0.18.0 — Notifications & Reporting (S18.1 done, S18.2-S18.4 pending)
-### M17: 0.19.0 — Security & Stability (planned, SPEC-0020)
+### M17: 0.19.0 — Security & Stability ✅ DONE
 ### M18: 0.20.0 — UX Polish, Accessibility & Settings (planned, SPEC-0021)
-### M19: 0.21.0 — Test Quality & Architecture (planned, SPEC-0022)
-### M20: 0.22.0 — Extended Features (planned, SPEC-0023)
-### 1.0.0 — Production Release (after M20 + hardening sprint)
+### M19: 0.21.0 — Test Quality & Architecture ✅ DONE
+### M20: 0.22.0 — Extended Features (S22.3+S22.4 done on branch, S22.1+S22.2 pending)
 
 ### Comprehensive Audit (2026-08-12)
 

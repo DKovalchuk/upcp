@@ -23,7 +23,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 ```
 0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 0.18.0 ──▶ 0.19.0 ──▶ 0.20.0 ──▶ 0.21.0 ──▶ 0.22.0 ──▶ ...
  M11        M12        M13        M14        M15        M16         M17         M18         M19         M20
- done       done       done       done       done       done        done        done        done        plan
+ done       done       done       done       done       in prog     done        planned     done        in prog
 ```
 
 See `ROADMAP_UNIFIED.md` for full post-M15 plan.
@@ -41,18 +41,18 @@ See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 | S18.3 | TASK-0102 | AnalyticsService + 5 API endpoints | PENDING |
 | S18.4 | TASK-0103 | Analytics dashboard frontend + Channel Settings UI | PENDING |
 
-### 0.19.0 — Security & Stability (M17, planned)
+### 0.19.0 — Security & Stability (M17, DONE)
 
 **Goal**: Fix all critical/high findings from M16 audit. Harden security, fix bugs, add DB indexes.
 **Spec**: SPEC-0020
 **Sprints**: 4 (1-week sprints)
 
-| Sprint | TASK | Focus |
-|--------|------|-------|
-| S19.1 | TASK-0104 | Critical bug fixes: query string, Project Settings route, TopBar no-ops |
-| S19.2 | TASK-0105 | Security hardening: MCP auth, LLM providers, CSP, agent ownership |
-| S19.3 | TASK-0106 | Database hardening: migration 0020 (indexes + ondelete), N+1 fixes |
-| S19.4 | TASK-0107 | Architecture cleanup: error logging, dead code, agent inbox, lifespan |
+| Sprint | TASK | Focus | Status |
+|--------|------|-------|--------|
+| S19.1 | TASK-0104 | Critical bug fixes: query string, Project Settings route, TopBar no-ops | ✅ DONE |
+| S19.2 | TASK-0105 | Security hardening: MCP auth, LLM providers, CSP, agent ownership | ✅ DONE |
+| S19.3 | TASK-0106 | Database hardening: migration 0020 (indexes + ondelete), N+1 fixes | ✅ DONE |
+| S19.4 | TASK-0107 | Architecture cleanup: error logging, dead code, agent inbox, lifespan | ✅ DONE |
 
 ### 0.20.0 — UX Polish, Accessibility & Settings (M18, planned)
 
@@ -67,32 +67,30 @@ See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 | S20.3 | TASK-0110 | Notification UX: full /notifications page, click-to-navigate |
 | S20.4 | TASK-0111 | Project dashboard: health chart, velocity chart, overview enhancement |
 
-### 0.21.0 — Test Quality & Architecture (M19, planned)
+### 0.21.0 — Test Quality & Architecture (M19, DONE)
 
 **Goal**: Unify test infrastructure, add service-layer tests, implement event bus.
 **Spec**: SPEC-0022
 **Sprints**: 3 (1-week sprints)
 
-| Sprint | TASK | Focus |
-|--------|------|-------|
-| S21.1 | TASK-0112 | Test infrastructure: conftest unification, pytest markers |
-| S21.2 | TASK-0113 | Service-layer tests + lifecycle integration test |
-| S21.3 | TASK-0114 | Event bus implementation + frontend test coverage |
+| Sprint | TASK | Focus | Status |
+|--------|------|-------|--------|
+| S21.1 | TASK-0112 | Test infrastructure: conftest unification, pytest markers | ✅ DONE |
+| S21.2 | TASK-0113 | Service-layer tests + lifecycle integration test | ✅ DONE |
+| S21.3 | TASK-0114 | Event bus implementation + frontend test coverage | ✅ DONE |
 
-### 0.22.0 — Extended Features (M20, planned)
+### 0.22.0 — Extended Features (M20, in progress)
 
 **Goal**: Real-time notifications, file uploads, bulk operations, task comments, audit export.
 **Spec**: SPEC-0023
 **Sprints**: 4 (1-week sprints)
 
-| Sprint | TASK | Focus |
-|--------|------|-------|
-| S22.1 | TASK-0115 | Real-time notifications via SSE |
-| S22.2 | TASK-0116 | File uploads for evidence |
-| S22.3 | TASK-0117 | Bulk task operations |
-| S22.4 | TASK-0118 | Task comments + audit export |
-
-**1.0.0 candidacy**: After M20 complete + production hardening sprint.
+| Sprint | TASK | Focus | Status |
+|--------|------|-------|--------|
+| S22.1 | TASK-0115 | Real-time notifications via SSE | ⏳ IN PROGRESS |
+| S22.2 | TASK-0116 | File uploads for evidence | ❌ PENDING |
+| S22.3 | TASK-0117 | Bulk task operations | ✅ DONE |
+| S22.4 | TASK-0118 | Task comments + audit export | ✅ DONE |
 
 ### 0.14.0 — Critical Fixes & Security
 
@@ -229,11 +227,11 @@ See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 | 0.15.0 | M13 — Architecture & Backend Cleanup | 2026-08-07 |
 | 0.16.0 | M14 — Performance & Accessibility | 2026-08-07 |
 | 0.17.0 | M15 — Agent Workflow | 2026-08-11 |
-| 0.18.0 | M16 — Notifications & Reporting | planned |
-| 0.19.0 | M17 — Security & Stability | planned |
+| 0.18.0 | M16 — Notifications & Reporting | in progress |
+| 0.19.0 | M17 — Security & Stability | 2026-08-14 |
 | 0.20.0 | M18 — UX Polish, A11y & Settings | planned |
-| 0.21.0 | M19 — Test Quality & Architecture | planned |
-| 0.22.0 | M20 — Extended Features | planned |
+| 0.21.0 | M19 — Test Quality & Architecture | 2026-08-14 |
+| 0.22.0 | M20 — Extended Features | in progress |
 
 ## How to Update Versions
 
