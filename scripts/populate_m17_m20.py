@@ -2,7 +2,7 @@
 """Populate UPCP project with M17-M20 features, tasks, components, and modules.
 
 Uses MCP for feature/task CRUD and direct DB for component/module creation.
-Stage environment: API on port 3080, DB on port 35433.
+Stage environment: API on port 3070, DB on port 35433.
 """
 
 import json
@@ -10,7 +10,7 @@ import uuid
 import urllib.request
 
 PROJECT_ID = "d9313eae-7e0b-4060-85ca-2e5591faefd2"
-MCP_URL = "http://localhost:3080/mcp/"
+MCP_URL = "http://localhost:3070/mcp/"
 DB_DSN = "postgresql://upcp:upcp_local_change_me@127.0.0.1:35433/upcp"
 
 

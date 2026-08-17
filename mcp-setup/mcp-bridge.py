@@ -6,8 +6,8 @@ endpoint, and writes responses to stdout. Stderr is used for logging.
 
 Usage:
     python3 mcp-bridge.py
-    python3 mcp-bridge.py --upcp-url http://your-host:3080/mcp/
-    UPCP_MCP_URL=http://your-host:3080/mcp/ python3 mcp-bridge.py
+    python3 mcp-bridge.py --upcp-url http://your-host:3070/mcp/
+    UPCP_MCP_URL=http://your-host:3070/mcp/ python3 mcp-bridge.py
 """
 
 import json
@@ -22,7 +22,7 @@ def resolve_url() -> str:
     for i, arg in enumerate(sys.argv):
         if arg == "--upcp-url" and i + 1 < len(sys.argv):
             return sys.argv[i + 1]
-    return os.environ.get("UPCP_MCP_URL", "http://upcp.local:3080/mcp/")
+    return os.environ.get("UPCP_MCP_URL", "http://upcp.local:3070/mcp/")
 
 
 UPCP_URL = resolve_url()

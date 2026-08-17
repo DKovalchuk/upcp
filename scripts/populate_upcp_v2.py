@@ -7,7 +7,7 @@ import urllib.request
 import urllib.error
 from typing import Any
 
-BASE = "http://upcp.local:3080/api/v1"
+BASE = "http://upcp.local:3070/api/v1"
 
 # Track created entities for cross-referencing
 created: dict[str, dict[str, str]] = {

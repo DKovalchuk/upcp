@@ -131,7 +131,7 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 - Evidence/Review hooks: useCreateEvidence, useAcceptEvidence, useRejectEvidence, useCreateReviewRound
 
 ### E2E Testing
-- 23 Playwright tests against real Docker environment (port 3082)
+- 23 Playwright tests against real Docker environment (port 3072)
 - Tests: health, projects, delivery, board, task detail, agent center, agent detail, navigation, search, dark mode
 - nginx config fixes: server_name localhost, /health route to frontend
 
@@ -176,7 +176,7 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 - Fixed REGISTRY variable in deploy job
 - Fixed nginx DinD volume mount (Dockerfile.nginx)
 - Added GIT_STRATEGY:clone + GIT_CLEAN_FLAGS for clean workspace
-- Dev environment on port 3082, test on port 3081
+- Dev environment on port 3072, test on port 3071
 - ENVIRONMENTS.md with all credentials and quick commands
 
 ## [0.14.0] - 2026-07-30

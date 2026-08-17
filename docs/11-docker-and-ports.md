@@ -6,9 +6,9 @@ External ports are intentionally non-standard.
 
 | Environment | Frontend | Backend | DB | Redis | Compose |
 |-------------|----------|---------|-----|-------|---------|
-| **Stage** | 3080 | 38081 | 35433 | 36382 | `docker-compose.stage.yml` |
-| **Dev** | 3082 | 38080 | 35432 | 36380 | `docker-compose.yml` |
-| **Test** | 3081 | 38082 | 35434 | — | `docker-compose.test.yml` |
+| **Stage** | 3070 | 38081 | 35433 | 36382 | `docker-compose.stage.yml` |
+| **Dev** | 3072 | 38080 | 35432 | 36380 | `docker-compose.yml` |
+| **Test** | 3071 | 38082 | 35434 | — | `docker-compose.test.yml` |
 
 ## Dev Environment Ports
 

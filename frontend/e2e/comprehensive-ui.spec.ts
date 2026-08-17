@@ -1,9 +1,9 @@
 // Comprehensive UI Test — Agent Workflow + Evidence + Reviews
-// Tests against real backend on localhost:3082
+// Tests against real backend on localhost:3072
 
 import { test, expect, type Page } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:3082';
+const BASE_URL = 'http://localhost:3072';
 
 // Collect console errors and failed network requests
 let consoleErrors: string[] = [];

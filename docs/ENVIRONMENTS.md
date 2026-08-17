@@ -6,9 +6,9 @@ Local development environments for UPCP.
 
 | Environment | Frontend | Backend API | DB | Redis | Compose File |
 |-------------|----------|-------------|-----|-------|--------------|
-| **Stage** | http://localhost:3080 | http://localhost:38081 | 127.0.0.1:35433 | 127.0.0.1:36382 | `docker-compose.stage.yml` |
-| **Dev** | http://localhost:3082 | http://localhost:38080 | 127.0.0.1:35432 | 127.0.0.1:36380 | `docker-compose.yml` |
-| **Test** | http://localhost:3081 | http://localhost:38082 | 127.0.0.1:35434 | — | `docker-compose.test.yml` |
+| **Stage** | http://localhost:3070 | http://localhost:38081 | 127.0.0.1:35433 | 127.0.0.1:36382 | `docker-compose.stage.yml` |
+| **Dev** | http://localhost:3072 | http://localhost:38080 | 127.0.0.1:35432 | 127.0.0.1:36380 | `docker-compose.yml` |
+| **Test** | http://localhost:3071 | http://localhost:38082 | 127.0.0.1:35434 | — | `docker-compose.test.yml` |
 
 ## Users
 

@@ -23,7 +23,7 @@ All 4 sprints completed and merged:
 ## UPCP v2 Project (Stage)
 
 **Project ID:** d9313eae-7e0b-4060-85ca-2e5591faefd2
-**Stage URL:** http://localhost:3080
+**Stage URL:** http://localhost:3070
 **API:** http://localhost:38081
 
 ### Population Summary
@@ -80,7 +80,7 @@ All 4 sprints completed and merged:
 ## Stage Deployment
 
 - **MR !15**: develop → main merged (2026-07-30)
-- **Stage**: deployed and healthy on localhost:3080
+- **Stage**: deployed and healthy on localhost:3070
 - **Backend**: localhost:38081 (healthy, DB + Redis connected)
 - **Fixes**: Redis port 36382 (avoids dev conflict), hardcoded UPCP_SECRET_KEY
 
