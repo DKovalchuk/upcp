@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.delivery.service import TaskService
@@ -28,6 +28,7 @@ from app.quality.service import (
 from app.shared.database import get_session
 from app.shared.errors import Conflict, NotFound
 from app.shared.pagination import PaginationParams, pagination_dependency
+from app.shared.storage import LocalStorageAdapter, get_storage_adapter
 
 router = APIRouter(tags=["quality"])
 
@@ -250,7 +251,7 @@ def get_quality_stats(
 # ── Evidence endpoints ──
 
 
-def _evidence_dict(e: Any) -> dict[str, str | None]:
+def _evidence_dict(e: Any) -> dict[str, str | int | None]:
     return {
         "id": e.id,
         "task_id": e.task_id,
@@ -267,6 +268,9 @@ def _evidence_dict(e: Any) -> dict[str, str | None]:
         "verified_by_type": e.verified_by_type,
         "verified_by_id": e.verified_by_id,
         "verified_at": e.verified_at.isoformat() if e.verified_at else None,
+        "file_path": e.file_path,
+        "file_name": e.file_name,
+        "file_size": e.file_size,
         "created_at": e.created_at.isoformat() if e.created_at else None,
     }
 
@@ -301,7 +305,7 @@ def list_evidence(
 )
 def create_evidence(
     task_id: str, body: EvidenceCreate, session: Session = Depends(get_session)
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = EvidenceService(session)
     e = svc.create(
         task_id=task_id,
@@ -331,7 +335,7 @@ def agent_verify_evidence(
     evidence_id: str,
     body: EvidenceVerifyRequest | None = None,
     session: Session = Depends(get_session),
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = EvidenceService(session)
     try:
         e = svc.verify(evidence_id, verified_by_type="agent", verified_by_id="agent")
@@ -354,7 +358,7 @@ def agent_verify_evidence(
 def human_accept_evidence(
     evidence_id: str,
     session: Session = Depends(get_session),
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = EvidenceService(session)
     try:
         e = svc.accept(evidence_id, verified_by_type="human", verified_by_id="human")
@@ -378,7 +382,7 @@ def reject_evidence(
     evidence_id: str,
     body: EvidenceRejectRequest | None = None,
     session: Session = Depends(get_session),
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = EvidenceService(session)
     try:
         e = svc.reject(evidence_id, verified_by_type="human", verified_by_id="human")
@@ -552,3 +556,62 @@ def submit_verdict(
     except Conflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
     return _review_round_dict(rr)
+
+
+@router.post(
+    "/evidence/upload",
+    summary="Upload a file as evidence",
+    description="Upload a file attachment for a task's evidence. Validates file type and size (10MB max).",
+    responses={
+        400: {"description": "Invalid file type or size"},
+        404: {"description": "Task not found"},
+    },
+)
+async def upload_evidence_file(
+    file: UploadFile = File(...),  # noqa: B008
+    task_id: str = Form(...),  # noqa: B008
+    title: str = Form(""),  # noqa: B008
+    description: str = Form(""),  # noqa: B008
+    dod_item_id: str | None = Form(None),  # noqa: B008
+    session: Session = Depends(get_session),  # noqa: B008
+    storage: LocalStorageAdapter = Depends(get_storage_adapter),  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
+    from app.shared.storage import validate_upload
+
+    # Validate task exists
+    task_svc = TaskService(session)
+    try:
+        task_svc.get(task_id)
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+
+    # Read file data
+    data = await file.read()
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+
+    # Validate type and size
+    error = validate_upload(file.filename, len(data))
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+
+    # Store file
+    stored_path = await storage.save(file.filename, data)
+
+    # Create evidence record
+    svc = EvidenceService(session)
+    ev = svc.create(
+        task_id=task_id,
+        type="file_upload",
+        title=title or file.filename,
+        description=description,
+        created_by_type="user",
+        created_by_id="default",
+        dod_item_id=dod_item_id,
+    )
+    ev.file_path = stored_path
+    ev.file_name = file.filename
+    ev.file_size = len(data)
+    session.flush()
+
+    return _evidence_dict(ev)

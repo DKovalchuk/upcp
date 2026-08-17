@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.delivery.models import Task
 from app.projects.models import Project
 from app.reporting.models import Notification, Report
+from app.reporting.sse import sse_manager
 from app.shared.errors import NotFound
 
 
@@ -148,6 +149,20 @@ class NotificationService:
         )
         self._session.add(n)
         self._session.flush()
+
+        # Broadcast to SSE clients for real-time delivery
+        critical = type in ("clarification_request", "review_submitted", "blocking_clarification")
+        sse_manager.broadcast(
+            "notification",
+            {
+                "event_type": type,
+                "critical": critical,
+                "entity_type": entity_type,
+                "entity_id": entity_id,
+                "task_title": title,
+            },
+        )
+
         return n
 
     def list_by_user(
