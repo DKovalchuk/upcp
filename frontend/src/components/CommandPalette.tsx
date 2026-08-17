@@ -25,6 +25,8 @@ import {
   Search,
   BarChart3,
   Clock,
+  Plus,
+  Zap,
 } from 'lucide-react';
 import { searchGlobal } from '@/lib/api';
 
@@ -108,8 +110,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       ]
     : [];
 
+  const actionCommands: Command[] = [
+    { id: 'new-project', label: 'New Project', icon: Plus, shortcut: 'N P', category: 'Actions', action: () => { go('/projects'); setTimeout(() => typeof window !== 'undefined' && window.dispatchEvent(new CustomEvent('upcp:action', { detail: 'new-project' })), 100); } },
+    ...(projectId
+      ? [
+          { id: 'new-feature', label: 'New Feature', icon: Plus, shortcut: 'N F', category: 'Actions', action: () => { go(`/projects/${projectId}/delivery`); setTimeout(() => typeof window !== 'undefined' && window.dispatchEvent(new CustomEvent('upcp:action', { detail: 'new-feature' })), 100); } },
+          { id: 'refresh', label: 'Refresh Data', icon: Zap, shortcut: 'R', category: 'Actions', action: () => { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('upcp:action', { detail: 'refresh' })); onOpenChange(false); } },
+        ]
+      : []),
+  ];
+
   const recentIds = getRecentItems();
-  const allCommands = [...globalCommands, ...projectCommands];
+  const allCommands = [...globalCommands, ...projectCommands, ...actionCommands];
   const recentCommands = recentIds
     .map((id) => allCommands.find((c) => c.id === id))
     .filter(Boolean) as Command[];
@@ -176,6 +188,25 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 >
                   <cmd.icon className="mr-2 h-4 w-4" />
                   {cmd.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {actionCommands.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Actions">
+              {actionCommands.map((cmd) => (
+                <CommandItem
+                  key={cmd.id}
+                  value={cmd.label}
+                  onSelect={() => executeCommand(cmd)}
+                >
+                  <cmd.icon className="mr-2 h-4 w-4" />
+                  {cmd.label}
+                  {cmd.shortcut && <CommandShortcut>{cmd.shortcut}</CommandShortcut>}
                 </CommandItem>
               ))}
             </CommandGroup>

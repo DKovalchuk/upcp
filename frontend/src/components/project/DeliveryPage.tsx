@@ -3,15 +3,15 @@ import { useProjectId } from '@/hooks/use-project-id';
 import { useFeatures } from '@/hooks/use-features';
 import { useTasks } from '@/hooks/use-tasks';
 import { useCreateFeature, useDeleteFeature } from '@/hooks/use-features';
-import { useCreateTask } from '@/hooks/use-tasks';
+import { useCreateTask, useBulkUpdateTasks } from '@/hooks/use-tasks';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
+import { useLazyMount } from '@/hooks/use-lazy-mount';
 import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
 import { featureFields, taskFields } from '@/components/forms/entity-fields';
 import { TaskDetailSheet } from './TaskDetailSheet';
-import { BoardView } from './BoardView';
+import { LazyBoardView } from './LazyBoardView';
 import { SavedViewsDropdown } from './SavedViewsDropdown';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { PriorityDot } from '@/components/ui/PriorityDot';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -26,6 +26,9 @@ import {
   Trash2,
   LayoutGrid,
   List,
+  CheckSquare,
+  Square,
+  MinusSquare,
 } from 'lucide-react';
 import { showToast } from '@/lib/toast';
 import {
@@ -56,6 +59,13 @@ export function DeliveryPage() {
     id: string;
     name: string;
   } | null>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [showBulkStatus, setShowBulkStatus] = useState(false);
+  const bulkUpdate = useBulkUpdateTasks();
+
+  const taskDetailSheet = useLazyMount(!!selectedTaskId, (open) => {
+    if (!open) setSelectedTaskId(null);
+  });
 
   if (isLoading) {
     return <PageSkeleton hasCards={false} rows={8} />;
@@ -94,18 +104,18 @@ export function DeliveryPage() {
             <Button
               variant={viewMode === 'list' ? 'secondary' : 'ghost'}
               size="icon"
-              className="h-8 w-8 rounded-r-none"
+              className="min-h-[44px] min-w-[44px] rounded-r-none"
               onClick={() => setViewMode('list')}
-              title="List view"
+              aria-label="List view"
             >
               <List className="h-4 w-4" />
             </Button>
             <Button
               variant={viewMode === 'board' ? 'secondary' : 'ghost'}
               size="icon"
-              className="h-8 w-8 rounded-l-none"
+              className="min-h-[44px] min-w-[44px] rounded-l-none"
               onClick={() => setViewMode('board')}
-              title="Board view"
+              aria-label="Board view"
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -143,7 +153,8 @@ export function DeliveryPage() {
           }}
         />
       ) : viewMode === 'board' ? (
-        <BoardView
+        <LazyBoardView
+          projectId={projectId}
           features={features}
           search={search}
           onSelectTask={setSelectedTaskId}
@@ -165,6 +176,11 @@ export function DeliveryPage() {
               onDelete={() =>
                 setConfirmDelete({ id: feature.id, name: feature.name })
               }
+              selectedTaskIds={selectedTaskIds}
+              setSelectedTaskIds={setSelectedTaskIds}
+              showBulkStatus={showBulkStatus}
+              setShowBulkStatus={setShowBulkStatus}
+              bulkUpdate={bulkUpdate}
             />
           ))}
           {total > limit && (
@@ -198,13 +214,15 @@ export function DeliveryPage() {
         onConfirm={handleDeleteFeature}
       />
 
-      <TaskDetailSheet
-        taskId={selectedTaskId}
-        projectId={projectId}
-        onOpenChange={(open) => {
-          if (!open) setSelectedTaskId(null);
-        }}
-      />
+      {taskDetailSheet.mounted && (
+        <TaskDetailSheet
+          taskId={selectedTaskId}
+          projectId={projectId}
+          onOpenChange={(open) => {
+            if (!open) setSelectedTaskId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -216,6 +234,11 @@ function FeatureSection({
   search,
   onSelectTask,
   onDelete,
+  selectedTaskIds,
+  setSelectedTaskIds,
+  showBulkStatus,
+  setShowBulkStatus,
+  bulkUpdate,
 }: {
   feature: {
     id: string;
@@ -229,9 +252,14 @@ function FeatureSection({
   search: string;
   onSelectTask: (taskId: string) => void;
   onDelete: () => void;
+  selectedTaskIds: Set<string>;
+  setSelectedTaskIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  showBulkStatus: boolean;
+  setShowBulkStatus: React.Dispatch<React.SetStateAction<boolean>>;
+  bulkUpdate: { mutateAsync: (args: { taskIds: string[]; updates: { status?: string } }) => Promise<unknown>; isPending: boolean };
 }) {
   const { data: tasksData, isLoading: tasksLoading } = useTasks(feature.id);
-  const tasks = tasksData?.items ?? [];
+  const tasks = useMemo(() => tasksData?.items ?? [], [tasksData]);
   const taskCount = tasksData?.total ?? tasks.length;
   const createTask = useCreateTask();
   const [showCreateTask, setShowCreateTask] = useState(false);
@@ -264,15 +292,18 @@ function FeatureSection({
 
   return (
     <div className="rounded-lg border">
-      <div
-        className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-muted/50"
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left hover:bg-muted/50"
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-controls={`feature-tasks-${feature.id}`}
       >
         <div className="flex items-center gap-3">
           {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           )}
           <div>
             <span className="font-medium">{feature.name}</span>
@@ -286,16 +317,17 @@ function FeatureSection({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-destructive"
+            className="min-h-[44px] min-w-[44px] text-destructive"
             onClick={onDelete}
+            aria-label="Delete feature"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
+      </button>
 
       {isExpanded && (
-        <div className="border-t px-4 py-3">
+        <div id={`feature-tasks-${feature.id}`} className="border-t px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-muted-foreground">Tasks</span>
             <Button
@@ -319,37 +351,125 @@ function FeatureSection({
               {search ? 'No tasks match your filter.' : 'No tasks in this feature.'}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40px]" />
-                  <TableHead>Title</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Updated</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTasks.map((task: Task) => (
-                  <TableRow
-                    key={task.id}
-                    className="cursor-pointer"
-                    onClick={() => onSelectTask(task.id)}
+            <>
+              {/* Bulk actions toolbar */}
+              {selectedTaskIds.size > 0 && (
+                <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-2 text-sm">
+                  <span className="text-muted-foreground">{selectedTaskIds.size} selected</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => setShowBulkStatus(true)}
                   >
-                    <TableCell>
-                      <PriorityDot priority={task.priority} />
-                    </TableCell>
-                    <TableCell className="font-medium">{task.title}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={task.status} />
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(task.updated_at).toLocaleDateString()}
-                    </TableCell>
+                    Change Status
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => setSelectedTaskIds(new Set())}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              )}
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedTaskIds.size === filteredTasks.length) {
+                            setSelectedTaskIds(new Set());
+                          } else {
+                            setSelectedTaskIds(new Set(filteredTasks.map((t) => t.id)));
+                          }
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        {selectedTaskIds.size === 0 ? (
+                          <Square className="h-4 w-4" />
+                        ) : selectedTaskIds.size === filteredTasks.length ? (
+                          <CheckSquare className="h-4 w-4" />
+                        ) : (
+                          <MinusSquare className="h-4 w-4" />
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Updated</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredTasks.map((task: Task) => (
+                    <TableRow
+                      key={task.id}
+                      className="cursor-pointer"
+                    >
+                      <TableCell>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTaskIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(task.id)) next.delete(task.id);
+                              else next.add(task.id);
+                              return next;
+                            });
+                          }}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          {selectedTaskIds.has(task.id) ? (
+                            <CheckSquare className="h-4 w-4" />
+                          ) : (
+                            <Square className="h-4 w-4" />
+                          )}
+                        </button>
+                      </TableCell>
+                      <TableCell
+                        className="font-medium"
+                        onClick={() => onSelectTask(task.id)}
+                      >
+                        {task.title}
+                      </TableCell>
+                      <TableCell onClick={() => onSelectTask(task.id)}>
+                        <StatusBadge status={task.status} />
+                      </TableCell>
+                      <TableCell
+                        className="text-xs text-muted-foreground"
+                        onClick={() => onSelectTask(task.id)}
+                      >
+                        {new Date(task.updated_at).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
           )}
+
+          {/* Bulk status change dialog */}
+          <ConfirmDialog
+            open={showBulkStatus}
+            onOpenChange={setShowBulkStatus}
+            title="Change Task Status"
+            description={`Change status of ${selectedTaskIds.size} task(s)?`}
+            confirmLabel="Change Status"
+            onConfirm={async () => {
+              await bulkUpdate.mutateAsync({
+                taskIds: Array.from(selectedTaskIds),
+                updates: { status: 'ready' },
+              });
+              showToast.updated(`${selectedTaskIds.size} task(s)`);
+              setSelectedTaskIds(new Set());
+              setShowBulkStatus(false);
+            }}
+          />
 
           <EntityFormDialog
             open={showCreateTask}

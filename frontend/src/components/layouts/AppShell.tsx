@@ -50,7 +50,7 @@ export function AppShell() {
           <Separator />
           <BreadcrumbBar />
           <ErrorBoundary>
-            <main id="main-content" className="flex-1 overflow-x-hidden p-4 lg:p-6">
+            <main id="main-content" className="flex-1 overflow-x-hidden p-4 lg:p-6 animate-fade-in">
               <Outlet />
             </main>
           </ErrorBoundary>

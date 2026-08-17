@@ -12,7 +12,6 @@ from tests.conftest import _test_engine, _TestSession
 @pytest.fixture()
 def _db():
     import app.audit.models  # noqa: F401
-    import app.auth.models  # noqa: F401
     import app.delivery.models  # noqa: F401
     import app.gitread.models  # noqa: F401
     import app.identity.agents  # noqa: F401
@@ -23,6 +22,7 @@ def _db():
     import app.reporting.models  # noqa: F401
     import app.structure.models  # noqa: F401
 
+    Base.metadata.drop_all(bind=_test_engine)
     Base.metadata.create_all(bind=_test_engine)
     yield
     Base.metadata.drop_all(bind=_test_engine)

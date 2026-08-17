@@ -1,5 +1,9 @@
 # Observability — UPCP v2
 
+> **Status**: Partially implemented. Structured JSON logging and tracing middleware skeleton exist.
+> OpenTelemetry instrumentation, Prometheus metrics, and Grafana dashboards are NOT implemented.
+> Docker Compose has Prometheus + Grafana behind `observability` profile (opt-in).
+
 ## Overview
 
 UPCP uses a full observability stack: traces, metrics, and logs via the OpenTelemetry SDK with export to Grafana, Loki, Tempo, and Prometheus.

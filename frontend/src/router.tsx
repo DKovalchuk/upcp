@@ -1,7 +1,9 @@
+/* oxlint-disable react/only-export-components */
 import { createRouter, createRoute, createRootRoute, Navigate } from '@tanstack/react-router';
 import { AppShell } from '@/components/layouts/AppShell';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { SSEProvider } from '@/components/SSEProvider';
 import React, { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -30,6 +32,22 @@ const SettingsPage = React.lazy(() =>
   import('@/components/SettingsPage').then((module) => ({ default: module.SettingsPage }))
 );
 
+const NotificationsPage = React.lazy(() =>
+  import('@/components/notifications/NotificationsPage').then((module) => ({ default: module.NotificationsPage }))
+);
+
+const AnalyticsPage = React.lazy(() =>
+  import('@/components/analytics/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage }))
+);
+
+const AgentCenterPage = React.lazy(() =>
+  import('@/pages/AgentCenterPage').then((module) => ({ default: module.AgentCenterPage }))
+);
+
+const AgentDetailPage = React.lazy(() =>
+  import('@/pages/AgentDetailPage').then((module) => ({ default: module.AgentDetailPage }))
+);
+
 const NotFoundPage = React.lazy(() =>
   import('@/components/NotFoundPage').then((module) => ({ default: module.NotFoundPage }))
 );
@@ -42,6 +60,7 @@ const SetupPage = React.lazy(() =>
   import('@/components/auth/SetupPage').then((module) => ({ default: module.SetupPage }))
 );
 
+// eslint-disable-next-line react/only-export-components
 function RouteLoadingFallback() {
   return (
     <div className="space-y-4">
@@ -51,6 +70,7 @@ function RouteLoadingFallback() {
   );
 }
 
+// eslint-disable-next-line react/only-export-components
 function LazyRoute({ Component }: { Component: React.ComponentType }) {
   return (
     <ErrorBoundary>
@@ -62,6 +82,7 @@ function LazyRoute({ Component }: { Component: React.ComponentType }) {
 }
 
 // Auth guard - redirects to /login if not authenticated
+// eslint-disable-next-line react/only-export-components
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -80,7 +101,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 const rootRoute = createRootRoute({
   component: () => (
     <AuthProvider>
-      <AppShell />
+      <SSEProvider>
+        <AppShell />
+      </SSEProvider>
     </AuthProvider>
   ),
 });
@@ -215,6 +238,46 @@ const healthRoute = createRoute({
   component: () => <LazyRoute Component={HealthPage} />,
 });
 
+const agentsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/agents',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={AgentCenterPage} />
+    </AuthGuard>
+  ),
+});
+
+const agentDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/agents/$agentId',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={AgentDetailPage} />
+    </AuthGuard>
+  ),
+});
+
+const analyticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/analytics',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={AnalyticsPage} />
+    </AuthGuard>
+  ),
+});
+
+const notificationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/notifications',
+  component: () => (
+    <AuthGuard>
+      <LazyRoute Component={NotificationsPage} />
+    </AuthGuard>
+  ),
+});
+
 const notFoundRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '*',
@@ -233,12 +296,17 @@ const routeTree = rootRoute.addChildren([
   projectAuditRoute,
   projectGitRoute,
   projectSettingsRoute,
+  agentsRoute,
+  agentDetailRoute,
   reportsRoute,
   settingsRoute,
+  analyticsRoute,
+  notificationsRoute,
   healthRoute,
   notFoundRoute,
 ]);
 
+// eslint-disable-next-line react/only-export-components
 export const router = createRouter({ routeTree });
 
 declare module '@tanstack/react-router' {

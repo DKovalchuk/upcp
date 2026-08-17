@@ -1,6 +1,7 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.delivery.service import TaskService
@@ -25,8 +26,9 @@ from app.quality.service import (
     ReviewGateService,
     ReviewRoundService,
 )
+from app.shared.config import get_settings
 from app.shared.database import get_session
-from app.shared.errors import Conflict, NotFound
+from app.shared.errors import Conflict, NotFound, ValidationError
 from app.shared.pagination import PaginationParams, pagination_dependency
 
 router = APIRouter(tags=["quality"])
@@ -250,7 +252,7 @@ def get_quality_stats(
 # ── Evidence endpoints ──
 
 
-def _evidence_dict(e: Any) -> dict[str, str | None]:
+def _evidence_dict(e: Any) -> dict[str, str | int | None]:
     return {
         "id": e.id,
         "task_id": e.task_id,
@@ -261,6 +263,9 @@ def _evidence_dict(e: Any) -> dict[str, str | None]:
         "url": e.url,
         "content_snippet": e.content_snippet,
         "artifact_ref": e.artifact_ref,
+        "file_name": e.file_name,
+        "file_size": e.file_size,
+        "content_type": e.content_type,
         "created_by_type": e.created_by_type,
         "created_by_id": e.created_by_id,
         "verification_state": e.verification_state,
@@ -301,7 +306,7 @@ def list_evidence(
 )
 def create_evidence(
     task_id: str, body: EvidenceCreate, session: Session = Depends(get_session)
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = EvidenceService(session)
     e = svc.create(
         task_id=task_id,
@@ -331,7 +336,7 @@ def agent_verify_evidence(
     evidence_id: str,
     body: EvidenceVerifyRequest | None = None,
     session: Session = Depends(get_session),
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = EvidenceService(session)
     try:
         e = svc.verify(evidence_id, verified_by_type="agent", verified_by_id="agent")
@@ -354,7 +359,7 @@ def agent_verify_evidence(
 def human_accept_evidence(
     evidence_id: str,
     session: Session = Depends(get_session),
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = EvidenceService(session)
     try:
         e = svc.accept(evidence_id, verified_by_type="human", verified_by_id="human")
@@ -378,7 +383,7 @@ def reject_evidence(
     evidence_id: str,
     body: EvidenceRejectRequest | None = None,
     session: Session = Depends(get_session),
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = EvidenceService(session)
     try:
         e = svc.reject(evidence_id, verified_by_type="human", verified_by_id="human")
@@ -387,6 +392,62 @@ def reject_evidence(
     except Conflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
     return _evidence_dict(e)
+
+
+@router.post(
+    "/tasks/{task_id}/evidence/upload",
+    status_code=201,
+    summary="Upload file as evidence",
+    description="Upload a file attachment as evidence for a task.",
+    responses={422: {"description": "Validation error"}},
+)
+async def upload_evidence_file(
+    task_id: str,
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    created_by_type: str = Form(default="human"),
+    created_by_id: str = Form(default="default"),
+    dod_item_id: str | None = Form(default=None),
+    session: Session = Depends(get_session),
+) -> dict[str, str | int | None]:  # noqa: B008
+    settings = get_settings()
+    svc = EvidenceService(session)
+    try:
+        e = svc.upload_file(
+            task_id=task_id,
+            file=file,
+            title=title,
+            created_by_type=created_by_type,
+            created_by_id=created_by_id,
+            storage_dir=settings.upload_dir,
+            max_size_bytes=settings.max_upload_size_bytes,
+            dod_item_id=dod_item_id,
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    return _evidence_dict(e)
+
+
+@router.get(
+    "/evidence/{evidence_id}/download",
+    summary="Download evidence file",
+    description="Download the file attached to an evidence item.",
+    responses={404: {"description": "Evidence not found or no file"}},
+)
+def download_evidence_file(
+    evidence_id: str,
+    session: Session = Depends(get_session),
+) -> FileResponse:  # noqa: B008
+    svc = EvidenceService(session)
+    try:
+        path, ct = svc.get_file(evidence_id)
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    except ValidationError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    return FileResponse(path=path, media_type=ct, filename=path.name)
 
 
 # ── Review Round endpoints ──

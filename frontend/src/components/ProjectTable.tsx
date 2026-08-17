@@ -39,7 +39,7 @@ export function ProjectTable({ projects }: ProjectTableProps) {
           {projects.map((project) => (
             <TableRow
               key={project.id}
-              className="cursor-pointer hover:bg-muted/50"
+              className="cursor-pointer hover:bg-muted/50 transition-default"
               onClick={() => navigate({ to: '/projects/$projectId', params: { projectId: project.id } })}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {

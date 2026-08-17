@@ -1,27 +1,38 @@
 # Domain Model
 
-Core entities:
+> **Source of truth**: `docs/architecture/data-model.md` for full field definitions
+> **Source of truth**: `backend/app/*/models.py` for actual implementation
+
+Core entities (as implemented):
 
 ```text
+Organization
+User
+Membership
+Agent
+AgentToken
 Project
 Component
 Module
 Feature
 Task
+Subtask
+TaskClaim
+Heartbeat
+ClarificationRequest
+TaskDependency
 AcceptanceCriterion
 DoDItem
-Spec
-GitRepo
+Evidence
+ReviewRound
+ReviewFinding
+Notification
+Report
+AuditEvent
+GitProvider
 GitBranch
 GitCommit
-GitPullRequest
 GitLink
-AuditEvent
-Report
-User
-Agent
-Role
-Permission
 ```
 
 Primary structural hierarchy:
@@ -38,29 +49,37 @@ Primary delivery hierarchy:
 Project
 └── Feature
     └── Task
-        └── Subtask
+        ├── Subtask
+        ├── AcceptanceCriterion
+        ├── DoDItem
+        ├── Evidence
+        ├── ClarificationRequest
+        ├── TaskClaim → Heartbeat
+        └── ReviewRound → ReviewFinding
 ```
 
 Flexible links:
 
 ```text
-Feature
-  -> primary_component
-  -> linked_components
-  -> linked_modules
-
 Task
-  -> feature
-  -> component
-  -> module
-  -> git links
+  → feature
+  → component (optional)
+  → module (optional)
+  → git links
+
+Feature
+  → primary_component (optional)
 ```
 
-Optional DDD layer:
+Identity hierarchy:
 
 ```text
-Project
-└── Domain/Area
-    └── Component
-        └── Module
+Organization
+├── User (via Membership)
+├── Agent → AgentToken
+└── Project
 ```
+
+> **NOTE**: Earlier drafts referenced `Spec`, `GitRepo`, `GitPullRequest` entities.
+> These do not exist in the implementation. `GitRepo` was replaced by `GitProvider`.
+> `Spec` and `GitPullRequest` were never implemented.

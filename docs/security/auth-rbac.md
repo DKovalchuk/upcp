@@ -11,7 +11,9 @@ RBAC is implemented at three levels: global, organization, project.
 
 ### 2.1 Access Token
 
-- Format: JWT (RS256)
+- Format: JWT (HS256, symmetric key via UPCP_SECRET_KEY)
+> **NOTE**: Earlier drafts specified RS256 (asymmetric). The implementation uses HS256
+> with a symmetric secret from `SecretProvider`. See `identity/token_service.py`.
 - TTL: 15 minutes
 - Claims: `sub`, `roles`, `scopes`, `iat`, `exp`, `jti`
 - Storage: client memory only (not localStorage)
@@ -162,7 +164,7 @@ An organization Owner has no permissions in projects they are not added to.
 ## 5. Security
 
 - Passwords: bcrypt, min 12 characters
-- JWT signature: RS256, keys stored in SecretProvider
+- JWT signature: HS256, symmetric key stored in SecretProvider (UPCP_SECRET_KEY)
 - Refresh tokens stored in DB with hash (not plaintext)
 - All authentication endpoints — HTTPS only
 - Account lockout: 5 failed attempts → 15 min lockout

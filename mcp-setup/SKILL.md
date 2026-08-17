@@ -21,8 +21,8 @@ UPCP exposes HTTP JSON-RPC 2.0. MCP-клиенты работают через s
 
 ## Условия подключения
 
-1. UPCP запущен (Docker: `docker compose -f docker-compose.stage.yml up -d` или локально)
-2. Доступен по `http://upcp.local:3080` (или кастомный URL)
+1. UPCP запущен (Docker: `docker compose --env-file .env.stage up -d` или локально)
+2. Доступен по `http://upcp.local:3070` (или кастомный URL из `.env.*`)
 3. MCP-клиент настроен с `mcp-bridge.py`
 
 ## Настройка MCP-клиента
@@ -162,7 +162,7 @@ Project (1) ──> (N) Feature (1) ──> (N) Task
 
 ```bash
 # Health check
-curl -s http://upcp.local:3080/mcp/
+curl -s http://upcp.local:3070/mcp/
 
 # Через bridge
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | python3 mcp-bridge.py

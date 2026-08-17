@@ -11,7 +11,9 @@ class Component(Base):
     __tablename__ = "component"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("project.id"), nullable=False)
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("project.id", ondelete="CASCADE"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -27,7 +29,7 @@ class Module(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     component_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("component.id"), nullable=False
+        String(36), ForeignKey("component.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False)

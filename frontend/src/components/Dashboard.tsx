@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useDashboardStats } from '@/hooks/use-dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -66,6 +66,7 @@ function StatCard({
 export function Dashboard() {
   const { data: stats, isLoading, error } = useDashboardStats();
   const { data: attention } = useAttentionDashboard();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return <PageSkeleton hasCards cardCount={4} rows={5} />;
@@ -81,7 +82,7 @@ export function Dashboard() {
         icon={FolderKanban}
         title="No projects yet"
         description="Create your first project to get started with UPCP."
-        action={{ label: 'New Project', onClick: () => {} }}
+        action={{ label: 'New Project', onClick: () => navigate({ to: '/projects' }) }}
       />
     );
   }

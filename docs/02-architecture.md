@@ -2,6 +2,9 @@
 
 UPCP is a modular monolith.
 
+> **Source of truth for bounded contexts**: `docs/architecture/ddd-contexts.md`
+> **Source of truth for data model**: `docs/architecture/data-model.md`
+
 ## Backend
 
 - Python 3.12
@@ -46,8 +49,8 @@ backend/app/
 
 - Git providers: local Git, GitHub, GitLab
 - CI: read-only status consumption
-- LLM: optional assistant layer
-- Prometheus/Grafana: optional observability
+- LLM: optional, via `llm/gateway.py` (redaction layer for secrets). UPCP does NOT call LLM providers directly — agents interact via MCP clients (Cursor, Claude, Qwen Code) which handle their own LLM calls.
+- Prometheus/Grafana: optional observability (behind `observability` Docker profile)
 
 ## Important constraint
 

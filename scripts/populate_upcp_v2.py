@@ -2,12 +2,14 @@
 """Populate UPCP with v2 planning entities via REST API."""
 
 import json
+import os
 import sys
 import urllib.request
 import urllib.error
 from typing import Any
 
-BASE = "http://upcp.local:3080/api/v1"
+_port = os.environ.get("UPCP_PORT_FRONTEND", "3070")
+BASE = f"http://upcp.local:{_port}/api/v1"
 
 # Track created entities for cross-referencing
 created: dict[str, dict[str, str]] = {

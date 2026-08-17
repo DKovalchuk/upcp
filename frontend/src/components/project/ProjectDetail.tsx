@@ -18,6 +18,7 @@ import { QualityPage } from './QualityPage';
 import { AuditPage } from './AuditPage';
 import { ReportsPage } from './ReportsPage';
 import { GitIntegrationPage } from './GitIntegrationPage';
+import { ProjectOverview } from './ProjectOverview';
 
 const PROJECT_FIELDS = [
   { name: 'name', label: 'Name', required: true },
@@ -42,6 +43,7 @@ const TAB_ROUTES: Record<string, string> = {
   audit: 'audit',
   git: 'git',
   reports: 'reports',
+  settings: 'settings',
 };
 
 export function ProjectDetail() {
@@ -96,10 +98,10 @@ export function ProjectDetail() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={project.status} />
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setShowEdit(true)}>
+          <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => setShowEdit(true)} aria-label="Edit project">
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive" onClick={() => setConfirmDelete(true)}>
+          <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px] text-destructive" onClick={() => setConfirmDelete(true)} aria-label="Delete project">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -120,44 +122,11 @@ export function ProjectDetail() {
           <TabsTrigger value="audit">Audit</TabsTrigger>
           <TabsTrigger value="git">Git</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Name</p>
-                  <p>{project.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Slug</p>
-                  <p className="font-mono text-sm">{project.slug}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <StatusBadge status={project.status} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Created</p>
-                  <p>{new Date(project.created_at).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Updated</p>
-                  <p>{new Date(project.updated_at).toLocaleDateString()}</p>
-                </div>
-                {project.description && (
-                  <div className="col-span-2">
-                    <p className="text-sm font-medium text-muted-foreground">Description</p>
-                    <p>{project.description}</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <ProjectOverview project={project} />
         </TabsContent>
 
         <TabsContent value="structure" className="mt-6">
@@ -182,6 +151,28 @@ export function ProjectDetail() {
 
         <TabsContent value="reports" className="mt-6">
           <ReportsPage />
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Project Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Health Score</p>
+                <p className="text-2xl font-bold">{project.status === 'active' ? 'Active' : project.status}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Created</p>
+                <p>{new Date(project.created_at).toLocaleDateString()}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+                <p>{new Date(project.updated_at).toLocaleDateString()}</p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

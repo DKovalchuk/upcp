@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuditEvents } from '@/hooks/use-audit';
 import { useProjectId } from '@/hooks/use-project-id';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
@@ -10,12 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import { formatRelativeTime } from '@/lib/format';
-import { ScrollText } from 'lucide-react';
+import { ScrollText, Download } from 'lucide-react';
+import { exportAuditCsv } from '@/lib/api';
+import { showToast } from '@/lib/toast';
+import { Button } from '@/components/ui/button';
 import type { AuditEvent } from '@/types/audit';
 
 const EVENT_COLORS: Record<string, string> = {
@@ -31,6 +35,7 @@ export function AuditPage() {
   const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
   const [eventType, setEventType] = useState('');
   const [entityType, setEntityType] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading, error } = useAuditEvents(
     {
@@ -41,11 +46,23 @@ export function AuditPage() {
     { offset, limit }
   );
 
+  const events = useMemo(() => data?.items ?? [], [data]);
+  const total = data?.total ?? 0;
+
+  const filteredEvents = useMemo(() => {
+    if (!searchQuery) return events;
+    const q = searchQuery.toLowerCase();
+    return events.filter(
+      (e) =>
+        e.entity_type.toLowerCase().includes(q) ||
+        e.event_type.toLowerCase().includes(q) ||
+        e.note?.toLowerCase().includes(q) ||
+        e.actor_type.toLowerCase().includes(q),
+    );
+  }, [events, searchQuery]);
+
   if (isLoading) return <PageSkeleton rows={8} />;
   if (error) return <ErrorState message="Failed to load audit events" />;
-
-  const events = data?.items ?? [];
-  const total = data?.total ?? 0;
 
   return (
     <div className="space-y-6">
@@ -55,6 +72,36 @@ export function AuditPage() {
       </div>
 
       <div className="flex items-center gap-3">
+        <Input
+          type="search"
+          placeholder="Search events..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="h-9 w-[200px]"
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-9"
+          onClick={async () => {
+            try {
+              const csv = await exportAuditCsv(projectId);
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `audit-${projectId}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+              showToast.success('Audit exported');
+            } catch {
+              showToast.error('Export failed');
+            }
+          }}
+        >
+          <Download className="mr-1 h-3 w-3" />
+          Export CSV
+        </Button>
         <Select value={eventType} onValueChange={(v) => setEventType(v ?? '')}>
           <SelectTrigger className="h-9 w-[160px]">
             <SelectValue placeholder="All event types" />
@@ -80,17 +127,17 @@ export function AuditPage() {
         </Select>
       </div>
 
-      {!events.length ? (
+      {!filteredEvents.length ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            No audit events found.
+            {searchQuery ? 'No events match your search.' : 'No audit events found.'}
           </CardContent>
         </Card>
       ) : (
         <>
           <div className="relative space-y-0">
             <div className="absolute left-[15px] top-0 bottom-0 w-px bg-border" />
-            {events.map((event: AuditEvent) => (
+            {filteredEvents.map((event: AuditEvent) => (
               <div key={event.id} className="relative flex gap-4 py-3">
                 <div className={`relative z-10 mt-1 h-3 w-3 shrink-0 rounded-full ${EVENT_COLORS[event.event_type] ?? 'bg-slate-400'}`} />
                 <Card className="flex-1">

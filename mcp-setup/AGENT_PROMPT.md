@@ -31,7 +31,7 @@ UPCP работает как сервер, к которому ты подклю
 ### 1.1 Проверить, что UPCP запущен
 
 ```bash
-curl -s http://upcp.local:3080/mcp/
+curl -s http://upcp.local:3070/mcp/
 ```
 
 Ожидаемый ответ: `{"status":"ok","service":"mcp-server"}`
@@ -40,10 +40,12 @@ curl -s http://upcp.local:3080/mcp/
 
 ```bash
 cd /path/to/upcp
-docker compose -f docker-compose.stage.yml up -d
+docker compose --env-file .env.stage up -d
 # Подождать ~15 секунд, затем повторить проверку
-curl -s http://upcp.local:3080/health
+curl -s http://upcp.local:3070/health
 ```
+
+**Примечание:** Порт 3070 задан в `.env.stage`. Для другого окружения используйте соответствующий `.env.*` файл.
 
 ### 1.2 Убедиться, что Python 3.10+ доступен
 
@@ -254,8 +256,8 @@ endpoint, and writes responses to stdout. Stderr is used for logging.
 
 Usage:
     python3 mcp-bridge.py
-    python3 mcp-bridge.py --upcp-url http://your-host:3080/mcp/
-    UPCP_MCP_URL=http://your-host:3080/mcp/ python3 mcp-bridge.py
+    python3 mcp-bridge.py --upcp-url http://your-host:3070/mcp/
+    UPCP_MCP_URL=http://your-host:3070/mcp/ python3 mcp-bridge.py
 """
 
 import json
@@ -270,7 +272,7 @@ def resolve_url() -> str:
     for i, arg in enumerate(sys.argv):
         if arg == "--upcp-url" and i + 1 < len(sys.argv):
             return sys.argv[i + 1]
-    return os.environ.get("UPCP_MCP_URL", "http://upcp.local:3080/mcp/")
+    return os.environ.get("UPCP_MCP_URL", "http://upcp.local:3070/mcp/")
 
 
 UPCP_URL = resolve_url()
@@ -373,7 +375,7 @@ if __name__ == "__main__":
 
 | Проблема | Решение |
 |---|---|
-| `Cannot reach UPCP` | Проверить: `curl http://upcp.local:3080/mcp/` |
+| `Cannot reach UPCP` | Проверить: `curl http://upcp.local:3070/mcp/` |
 | `HTTP 500` | Проверить логи контейнера: `docker compose logs app` |
 | `project_id is required` | Сначала вызови `project_list`, чтобы получить ID |
 | `feature_id is required` | Задачи создаются в фиче. Сначала создай фичу |

@@ -6,7 +6,7 @@ import { useCreateComponent, useDeleteComponent } from '@/hooks/use-components';
 import { useCreateModule, useDeleteModule } from '@/hooks/use-modules';
 import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
 import { componentFields, moduleFields } from '@/components/forms/entity-fields';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -174,16 +174,19 @@ function ComponentCard({
 
   return (
     <Card>
-      <CardHeader
-        className="cursor-pointer select-none py-3"
+      <button
+        type="button"
+        className="flex w-full cursor-pointer select-none items-center justify-between py-3 text-left"
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-controls={`component-modules-${component.id}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             )}
             <div>
               <CardTitle className="text-base">{component.name}</CardTitle>
@@ -197,8 +200,9 @@ function ComponentCard({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-destructive"
+              className="min-h-[44px] min-w-[44px] text-destructive"
               onClick={onDelete}
+              aria-label="Delete component"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -209,9 +213,10 @@ function ComponentCard({
             {component.description}
           </p>
         )}
-      </CardHeader>
+      </button>
 
       {isExpanded && (
+        <div id={`component-modules-${component.id}`}>
         <CardContent className="pt-0">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-muted-foreground">
@@ -261,8 +266,9 @@ function ComponentCard({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-destructive"
+                        className="min-h-[44px] min-w-[44px] text-destructive"
                         onClick={() => onDeleteModule(mod.id, mod.name)}
+                        aria-label="Delete module"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -282,6 +288,7 @@ function ComponentCard({
             submitLabel="Create Module"
           />
         </CardContent>
+        </div>
       )}
     </Card>
   );

@@ -100,6 +100,29 @@ export async function createEvidence(
   });
 }
 
+export async function uploadEvidence(
+  taskId: string,
+  file: File,
+  title?: string,
+  description?: string
+): Promise<Evidence> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('task_id', taskId);
+  if (title) formData.append('title', title);
+  if (description) formData.append('description', description);
+
+  const resp = await fetch('/api/v1/evidence/upload', {
+    method: 'POST',
+    body: formData,
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+    throw new Error(err.detail || 'Upload failed');
+  }
+  return resp.json();
+}
+
 export async function verifyEvidence(evidenceId: string): Promise<Evidence> {
   return apiRequest<Evidence>(`/api/v1/evidence/${evidenceId}/agent-verify`, {
     method: 'POST',
@@ -120,6 +143,30 @@ export async function rejectEvidence(
     method: 'POST',
     body: JSON.stringify({ reason }),
   });
+}
+
+export async function uploadEvidenceFile(
+  taskId: string,
+  file: File,
+  title: string,
+  dodItemId?: string
+): Promise<Evidence> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('title', title);
+  if (dodItemId) formData.append('dod_item_id', dodItemId);
+
+  const response = await fetch(`/api/v1/tasks/${taskId}/evidence/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+    throw new Error(error.detail || 'Upload failed');
+  }
+
+  return response.json();
 }
 
 // ── Review Rounds ──

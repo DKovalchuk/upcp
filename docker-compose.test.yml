@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upcp_local_change_me}
       POSTGRES_DB: ${POSTGRES_DB:-upcp}
     ports:
-      - "127.0.0.1:35434:5432"
+      - "127.0.0.1:${UPCP_PORT_POSTGRES:-35434}:5432"
     volumes:
       - ./data/postgres-test:/var/lib/postgresql/data
     healthcheck:
@@ -33,7 +33,7 @@ services:
       UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-test_change_me}
       UPCP_DEBUG: "false"
     ports:
-      - "127.0.0.1:38082:8080"
+      - "127.0.0.1:${UPCP_PORT_BACKEND:-38082}:8080"
     depends_on:
       db:
         condition: service_healthy
@@ -58,7 +58,7 @@ services:
     image: nginx:alpine
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3082:80"
+      - "127.0.0.1:${UPCP_PORT_FRONTEND:-3071}:80"
     volumes:
       - ./nginx.test.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:

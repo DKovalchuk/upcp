@@ -213,3 +213,261 @@ export const MOCK_AUDIT_EVENTS = [
     note: 'Approved after review',
   },
 ];
+
+// --- Agent Workflow Mock Data ---
+
+export const MOCK_CLAIMS = [
+  {
+    id: 'claim-1',
+    task_id: 'task-2',
+    agent_id: 'backend-developer',
+    state: 'active',
+    claimed_at: new Date(Date.now() - 300000).toISOString(),
+    released_at: null,
+    last_heartbeat_at: new Date(Date.now() - 60000).toISOString(),
+    expires_at: null,
+    created_at: new Date(Date.now() - 300000).toISOString(),
+  },
+];
+
+export const MOCK_CLAIMS_EMPTY: never[] = [];
+
+export const MOCK_HEARTBEATS = [
+  {
+    id: 'hb-1',
+    claim_id: 'claim-1',
+    progress_percent: 75,
+    current_step: 'Writing unit tests',
+    next_step: 'Integration tests',
+    blockers: null,
+    eta: new Date(Date.now() + 600000).toISOString(),
+    created_at: new Date(Date.now() - 60000).toISOString(),
+  },
+  {
+    id: 'hb-2',
+    claim_id: 'claim-1',
+    progress_percent: 50,
+    current_step: 'Implementing JWT generation',
+    next_step: 'Unit tests',
+    blockers: 'Missing test fixtures',
+    eta: null,
+    created_at: new Date(Date.now() - 180000).toISOString(),
+  },
+];
+
+export const MOCK_HEARTBEATS_EMPTY: never[] = [];
+
+export const MOCK_CLARIFICATIONS = [
+  {
+    id: 'clar-1',
+    task_id: 'task-3',
+    author_type: 'agent',
+    author_id: 'database-architect',
+    question: 'Should JWT tokens expire after 15 minutes or 1 hour?',
+    context: 'Implementing token expiry configuration',
+    blocking: true,
+    state: 'open',
+    answer: null,
+    answered_by: null,
+    answered_at: null,
+    created_at: new Date(Date.now() - 300000).toISOString(),
+  },
+];
+
+export const MOCK_CLARIFICATIONS_EMPTY: never[] = [];
+
+export const MOCK_EVIDENCE = [
+  {
+    id: 'ev-1',
+    task_id: 'task-1',
+    dod_item_id: null,
+    type: 'test_output',
+    title: 'Unit test results',
+    description: 'All 42 tests passing',
+    url: null,
+    content_snippet: '42 passed, 0 failed',
+    artifact_ref: null,
+    created_by_type: 'agent',
+    created_by_id: 'qa-engineer',
+    verification_state: 'unverified',
+    verified_by_type: null,
+    verified_by_id: null,
+    verified_at: null,
+    created_at: new Date(Date.now() - 120000).toISOString(),
+    updated_at: new Date(Date.now() - 120000).toISOString(),
+  },
+  {
+    id: 'ev-2',
+    task_id: 'task-1',
+    dod_item_id: null,
+    type: 'diff',
+    title: 'Git diff of changes',
+    description: 'Changes to auth service',
+    url: 'https://github.com/upcp/core/pull/42',
+    content_snippet: null,
+    artifact_ref: null,
+    created_by_type: 'agent',
+    created_by_id: 'backend-developer',
+    verification_state: 'agent_verified',
+    verified_by_type: 'agent',
+    verified_by_id: 'backend-developer',
+    verified_at: new Date(Date.now() - 60000).toISOString(),
+    created_at: new Date(Date.now() - 180000).toISOString(),
+    updated_at: new Date(Date.now() - 60000).toISOString(),
+  },
+];
+
+export const MOCK_EVIDENCE_ACCEPTED = [
+  {
+    ...MOCK_EVIDENCE[0],
+    id: 'ev-3',
+    verification_state: 'human_accepted',
+    verified_by_type: 'human',
+    verified_by_id: 'user-1',
+    verified_at: new Date(Date.now() - 30000).toISOString(),
+  },
+];
+
+export const MOCK_EVIDENCE_REJECTED = [
+  {
+    ...MOCK_EVIDENCE[0],
+    id: 'ev-4',
+    verification_state: 'rejected',
+    verified_by_type: 'human',
+    verified_by_id: 'user-1',
+    verified_at: new Date(Date.now() - 30000).toISOString(),
+  },
+];
+
+export const MOCK_EVIDENCE_EMPTY: never[] = [];
+
+export const MOCK_REVIEW_ROUNDS = [
+  {
+    id: 'rr-1',
+    task_id: 'task-1',
+    requested_by_type: 'agent',
+    requested_by_id: 'backend-developer',
+    reviewer_type: 'agent',
+    reviewer_id: 'code-quality-guard',
+    state: 'completed',
+    verdict: 'approve',
+    confidence: 92,
+    summary: 'Code quality excellent, all tests pass',
+    created_at: new Date(Date.now() - 600000).toISOString(),
+    started_at: new Date(Date.now() - 550000).toISOString(),
+    completed_at: new Date(Date.now() - 300000).toISOString(),
+  },
+];
+
+export const MOCK_REVIEW_ROUNDS_PENDING = [
+  {
+    id: 'rr-2',
+    task_id: 'task-2',
+    requested_by_type: 'agent',
+    requested_by_id: 'backend-developer',
+    reviewer_type: 'agent',
+    reviewer_id: 'code-quality-guard',
+    state: 'in_progress',
+    verdict: null,
+    confidence: null,
+    summary: null,
+    created_at: new Date(Date.now() - 120000).toISOString(),
+    started_at: new Date(Date.now() - 100000).toISOString(),
+    completed_at: null,
+  },
+];
+
+export const MOCK_REVIEW_FINDINGS = [
+  {
+    id: 'rf-1',
+    review_round_id: 'rr-1',
+    severity: 'minor',
+    category: 'style',
+    message: 'Consider using a more descriptive variable name',
+    evidence_id: null,
+    dod_item_id: null,
+    suggestion: 'Rename `tmp` to `tempToken`',
+    created_at: new Date(Date.now() - 400000).toISOString(),
+  },
+];
+
+export const MOCK_REVIEW_ROUNDS_EMPTY: never[] = [];
+
+// --- Dashboard Agent Activity ---
+
+export const MOCK_AGENT_ACTIVITY = [
+  {
+    agent_id: 'backend-developer',
+    agent_name: 'Backend Developer',
+    task_id: 'task-2',
+    task_title: 'Implement auth middleware',
+    claimed_at: new Date(Date.now() - 600000).toISOString(),
+    last_heartbeat_at: new Date(Date.now() - 60000).toISOString(),
+    progress_percent: 65,
+    current_step: 'Writing middleware',
+    is_stale: false,
+  },
+];
+
+export const MOCK_AGENT_ACTIVITY_STALE = [
+  {
+    agent_id: 'database-architect',
+    agent_name: 'Database Architect',
+    task_id: 'task-3',
+    task_title: 'Add RBAC models',
+    claimed_at: new Date(Date.now() - 1800000).toISOString(),
+    last_heartbeat_at: new Date(Date.now() - 600000).toISOString(),
+    progress_percent: 30,
+    current_step: 'Schema design',
+    is_stale: true,
+  },
+];
+
+export const MOCK_AGENT_ACTIVITY_EMPTY: never[] = [];
+
+// --- Attention Dashboard ---
+
+export const MOCK_ATTENTION = {
+  needs_review: [
+    { task_id: 'task-4', task_title: 'Write auth unit tests', count: 1 },
+  ],
+  open_questions: [
+    { task_id: 'task-3', task_title: 'Add RBAC models', count: 1 },
+  ],
+  blocked_tasks: [
+    { task_id: 'task-3', task_title: 'Add RBAC models' },
+  ],
+  stale_claims: [],
+  failed_dod: [],
+  rejected_tasks: [],
+  agent_verdicts_waiting: [],
+  low_health_projects: [],
+  recent_activity: MOCK_AUDIT_EVENTS.slice(0, 3),
+};
+
+export const MOCK_NOTIFICATIONS = [
+  {
+    id: 'notif-1',
+    user_id: 'user-1',
+    type: 'agent.claimed',
+    title: 'Task claimed',
+    message: 'Backend Developer claimed "Implement auth middleware"',
+    entity_type: 'task',
+    entity_id: 'task-2',
+    is_read: false,
+    created_at: new Date(Date.now() - 600000).toISOString(),
+  },
+  {
+    id: 'notif-2',
+    user_id: 'user-1',
+    type: 'clarification.open',
+    title: 'Clarification requested',
+    message: 'Database Architect asked about JWT token expiry',
+    entity_type: 'task',
+    entity_id: 'task-3',
+    is_read: false,
+    created_at: new Date(Date.now() - 300000).toISOString(),
+  },
+];
+
+export const MOCK_NOTIFICATIONS_EMPTY: never[] = [];

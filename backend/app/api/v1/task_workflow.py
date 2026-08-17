@@ -1,6 +1,6 @@
-"""Task workflow endpoints — claim, release, heartbeat, progress, reads.
+"""Task workflow endpoints — claim, release, heartbeat, progress, reads, clarifications.
 
-TASK-0074
+TASK-0074, TASK-0099
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -282,3 +282,91 @@ def list_clarifications(
         for r in rows
     ]
     return {"items": items}
+
+
+# ── Clarification write endpoints (TASK-0099 B1) ──
+
+
+class ClarificationCreateRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=5000)
+    context: str | None = None
+    blocking: bool = False
+
+
+class ClarificationAnswerRequest(BaseModel):
+    answer: str = Field(min_length=1, max_length=5000)
+
+
+@router.post(
+    "/tasks/{task_id}/clarifications",
+    status_code=201,
+    summary="Create clarification request",
+    description="Agent creates a clarification request on a claimed task.",
+    responses={
+        404: {"description": "Task not found"},
+        409: {"description": "No active claim or invalid state"},
+    },
+)
+def create_clarification(
+    task_id: str,
+    body: ClarificationCreateRequest,
+    agent: CurrentAgent = Depends(get_current_agent),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:
+    svc = WorkflowService(session)
+    try:
+        cr = svc.create_clarification(
+            task_id,
+            agent_id=agent.agent_id,
+            question=body.question,
+            context=body.context,
+            blocking=body.blocking,
+        )
+    except NotFound as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    except Conflict as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+
+    return {
+        "id": cr.id,
+        "task_id": cr.task_id,
+        "state": cr.state,
+        "question": cr.question,
+        "blocking": cr.blocking,
+        "created_at": cr.created_at.isoformat() if cr.created_at else None,
+    }
+
+
+@router.post(
+    "/clarifications/{clarification_id}/answer",
+    summary="Answer clarification request",
+    description="Answer an open clarification request.",
+    responses={
+        404: {"description": "Clarification not found"},
+        409: {"description": "Clarification already answered"},
+    },
+)
+def answer_clarification(
+    clarification_id: str,
+    body: ClarificationAnswerRequest,
+    agent: CurrentAgent = Depends(get_current_agent),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:
+    svc = WorkflowService(session)
+    try:
+        cr = svc.answer_clarification(
+            clarification_id,
+            answered_by=agent.agent_id,
+            answer=body.answer,
+        )
+    except NotFound as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    except Conflict as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+
+    return {
+        "id": cr.id,
+        "state": cr.state,
+        "answer": cr.answer,
+        "answered_at": cr.answered_at.isoformat() if cr.answered_at else None,
+    }

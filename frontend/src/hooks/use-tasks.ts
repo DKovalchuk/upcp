@@ -6,6 +6,9 @@ import {
   updateTask,
   deleteTask,
   completeTask,
+  bulkUpdateTasks,
+  fetchComments,
+  createComment,
 } from '@/lib/api';
 import type { TaskCreate, TaskUpdate } from '@/types/task';
 
@@ -77,6 +80,43 @@ export function useCompleteTask() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks', id] });
+    },
+  });
+}
+
+export function useBulkUpdateTasks() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      taskIds,
+      updates,
+    }: {
+      taskIds: string[];
+      updates: { status?: string; priority?: number; assignee_type?: string; assignee_id?: string };
+    }) => bulkUpdateTasks(taskIds, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
+
+export function useComments(taskId: string) {
+  return useQuery({
+    queryKey: ['comments', taskId],
+    queryFn: () => fetchComments(taskId),
+    enabled: !!taskId,
+  });
+}
+
+export function useCreateComment(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ body, parentId }: { body: string; parentId?: string }) =>
+      createComment(taskId, body, undefined, undefined, parentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', taskId] });
     },
   });
 }

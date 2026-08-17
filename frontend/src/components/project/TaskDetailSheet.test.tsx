@@ -197,9 +197,6 @@ describe('TaskDetailSheet', () => {
 
     await waitFor(() => {
       expect(screen.getByText('No agent claims yet.')).toBeInTheDocument();
-      expect(screen.getByText('No clarifications requested.')).toBeInTheDocument();
-      expect(screen.getByText('No evidence attached yet.')).toBeInTheDocument();
-      expect(screen.getByText('No reviews yet.')).toBeInTheDocument();
     });
   });
 });

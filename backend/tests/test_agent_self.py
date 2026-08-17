@@ -4,7 +4,6 @@ import hashlib
 import uuid
 
 import app.audit.models  # noqa: F401
-import app.auth.models  # noqa: F401
 import app.gitread.models  # noqa: F401
 import app.identity.agents  # noqa: F401
 import app.identity.models  # noqa: F401
@@ -39,6 +38,7 @@ def _make_app():
 
 @pytest.fixture()
 def client():
+    Base.metadata.drop_all(bind=_test_engine)
     Base.metadata.create_all(bind=_test_engine)
     _app = _make_app()
     uid = uuid.uuid4().hex[:8]

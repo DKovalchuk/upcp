@@ -135,7 +135,8 @@ UPCP uses finite state machines to manage the lifecycle of tasks, claims, clarif
 
 ### Heartbeat Timeout
 
-- Default: 120 seconds without heartbeat → claim expired
+- Default: 5 minutes (300 sec) without heartbeat → claim stale (notification)
+- Default: 15 minutes (900 sec) without heartbeat → claim expired (auto-release)
 - Configurable per-project (`heartbeat_timeout_sec`)
 - Expired claim releases the task → state `ready`
 - Audit event: `claim.expired`
@@ -260,7 +261,7 @@ Each state machine transition writes an audit event:
 
 | Situation | Timeout | Action |
 |-----------|---------|--------|
-| Heartbeat missing | 120 sec | Claim expired → task goes to `ready` |
+| Heartbeat missing | 5 min stale / 15 min dead | Claim expired → task goes to `ready` |
 | Clarification unanswered | 7 days | Notification → owner |
 | Review pending | 3 days | Notification → reviewer |
 | Task in progress | 14 days | Notification → owner (configurable) |

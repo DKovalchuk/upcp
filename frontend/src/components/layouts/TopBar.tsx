@@ -1,5 +1,6 @@
 import { Search, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,7 +28,7 @@ function ThemeToggle() {
           variant="ghost"
           size="icon"
           onClick={() => setTheme(nextTheme)}
-          title={`Theme: ${theme}`}
+          aria-label={`Theme: ${theme}`}
         />
       }>
         {theme === 'light' && <Sun className="h-4 w-4" />}
@@ -46,6 +47,7 @@ interface TopBarProps {
 
 export function TopBar({ onCommandOpen }: TopBarProps) {
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className="flex h-12 items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 lg:px-6">
@@ -68,7 +70,7 @@ export function TopBar({ onCommandOpen }: TopBarProps) {
           </kbd>
         </Button>
         <Tooltip>
-          <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onCommandOpen} />}>
+          <TooltipTrigger render={<Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={onCommandOpen} aria-label="Search (Ctrl+K)" />}>
             <Search className="h-4 w-4 sm:hidden" />
           </TooltipTrigger>
           <TooltipContent>Search (Ctrl+K)</TooltipContent>
@@ -88,8 +90,8 @@ export function TopBar({ onCommandOpen }: TopBarProps) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => {}}>Profile</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {}}>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate({ to: '/settings' })}>Profile</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate({ to: '/settings' })}>Settings</DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>

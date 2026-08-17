@@ -215,6 +215,7 @@ export function AgentVerdictsSection({ items }: { items: AttentionItem[] }) {
   );
 }
 
+// eslint-disable-next-line react/only-export-components
 export function useAttentionDashboard() {
   return useQuery({
     queryKey: ['dashboard', 'attention'],

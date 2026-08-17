@@ -3,13 +3,14 @@ import { useSubtasks } from '@/hooks/use-subtasks';
 import {
   useTaskClaims,
   useTaskHeartbeats,
-  useTaskClarifications,
-  useTaskEvidence,
-  useTaskReviewRounds,
 } from '@/hooks/use-task-execution';
 import { useTaskDetail } from '@/hooks/use-task-detail';
 import { useComponents } from '@/hooks/use-components';
 import { useModules } from '@/hooks/use-modules';
+import { ClarificationsTab } from './ClarificationsTab';
+import { EvidenceTab } from './EvidenceTab';
+import { ReviewsTab } from './ReviewsTab';
+import { CommentsTab } from './CommentsTab';
 import {
   Sheet,
   SheetContent,
@@ -31,16 +32,11 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AgentAvatar } from '@/components/ui/AgentAvatar';
 import { AgentStatusBadge } from '@/components/ui/AgentStatusBadge';
-import { ClarificationBanner } from '@/components/ui/ClarificationBanner';
-import { ReviewVerdictCard } from '@/components/ui/ReviewVerdictCard';
 import {
   Trash2,
   Plus,
   Bot,
   Clock,
-  FileText,
-  MessageCircle,
-  CheckCircle,
   GitBranch,
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -58,9 +54,6 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
   const { data: subtasks } = useSubtasks(taskId ?? '');
   const { data: claims, isLoading: isLoadingClaims } = useTaskClaims(taskId ?? '');
   const { data: heartbeats, isLoading: isLoadingHeartbeats } = useTaskHeartbeats(taskId ?? '');
-  const { data: clarifications, isLoading: isLoadingClarifications } = useTaskClarifications(taskId ?? '');
-  const { data: evidence, isLoading: isLoadingEvidence } = useTaskEvidence(taskId ?? '');
-  const { data: reviewRounds, isLoading: isLoadingReviewRounds } = useTaskReviewRounds(taskId ?? '');
 
   // UUID resolution
   const { data: components } = useComponents(projectId ?? '');
@@ -70,7 +63,7 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
 
   const open = !!taskId;
 
-  const { task, isLoading, isReleasing, newAC, setNewAC, newDoD, setNewDoD, newSubtask, setNewSubtask, activeTab, setActiveTab, confirmDelete, setConfirmDelete, handleAddAC, handleAddDoD, handleAddSubtask, handleStatusChange, handleDelete, handleReleaseClaim, handleSubmitVerdict } = detail;
+  const { task, isLoading, isReleasing, newAC, setNewAC, newDoD, setNewDoD, newSubtask, setNewSubtask, activeTab, setActiveTab, confirmDelete, setConfirmDelete, handleAddAC, handleAddDoD, handleAddSubtask, handleStatusChange, handleDelete, handleReleaseClaim } = detail;
 
   return (
     <>
@@ -91,8 +84,9 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-destructive"
+                    className="min-h-[44px] min-w-[44px] text-destructive"
                     onClick={() => setConfirmDelete(true)}
+                    aria-label="Delete task"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -137,14 +131,20 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     <Bot className="mr-1 h-3 w-3" />
                     Execution
                   </TabsTrigger>
-                  <TabsTrigger value="ac">
-                    AC ({acs?.length ?? 0})
+                  <TabsTrigger value="clarifications">
+                    Clarifications
                   </TabsTrigger>
-                  <TabsTrigger value="dod">
-                    DoD ({dods?.length ?? 0})
+                  <TabsTrigger value="evidence">
+                    Evidence
                   </TabsTrigger>
-                  <TabsTrigger value="subtasks">
-                    Subtasks ({subtasks?.length ?? 0})
+                  <TabsTrigger value="reviews">
+                    Reviews
+                  </TabsTrigger>
+                  <TabsTrigger value="comments">
+                    Comments
+                  </TabsTrigger>
+                  <TabsTrigger value="quality">
+                    Quality
                   </TabsTrigger>
                 </TabsList>
 
@@ -174,7 +174,7 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                   </div>
                 </TabsContent>
 
-                {/* ── Execution Tab ── */}
+                {/* ── Execution Tab (claims + heartbeats only) ── */}
                 <TabsContent value="execution" className="mt-4 space-y-4">
                   {/* Agent Claims */}
                   {isLoadingClaims ? (
@@ -259,104 +259,6 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     </div>
                   ) : null}
 
-                  {/* Clarifications */}
-                  <div>
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <MessageCircle className="h-3 w-3" />
-                      Clarifications
-                    </h4>
-                    {isLoadingClarifications ? (
-                      <Skeleton className="h-20 w-full" />
-                    ) : clarifications?.items && clarifications.items.length > 0 ? (
-                      <div className="space-y-2">
-                        {clarifications.items.map((clarification) => (
-                          <ClarificationBanner
-                            key={clarification.id}
-                            taskName={task?.title ?? 'Task'}
-                            question={clarification.question}
-                            askedBy={clarification.author_id}
-                            askedAt={clarification.created_at}
-                            isBlocking={clarification.blocking}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-border p-4">
-                        <p className="text-sm text-muted-foreground text-center">No clarifications requested.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Evidence */}
-                  <div>
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <FileText className="h-3 w-3" />
-                      Evidence
-                    </h4>
-                    {isLoadingEvidence ? (
-                      <Skeleton className="h-20 w-full" />
-                    ) : evidence?.items && evidence.items.length > 0 ? (
-                      <div className="space-y-2">
-                        {evidence.items.map((item) => (
-                          <div key={item.id} className="rounded-lg border border-border p-3">
-                            <p className="text-sm font-medium">{item.title}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{item.type}</p>
-                            {item.description && (
-                              <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                            )}
-                            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>Created: {new Date(item.created_at).toLocaleString()}</span>
-                              <span>Verification: {item.verification_state}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-border p-4">
-                        <p className="text-sm text-muted-foreground text-center">No evidence attached yet.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Reviews */}
-                  <div>
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <CheckCircle className="h-3 w-3" />
-                      Reviews
-                    </h4>
-                    {isLoadingReviewRounds ? (
-                      <Skeleton className="h-20 w-full" />
-                    ) : reviewRounds?.items && reviewRounds.items.length > 0 ? (
-                      <div className="space-y-2">
-                        {reviewRounds.items.map((round) => (
-                          <ReviewVerdictCard
-                            key={round.id}
-                            agentName={round.reviewer_id ?? 'Unknown reviewer'}
-                            verdict={(round.verdict as 'approve' | 'reject' | 'needs_changes') ?? 'approve'}
-                            confidence={round.confidence ?? 0}
-                            findingsCount={0}
-                            summary={round.summary ?? undefined}
-                            createdAt={round.created_at}
-                            onAccept={
-                              round.verdict !== 'approve'
-                                ? () => handleSubmitVerdict(round.id, 'approve', round.confidence ?? 80, 'Accepted by human reviewer')
-                                : undefined
-                            }
-                            onReject={
-                              round.verdict !== 'reject'
-                                ? () => handleSubmitVerdict(round.id, 'reject', round.confidence ?? 50, 'Rejected by human reviewer')
-                                : undefined
-                            }
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-border p-4">
-                        <p className="text-sm text-muted-foreground text-center">No reviews yet.</p>
-                      </div>
-                    )}
-                  </div>
-
                   {/* Git */}
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -369,75 +271,104 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                   </div>
                 </TabsContent>
 
-                {/* ── Acceptance Criteria Tab ── */}
-                <TabsContent value="ac" className="mt-4 space-y-3">
-                  <ListSection
-                    items={acs ?? []}
-                    renderItem={(ac) => (
-                      <span className="text-sm">{ac.description}</span>
-                    )}
-                    emptyText="No acceptance criteria yet."
-                  />
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add acceptance criterion..."
-                      value={newAC}
-                      onChange={(e) => setNewAC(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddAC()}
-                      className="h-9"
-                    />
-                    <Button size="sm" onClick={handleAddAC} disabled={!newAC.trim()}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
+                {/* ── Clarifications Tab ── */}
+                <TabsContent value="clarifications" className="mt-4">
+                  <ClarificationsTab taskId={taskId ?? ''} taskName={task?.title ?? 'Task'} />
                 </TabsContent>
 
-                {/* ── DoD Tab ── */}
-                <TabsContent value="dod" className="mt-4 space-y-3">
-                  <ListSection
-                    items={dods ?? []}
-                    renderItem={(dod) => (
-                      <span className="text-sm">{dod.name}</span>
-                    )}
-                    emptyText="No DoD items yet."
-                  />
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add DoD item..."
-                      value={newDoD}
-                      onChange={(e) => setNewDoD(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddDoD()}
-                      className="h-9"
-                    />
-                    <Button size="sm" onClick={handleAddDoD} disabled={!newDoD.trim()}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
+                {/* ── Evidence Tab ── */}
+                <TabsContent value="evidence" className="mt-4">
+                  <EvidenceTab taskId={taskId ?? ''} />
                 </TabsContent>
 
-                {/* ── Subtasks Tab ── */}
-                <TabsContent value="subtasks" className="mt-4 space-y-3">
-                  <ListSection
-                    items={subtasks ?? []}
-                    renderItem={(st) => (
-                      <div className="flex items-center gap-2">
-                        <StatusBadge status={st.status} size="sm" />
-                        <span className="text-sm">{st.title}</span>
-                      </div>
-                    )}
-                    emptyText="No subtasks yet."
-                  />
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add subtask..."
-                      value={newSubtask}
-                      onChange={(e) => setNewSubtask(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
-                      className="h-9"
+                {/* ── Reviews Tab ── */}
+                <TabsContent value="reviews" className="mt-4">
+                  <ReviewsTab taskId={taskId ?? ''} />
+                </TabsContent>
+
+                {/* ── Comments Tab ── */}
+                <TabsContent value="comments" className="mt-4">
+                  <CommentsTab taskId={taskId ?? ''} />
+                </TabsContent>
+
+                {/* ── Quality Tab (AC + DoD + Subtasks) ── */}
+                <TabsContent value="quality" className="mt-4 space-y-6">
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                      Acceptance Criteria ({acs?.length ?? 0})
+                    </h4>
+                    <ListSection
+                      items={acs ?? []}
+                      renderItem={(ac) => (
+                        <span className="text-sm">{ac.description}</span>
+                      )}
+                      emptyText="No acceptance criteria yet."
                     />
-                    <Button size="sm" onClick={handleAddSubtask} disabled={!newSubtask.trim()}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="Add acceptance criterion..."
+                        value={newAC}
+                        onChange={(e) => setNewAC(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddAC()}
+                        className="h-9"
+                      />
+                      <Button size="sm" onClick={handleAddAC} disabled={!newAC.trim()}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                      Definition of Done ({dods?.length ?? 0})
+                    </h4>
+                    <ListSection
+                      items={dods ?? []}
+                      renderItem={(dod) => (
+                        <span className="text-sm">{dod.name}</span>
+                      )}
+                      emptyText="No DoD items yet."
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="Add DoD item..."
+                        value={newDoD}
+                        onChange={(e) => setNewDoD(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddDoD()}
+                        className="h-9"
+                      />
+                      <Button size="sm" onClick={handleAddDoD} disabled={!newDoD.trim()}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                      Subtasks ({subtasks?.length ?? 0})
+                    </h4>
+                    <ListSection
+                      items={subtasks ?? []}
+                      renderItem={(st) => (
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={st.status} size="sm" />
+                          <span className="text-sm">{st.title}</span>
+                        </div>
+                      )}
+                      emptyText="No subtasks yet."
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="Add subtask..."
+                        value={newSubtask}
+                        onChange={(e) => setNewSubtask(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                        className="h-9"
+                      />
+                      <Button size="sm" onClick={handleAddSubtask} disabled={!newSubtask.trim()}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>

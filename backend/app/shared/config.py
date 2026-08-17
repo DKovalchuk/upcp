@@ -45,6 +45,14 @@ class Settings(BaseSettings):
     llm_model: str = ""
     llm_api_url: str = ""
 
+    # Explicit middleware disable flags — safer than relying on env="test"
+    disable_auth: bool = Field(default=False, alias="UPCP_DISABLE_AUTH")
+    disable_rate_limit: bool = Field(default=False, alias="UPCP_DISABLE_RATE_LIMIT")
+
+    # File uploads
+    upload_dir: str = Field(default="data/uploads", alias="UPCP_UPLOAD_DIR")
+    max_upload_size_bytes: int = Field(default=10 * 1024 * 1024, alias="UPCP_MAX_UPLOAD_SIZE")
+
     @model_validator(mode="after")
     def _parse_cors(self) -> Settings:
         self.__dict__["cors_origins_list"] = _parse_csv(self.cors_origins)

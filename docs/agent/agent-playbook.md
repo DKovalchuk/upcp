@@ -1,5 +1,8 @@
 # Agent Playbook
 
+> **Status**: Partially implemented. Agent API endpoints exist. Per-project playbook storage not yet implemented.
+> **Source of truth**: `backend/app/delivery/workflow.py` for actual API behavior
+
 Complete guide for AI agents working with UPCP.
 
 ## 1. Authentication
@@ -74,7 +77,7 @@ backlog → ready → claimed → in_progress → in_review → done
 **Rules:**
 - The task must be in `ready` or `backlog` status.
 - One agent — one active claim.
-- The claim expires after the TTL (30 min without heartbeat).
+- The claim expires after 5 min without heartbeat (stale notification), auto-released at 15 min.
 - Re-claiming by the same agent is an idempotent operation.
 
 ### 3.2 Heartbeat

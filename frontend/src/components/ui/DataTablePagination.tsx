@@ -54,14 +54,14 @@ export function DataTablePagination({
 
         <div className="flex items-center gap-1">
           <Tooltip>
-            <TooltipTrigger render={<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onPageChange(0)} disabled={currentPage <= 1} />}>
+            <TooltipTrigger render={<Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => onPageChange(0)} disabled={currentPage <= 1} aria-label="First page" />}>
               <ChevronsLeft className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>First page</TooltipContent>
           </Tooltip>
 
           <Tooltip>
-            <TooltipTrigger render={<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onPageChange(Math.max(0, offset - limit))} disabled={currentPage <= 1} />}>
+            <TooltipTrigger render={<Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => onPageChange(Math.max(0, offset - limit))} disabled={currentPage <= 1} aria-label="Previous page" />}>
               <ChevronLeft className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Previous page</TooltipContent>
@@ -84,7 +84,7 @@ export function DataTablePagination({
                 key={page}
                 variant={page === currentPage ? 'default' : 'outline'}
                 size="icon"
-                className="h-8 w-8"
+                className="min-h-[44px] min-w-[44px]"
                 onClick={() => onPageChange((page - 1) * limit)}
               >
                 {page}
@@ -93,14 +93,14 @@ export function DataTablePagination({
           })}
 
           <Tooltip>
-            <TooltipTrigger render={<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onPageChange(Math.min((totalPages - 1) * limit, offset + limit))} disabled={currentPage >= totalPages} />}>
+            <TooltipTrigger render={<Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => onPageChange(Math.min((totalPages - 1) * limit, offset + limit))} disabled={currentPage >= totalPages} aria-label="Next page" />}>
               <ChevronRight className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Next page</TooltipContent>
           </Tooltip>
 
           <Tooltip>
-            <TooltipTrigger render={<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onPageChange((totalPages - 1) * limit)} disabled={currentPage >= totalPages} />}>
+            <TooltipTrigger render={<Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]" onClick={() => onPageChange((totalPages - 1) * limit)} disabled={currentPage >= totalPages} aria-label="Last page" />}>
               <ChevronsRight className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Last page</TooltipContent>

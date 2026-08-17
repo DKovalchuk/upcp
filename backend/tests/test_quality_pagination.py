@@ -2,7 +2,6 @@
 
 # Import all models to ensure tables are created
 import app.audit.models  # noqa: F401
-import app.auth.models  # noqa: F401
 import app.delivery.models  # noqa: F401
 import app.gitread.models  # noqa: F401
 import app.identity.agents  # noqa: F401

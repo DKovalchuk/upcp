@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   closestCenter,
@@ -12,10 +13,11 @@ import {
 } from '@dnd-kit/core';
 import { useDroppable } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-import { fetchTasks } from '@/lib/api';
+import { fetchProjectTasks } from '@/lib/api';
 import { useUpdateTask } from '@/hooks/use-tasks';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityDot } from '@/components/ui/PriorityDot';
+import { AgentAvatar } from '@/components/ui/AgentAvatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showToast } from '@/lib/toast';
 import type { Task } from '@/types/task';
@@ -29,6 +31,7 @@ const BOARD_COLUMNS = [
 ] as const;
 
 interface BoardViewProps {
+  projectId: string;
   features: Feature[];
   search: string;
   onSelectTask: (taskId: string) => void;
@@ -48,12 +51,15 @@ function DraggableTaskCard({
     data: { task },
   });
 
+  const { role: _role, ...restAttributes } = attributes;
+
   return (
     <div
       ref={setNodeRef}
+      role="listitem"
       data-draggable
       {...listeners}
-      {...attributes}
+      {...restAttributes}
       className={`cursor-grab rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50 ${
         isDragging ? 'opacity-50' : ''
       }`}
@@ -70,8 +76,18 @@ function DraggableTaskCard({
         </div>
         <PriorityDot priority={task.priority} />
       </div>
-      <div className="mt-2">
+      <div className="mt-2 flex items-center justify-between">
         <StatusBadge status={task.status} />
+        {task.assignee_type === 'agent' && task.assignee_id && (
+          <div className="flex items-center gap-1.5">
+            <AgentAvatar name={task.assignee_id} size="sm" />
+            {task.status === 'in-progress' && (
+              <div className="h-1 w-8 rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary animate-pulse" style={{ width: '50%' }} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -90,6 +106,8 @@ function DroppableColumn({
     <div
       ref={setNodeRef}
       data-droppable
+      role="list"
+      aria-labelledby={`board-col-${columnKey}`}
       className={`min-h-[200px] space-y-2 rounded-lg border border-dashed p-2 transition-colors ${
         isOver ? 'border-primary bg-primary/5' : ''
       }`}
@@ -99,34 +117,23 @@ function DroppableColumn({
   );
 }
 
-export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
+export function BoardView({ projectId, features, search, onSelectTask }: BoardViewProps) {
   const updateTask = useUpdateTask();
   const queryClient = useQueryClient();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
   );
 
-  const taskQueries = useQueries({
-    queries: features.map((f) => ({
-      queryKey: ['tasks', f.id],
-      queryFn: () => fetchTasks(f.id),
-      enabled: !!f.id,
-    })),
+  const { data, isLoading } = useQuery({
+    queryKey: ['project-tasks', projectId],
+    queryFn: () => fetchProjectTasks(projectId),
+    enabled: !!projectId,
   });
 
-  const isLoading = taskQueries.some((q) => q.isLoading);
-
-  const allTasksList = useMemo(() => {
-    const result: Task[] = [];
-    for (const q of taskQueries) {
-      if (q.data?.items) {
-        result.push(...q.data.items);
-      }
-    }
-    return result;
-  }, [taskQueries]);
+  const allTasksList = useMemo(() => data?.items ?? [], [data]);
 
   const filteredTasks = useMemo(() => {
     if (!search) return allTasksList;
@@ -181,10 +188,7 @@ export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
         id: task.id,
         data: { status: newStatus },
       });
-      // Invalidate all task queries so columns re-render
-      for (const f of features) {
-        queryClient.invalidateQueries({ queryKey: ['tasks', f.id] });
-      }
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       showToast.updated('Task');
     } catch {
       showToast.mutationError('update', 'task');
@@ -213,11 +217,11 @@ export function BoardView({ features, search, onSelectTask }: BoardViewProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" role="group" aria-label="Task board">
         {BOARD_COLUMNS.map((col) => (
           <div key={col.key} className="space-y-2">
             <div className="flex items-center gap-2 px-1">
-              <h3 className="text-sm font-medium text-muted-foreground">
+              <h3 className="text-sm font-medium text-muted-foreground" id={`board-col-${col.key}`}>
                 {col.label}
               </h3>
               <span className="text-xs text-muted-foreground">

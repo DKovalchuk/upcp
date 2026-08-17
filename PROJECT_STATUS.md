@@ -1,50 +1,116 @@
 # PROJECT_STATUS
 
-Updated: 2026-08-06
-Version: 0.14.0 (see `VERSIONING.md` for scheme)
-Milestone: M13 — Architecture & Backend Cleanup (M12 complete)
-Current Task: TASK-0093 (S15.3 in MR !19, pending merge)
+Updated: 2026-08-17
+Version: 0.21.0 (see `VERSIONING.md` for scheme)
+Milestone: M19 — Test Quality & Architecture (COMPLETE)
+Current Task: M20 S22.3+S22.4 on branch (ready for MR), S22.1+S22.2 pending
 Blockers: none
+Roadmap: See `ROADMAP_UNIFIED.md` for post-M15 plan (M16-M20, ~23 weeks)
+
+## M17 Summary — Security & Stability
+
+All 4 sprints completed and merged:
+
+| Sprint | TASK | Focus | Status |
+|--------|------|-------|--------|
+| S19.1 | TASK-0104 | Critical bug fixes (5 frontend bugs) | ✅ Done |
+| S19.2 | TASK-0105 | Security hardening (MCP auth, LLM, CSP, ownership, env flags) | ✅ Done |
+| S19.3 | TASK-0106 | Database hardening (17 indexes, 26 ondelete, N+1 fix) | ✅ Done |
+| S19.4 | TASK-0107 | Architecture cleanup (logging, dead code, inbox, lifespan, target) | ✅ Done |
+
+**Evidence:** 732 tests pass, ruff + mypy clean, all pipelines green
+
+## UPCP v2 Project (Stage)
+
+**Project ID:** d9313eae-7e0b-4060-85ca-2e5591faefd2
+**Stage URL:** http://localhost:3070
+**API:** http://localhost:38081
+
+### Population Summary
+
+| Entity | Count | Status |
+|--------|-------|--------|
+| Project | 1 | active |
+| Components | 13 | all active |
+| Modules | 81 | all active |
+| Features | 26 | all active |
+| Tasks | 56 | 34 done, 42 backlog |
+| DoD Items | 105 | per done task |
+| Acceptance Criteria | 33 | per done task |
+
+### Overall Completion: **44.7%** (34/76 tasks done)
+
+### Component Completion
+
+| Component | Done | Total | % |
+|-----------|------|-------|---|
+| Auth Pages & Dashboard | 3 | 3 | 100% |
+| Board View & Task Detail | 2 | 2 | 100% |
+| MCP Server & REST API | 3 | 3 | 100% |
+| Project Views | 2 | 2 | 100% |
+| Settings & Accessibility | 2 | 2 | 100% |
+| Task Claim & Heartbeat | 3 | 3 | 100% |
+| Clarification Flow | 2 | 2 | 100% |
+| Evidence Attachment & Verification | 2 | 2 | 100% |
+| Review Rounds | 2 | 2 | 100% |
+| User Registration & Login | 7 | 14 | 50% |
+| RBAC & Authorization | 3 | 6 | 50% |
+| Agent CRUD & Tokens | 2 | 4 | 50% |
+| Redis Integration & Rate Limiting | 2 | 4 | 50% |
+| Secret Management | 2 | 4 | 50% |
+| Structured Logging & Metrics | 2 | 4 | 50% |
+| Reports & Analytics | 0 | 2 | 0% |
+| Notification System | 0 | 1 | 0% |
+| Notification Channels | 0 | 2 | 0% |
+
+## Sprint History (M15)
+
+- [x] S17.1 (done) — Backend gaps: clarification REST, stale reaper, inbox events, lifecycle enforcement, agent metrics, agent detail endpoints
+- [x] S17.2 (done, !35) — Agent Center page + Agent Detail page with metrics, claims, activity, clarifications
+- [x] S17.3 (done, !36) — TaskDetailSheet dedicated tabs: Clarifications, Evidence, Reviews
+- [x] S17.4 (done, !37) — Evidence/Review UI, Playwright E2E (23 tests), bugfixes
+
+## Sprint History (M14)
+
+- [x] S16.1 (done) — Performance: bundle, staleTime, BoardView. A11y: aria, touch targets
+- [x] S16.2 (done) — Performance: lazy mount, dnd-kit, responsive. UX: password toggle, search, CommandPalette
+- [x] S16.3 (done, !30) — Tests: ProjectList, TopBar, AppShell, AuthContext, api/client, e2e integration
+- [x] S16.4 (done, !31) — Polish: transitions, micro-interactions. Test cleanup: 32→0 `as any`, shared helpers
 
 ## Stage Deployment
 
 - **MR !15**: develop → main merged (2026-07-30)
-- **Stage**: deployed and healthy on localhost:3080
-- **Backend**: localhost:38081 (healthy, DB + Redis connected)
-- **Fixes**: Redis port 36382 (avoids dev conflict), hardcoded UPCP_SECRET_KEY
+- **Stage**: deployed and healthy (ports from `.env.stage`)
+- **Backend**: healthy, DB + Redis connected
+- **Fixes**: Redis port conflict resolved, hardcoded UPCP_SECRET_KEY
 
-## Roadmap to 1.0.0
+## Roadmap
 
 ```
-0.13.0 (done) → 0.14.0 (done+deployed) → 0.15.0 → 1.0.0
-   M11              M12                    M13      Production
+0.17.0 ✅ → 0.18.0 → 0.19.0 ✅ → 0.20.0 → 0.21.0 ✅ → 0.22.0 → ...
+   M15         M16        M17         M18         M19         M20
 ```
 
-### M12: 0.14.0 — Critical Fixes & Security (S14.1–S14.2)
+See `ROADMAP_UNIFIED.md` for full plan with sprint breakdown.
 
-| Sprint | Items | Points | Focus |
-|--------|-------|--------|-------|
-| S14.1 | 0.1–0.6 | 10 | Broken features: TaskDetailSheet execution, HealthPage DB, /health endpoint, AgentActivitySummary, ReportsPage export, EntityFormDialog select | ✅ DONE |
-| S14.2 | 1.1–1.4 | 5 | Security: CORS headers, SSRF validation, error sanitization, dependency scanning |
+### M16: 0.18.0 — Notifications & Reporting (S18.1 done, S18.2-S18.4 pending)
+### M17: 0.19.0 — Security & Stability ✅ DONE
+### M18: 0.20.0 — UX Polish, Accessibility & Settings (planned, SPEC-0021)
+### M19: 0.21.0 — Test Quality & Architecture ✅ DONE
+### M20: 0.22.0 — Extended Features (S22.3+S22.4 done on branch, S22.1+S22.2 pending)
 
-### M13: 0.15.0 — Architecture & Backend Cleanup (S15.1–S15.3)
+### Comprehensive Audit (2026-08-12)
 
-| Sprint | Items | Points | Focus |
-|--------|-------|--------|-------|
-| S15.1 | 2.4, 2.8, 2.10, 3.2–3.5 | 8 | Quick wins: PATCH endpoint, OpenAPI, Settings route, useProjectId dedup, dead code, Ctrl+K | ✅ DONE |
-| S15.2 | 2.1–2.3, 3.1 | 9 | Backend: N+1, eager loading, pagination. Frontend: api.ts split | ✅ DONE |
-| S15.3 | 2.7, 2.9, 3.6–3.8 | 8 | Backend: schemas, /tasks endpoint. Frontend: logic to hooks, UUID resolution | 🔄 MR !19 |
+Full audit across all dimensions. See `AUDIT_M16_COMPREHENSIVE.md`.
 
-### 1.0.0 — Production Ready (S16.1–S16.4)
+**Scorecard:** 6.5/10
+- Stability: 7/10 | Reliability: 7/10 | Code Quality: 6/10
+- UX: 6/10 | Architecture: 7/10 | Completeness: 6/10
 
-| Sprint | Items | Points | Focus |
-|--------|-------|--------|-------|
-| S16.1 | 4.1–4.3, 5.1–5.3 | 8 | Performance: bundle, staleTime, BoardView. A11y: aria, touch targets |
-| S16.2 | 4.4–4.6, 5.4–5.8 | 9 | Performance: lazy mount, dnd-kit, responsive. UX: password toggle, search, CommandPalette |
-| S16.3 | 6.1–6.8 | 9 | Tests: auth, core pages, api.ts, integration |
-| S16.4 | 5.9–5.15, 6.9–6.12 | 7 | Polish: animations, typography, switcher, quick-edit. Test cleanup |
-
-**Total: 61 items, 9 sprints (18 weeks), 3 milestones**
+**Key findings:** 2 Critical, 14 High, 28 Medium, 16 Low
+- Critical: query string bug, MCP auth bypass
+- High: LLM stubs, broken Project Settings route, TopBar no-ops, missing indexes
+- All findings mapped to M17-M20 tasks
 
 ## S15.1 Progress (Complete)
 
@@ -336,8 +402,9 @@ TASK-0057 completed: Board/Kanban view for Delivery page.
 - DEC-0013: URL-synced pagination with search params
 - DEC-0014: Design system components (StatusBadge, PriorityDot, EmptyState, ErrorState, ConfirmDialog)
 
-### Test Coverage
-- Frontend: 119 tests across 19 test files, all passing
+### Test Coverage (updated 2026-08-07)
+- Frontend: 238 tests across 34 test files, all passing
+- E2E: 12 Playwright tests (auth, integration)
 - Backend: 189 tests, 90% coverage
 
 ## M5 Completed (Previous)

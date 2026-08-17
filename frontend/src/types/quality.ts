@@ -42,6 +42,9 @@ export interface Evidence {
   url: string | null;
   content_snippet: string | null;
   artifact_ref: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  content_type: string | null;
   created_by_type: string;
   created_by_id: string;
   verification_state: string;
@@ -59,8 +62,8 @@ export interface EvidenceCreate {
   content_snippet?: string;
   artifact_ref?: string;
   dod_item_id?: string;
-  created_by_type: string;
-  created_by_id: string;
+  created_by_type?: string;
+  created_by_id?: string;
 }
 
 

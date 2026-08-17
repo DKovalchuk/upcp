@@ -51,4 +51,23 @@ test.describe('Command Palette', () => {
     const searchInput = page.locator('[cmdk-input]');
     await expect(searchInput).toBeVisible({ timeout: 5000 });
   });
+
+  test('shows Actions group with New Project', async ({ page }) => {
+    await gotoPage(page, '/');
+    await page.keyboard.press('Control+k');
+    await page.waitForTimeout(500);
+    const searchInput = page.locator('[cmdk-input]');
+    await expect(searchInput).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('New Project').last()).toBeVisible();
+  });
+
+  test('shows project actions on project page', async ({ page }) => {
+    await gotoPage(page, '/projects/proj-1/delivery');
+    await page.keyboard.press('Control+k');
+    await page.waitForTimeout(500);
+    const searchInput = page.locator('[cmdk-input]');
+    await expect(searchInput).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('New Feature').last()).toBeVisible();
+    await expect(page.getByText('Refresh Data').last()).toBeVisible();
+  });
 });

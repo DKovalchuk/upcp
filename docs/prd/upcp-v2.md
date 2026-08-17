@@ -1,6 +1,7 @@
 # UPCP v2 — Product Requirements Document
 
-> Version: 2.0 | Status: Draft | Updated: 2026-07-27
+> Version: 2.0 | Status: Implemented (M7–M14 complete) | Updated: 2026-08-08
+> **Source of truth**: `PROJECT_STATUS.md` for current state, `backend/app/*/models.py` for actual data model
 
 ## 1. Product Vision
 

@@ -23,6 +23,7 @@ vi.mock('@/hooks/use-tasks', () => ({
   useCreateTask: vi.fn(),
   useUpdateTask: vi.fn(),
   useDeleteTask: vi.fn(),
+  useBulkUpdateTasks: vi.fn(() => ({ mutateAsync: vi.fn() })),
 }));
 
 vi.mock('@/hooks/use-quality', () => ({

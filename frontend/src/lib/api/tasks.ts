@@ -23,6 +23,23 @@ export async function fetchTasks(
   );
 }
 
+export async function fetchProjectTasks(
+  projectId: string,
+  filters?: { status?: string; feature_id?: string; assignee_type?: string },
+  pagination?: { offset?: number; limit?: number }
+): Promise<PaginatedResponse<Task>> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.feature_id) params.set('feature_id', filters.feature_id);
+  if (filters?.assignee_type) params.set('assignee_type', filters.assignee_type);
+  if (pagination?.offset !== undefined) params.set('offset', String(pagination.offset));
+  if (pagination?.limit !== undefined) params.set('limit', String(pagination.limit));
+  const qs = params.toString();
+  return apiRequest<PaginatedResponse<Task>>(
+    `/api/v1/projects/${projectId}/tasks${qs ? '?' + qs : ''}`
+  );
+}
+
 export async function fetchTask(id: string): Promise<Task> {
   return apiRequest<Task>(`/api/v1/tasks/${id}`);
 }
@@ -53,6 +70,16 @@ export async function completeTask(id: string): Promise<{ id: string; status: st
   });
 }
 
+export async function bulkUpdateTasks(
+  taskIds: string[],
+  updates: { status?: string; priority?: number; assignee_type?: string; assignee_id?: string }
+): Promise<{ updated: number }> {
+  return apiRequest<{ updated: number }>('/api/v1/tasks/bulk', {
+    method: 'PATCH',
+    body: JSON.stringify({ task_ids: taskIds, updates }),
+  });
+}
+
 // ── Subtasks ──
 
 export async function fetchSubtasks(taskId: string): Promise<Subtask[]> {
@@ -64,6 +91,46 @@ export async function fetchSubtasks(taskId: string): Promise<Subtask[]> {
 
 export async function fetchSubtask(id: string): Promise<Subtask> {
   return apiRequest<Subtask>(`/api/v1/subtasks/${id}`);
+}
+
+// ── Comments ──
+
+export interface Comment {
+  id: string;
+  task_id: string;
+  author_type: string;
+  author_id: string;
+  body: string;
+  parent_id: string | null;
+  created_at: string | null;
+}
+
+export async function fetchComments(taskId: string): Promise<Comment[]> {
+  const data = await apiRequest<{ items: Comment[] }>(`/api/v1/tasks/${taskId}/comments`);
+  return data.items ?? [];
+}
+
+export async function createComment(
+  taskId: string,
+  body: string,
+  authorType?: string,
+  authorId?: string,
+  parentId?: string
+): Promise<Comment> {
+  const params = new URLSearchParams({ body });
+  if (authorType) params.set('author_type', authorType);
+  if (authorId) params.set('author_id', authorId);
+  if (parentId) params.set('parent_id', parentId);
+  return apiRequest<Comment>(`/api/v1/tasks/${taskId}/comments?${params}`, {
+    method: 'POST',
+  });
+}
+
+// ── Audit Export ──
+
+export async function exportAuditCsv(projectId: string): Promise<string> {
+  const response = await fetch(`/api/v1/audit/export?project_id=${projectId}&format=csv`);
+  return response.text();
 }
 
 export async function createSubtask(taskId: string, data: SubtaskCreate): Promise<Subtask> {
@@ -150,6 +217,16 @@ export async function fetchTaskClarifications(
   return apiRequest<{ items: ClarificationRequest[] }>(
     `/api/v1/tasks/${taskId}/clarifications`
   );
+}
+
+export async function answerClarification(
+  clarificationId: string,
+  answer: string
+): Promise<{ id: string; state: string; answer: string }> {
+  return apiRequest(`/api/v1/clarifications/${clarificationId}/answer`, {
+    method: 'POST',
+    body: JSON.stringify({ answer }),
+  });
 }
 
 // ── Agent Self-Service ──

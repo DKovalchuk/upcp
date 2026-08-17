@@ -15,9 +15,11 @@
 ### 1. Убедиться, что UPCP запущен
 
 ```bash
-docker compose -f docker-compose.stage.yml up -d
-curl -s http://upcp.local:3080/mcp/
+docker compose --env-file .env.stage up -d
+curl -s http://upcp.local:3070/mcp/
 ```
+
+**Примечание:** Порт зависит от `.env.*` файла. См. `docs/11-docker-and-ports.md`.
 
 ### 2. Проверить мост
 
@@ -47,13 +49,13 @@ echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | python3 mcp-
 ## UPCP на другом хосте
 
 ```bash
-python3 mcp-setup/mcp-bridge.py --upcp-url http://your-host:3080/mcp/
+python3 mcp-setup/mcp-bridge.py --upcp-url http://your-host:3070/mcp/
 ```
 
 Или через переменную окружения:
 
 ```bash
-UPCP_MCP_URL=http://your-host:3080/mcp/ python3 mcp-setup/mcp-bridge.py
+UPCP_MCP_URL=http://your-host:3070/mcp/ python3 mcp-setup/mcp-bridge.py
 ```
 
 ## Debug

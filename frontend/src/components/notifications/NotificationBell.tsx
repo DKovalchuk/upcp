@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { Bell, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,22 +12,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   fetchNotifications,
   fetchUnreadCount,
   markNotificationRead,
   markAllNotificationsRead,
 } from '@/lib/api';
+import { showToast } from '@/lib/toast';
 import type { Notification } from '@/types/dashboard';
 import { formatRelativeTime } from '@/lib/format';
 
 function NotificationItem({
   notification,
   onRead,
+  onNavigate,
 }: {
   notification: Notification;
   onRead: () => void;
+  onNavigate: (n: Notification) => void;
 }) {
   return (
     <DropdownMenuItem
@@ -34,7 +37,10 @@ function NotificationItem({
         !notification.is_read ? 'bg-primary/5' : ''
       }`}
       onClick={() => {
-        markNotificationRead(notification.id).then(onRead);
+        markNotificationRead(notification.id)
+          .then(onRead)
+          .catch(() => showToast.mutationError('update', 'notification'));
+        onNavigate(notification);
       }}
     >
       <div className="flex w-full items-start justify-between gap-2">
@@ -55,6 +61,7 @@ function NotificationItem({
 
 export function NotificationBell() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   const { data: countData } = useQuery({
@@ -76,31 +83,38 @@ export function NotificationBell() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
+    onError: () => {
+      showToast.mutationError('update', 'notifications');
+    },
   });
+
+  const handleNavigate = (n: Notification) => {
+    if (n.entity_type && n.entity_id) {
+      setOpen(false);
+      if (n.entity_type === 'task') {
+        navigate({ to: '/projects' });
+      } else if (n.entity_type === 'project') {
+        navigate({ to: `/projects/${n.entity_id}` });
+      }
+    }
+  };
 
   const unreadCount = countData?.count ?? 0;
   const notifications = notifData?.items ?? [];
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <DropdownMenuTrigger
-              className="relative flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
-              aria-label={`Notifications (${unreadCount} unread)`}
-            />
-          }
-        >
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground animate-badge-pop">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </TooltipTrigger>
-        <TooltipContent>Notifications</TooltipContent>
-      </Tooltip>
+      <DropdownMenuTrigger
+        className="relative flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
+        aria-label={`Notifications (${unreadCount} unread)`}
+      >
+        <Bell className="h-4 w-4" />
+        {unreadCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground animate-badge-pop">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
         <DropdownMenuLabel className="flex items-center justify-between">
@@ -136,6 +150,7 @@ export function NotificationBell() {
                 onRead={() => {
                   queryClient.invalidateQueries({ queryKey: ['notifications'] });
                 }}
+                onNavigate={handleNavigate}
               />
             ))}
           </DropdownMenuGroup>

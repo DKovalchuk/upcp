@@ -1,8 +1,13 @@
+import logging
+
 from sqlalchemy.orm import Session
 
-from app.delivery.models import Feature, Subtask, Task
-from app.shared.errors import Conflict, NotFound
+from app.delivery.models import Comment, Feature, Subtask, Task
+from app.shared.errors import Conflict, NotFound, ValidationError
+from app.shared.events import event_bus
 from app.shared.text import slugify
+
+logger = logging.getLogger(__name__)
 
 
 class FeatureService:
@@ -104,16 +109,79 @@ class TaskService:
 
     def update(self, task_id: str, **fields: str | None | int) -> Task:
         t = self.get(task_id)
+        old_status = t.status
+        new_status = fields.get("status")
+        if new_status is not None and new_status != t.status:
+            from app.delivery.lifecycle import validate_transition
+
+            validate_transition(t.status, str(new_status))
         for key, value in fields.items():
             if value is not None:
                 setattr(t, key, value)
         self._session.flush()
+
+        if new_status is not None and str(new_status) != old_status:
+            event_bus.publish(
+                "task.status_changed",
+                session=self._session,
+                entity_type="task",
+                entity_id=task_id,
+                actor_id=str(fields.get("assignee_id", "system")),
+                metadata={
+                    "old_status": old_status,
+                    "new_status": str(new_status),
+                    "task_title": t.title,
+                },
+            )
+
         return t
 
     def delete(self, task_id: str) -> None:
         t = self.get(task_id)
         self._session.delete(t)
         self._session.flush()
+
+    def bulk_update(
+        self,
+        task_ids: list[str],
+        *,
+        status: str | None = None,
+        priority: int | None = None,
+        assignee_type: str | None = None,
+        assignee_id: str | None = None,
+    ) -> int:
+        """Update multiple tasks. Returns count of successfully updated tasks."""
+        if not task_ids:
+            return 0
+
+        if status is not None:
+            # Validate transition for first task to catch bulk-invalid transitions
+            first = self._session.get(Task, task_ids[0])
+            if first:
+                from app.delivery.lifecycle import InvalidTransition, validate_transition
+
+                try:
+                    validate_transition(first.status, status)
+                except InvalidTransition as exc:
+                    raise ValidationError(str(exc)) from exc
+
+        updated = 0
+        for tid in task_ids:
+            t = self._session.get(Task, tid)
+            if not t:
+                continue
+            if status is not None:
+                t.status = status
+            if priority is not None:
+                t.priority = priority
+            if assignee_type is not None:
+                t.assignee_type = assignee_type
+            if assignee_id is not None:
+                t.assignee_id = assignee_id
+            updated += 1
+
+        self._session.flush()
+        return updated
 
     def list_tasks(
         self, feature_id: str, *, offset: int = 0, limit: int = 20
@@ -198,3 +266,41 @@ class SubtaskService:
         q = self._session.query(Subtask).filter_by(task_id=task_id)
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
+
+
+class CommentService:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def create(
+        self,
+        *,
+        task_id: str,
+        author_type: str,
+        author_id: str,
+        body: str,
+        parent_id: str | None = None,
+    ) -> Comment:
+        if parent_id:
+            parent = self._session.get(Comment, parent_id)
+            if not parent or parent.task_id != task_id:
+                raise NotFound(f"parent comment '{parent_id}' not found")
+
+        c = Comment(
+            task_id=task_id,
+            author_type=author_type,
+            author_id=author_id,
+            body=body,
+            parent_id=parent_id,
+        )
+        self._session.add(c)
+        self._session.flush()
+        return c
+
+    def list_by_task(self, task_id: str) -> list[Comment]:
+        return (
+            self._session.query(Comment)
+            .filter_by(task_id=task_id)
+            .order_by(Comment.created_at.asc())
+            .all()
+        )

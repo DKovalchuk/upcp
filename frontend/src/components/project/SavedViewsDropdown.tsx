@@ -43,8 +43,8 @@ export function SavedViewsDropdown({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
-          <Bookmark className="h-3.5 w-3.5" />
+        <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground" aria-label="Saved views">
+          <Bookmark className="h-3.5 w-3.5" aria-hidden="true" />
           <span className="hidden sm:inline">Views</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
@@ -69,6 +69,7 @@ export function SavedViewsDropdown({
                   </span>
                   <button
                     className="ml-2 text-muted-foreground hover:text-destructive"
+                    aria-label={`Delete view ${view.name}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       removeView(view.id);

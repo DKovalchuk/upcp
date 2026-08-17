@@ -6,6 +6,7 @@ import {
   fetchEvidence,
   fetchReviewRounds,
   releaseTask,
+  answerClarification,
 } from '@/lib/api';
 
 export function useTaskClaims(taskId: string) {
@@ -13,6 +14,7 @@ export function useTaskClaims(taskId: string) {
     queryKey: ['tasks', taskId, 'claims'],
     queryFn: () => fetchTaskClaims(taskId),
     enabled: !!taskId,
+    staleTime: 0,
   });
 }
 
@@ -21,6 +23,7 @@ export function useTaskHeartbeats(taskId: string) {
     queryKey: ['tasks', taskId, 'heartbeats'],
     queryFn: () => fetchTaskHeartbeats(taskId),
     enabled: !!taskId,
+    staleTime: 0,
   });
 }
 
@@ -29,6 +32,7 @@ export function useTaskClarifications(taskId: string) {
     queryKey: ['tasks', taskId, 'clarifications'],
     queryFn: () => fetchTaskClarifications(taskId),
     enabled: !!taskId,
+    staleTime: 0,
   });
 }
 
@@ -56,6 +60,18 @@ export function useReleaseTask() {
     onSuccess: (_, taskId) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'claims'] });
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'heartbeats'] });
+    },
+  });
+}
+
+export function useAnswerClarification(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ clarificationId, answer }: { clarificationId: string; answer: string }) =>
+      answerClarification(clarificationId, answer),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'clarifications'] });
     },
   });
 }

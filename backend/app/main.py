@@ -1,15 +1,22 @@
+import asyncio
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from app.api.v1.agent_self import router as agent_self_router
+from app.api.v1.analytics import router as analytics_router
 from app.api.v1.audit import router as audit_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.delivery import router as delivery_router
 from app.api.v1.gitread import router as gitread_router
+from app.api.v1.notification_channels import router as notification_channels_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.quality import router as quality_router
+from app.api.v1.reaper import router as reaper_router
 from app.api.v1.reporting import router as reporting_router
 from app.api.v1.search import router as search_router
 from app.api.v1.structure import router as structure_router
@@ -37,9 +44,26 @@ try:
 except ImportError:
     pass
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
+    """Application lifespan — start background tasks on startup, cancel on shutdown."""
+    from app.delivery.stale_reaper import stale_reaper_loop
+    from app.shared.database import SessionLocal
+    from app.shared.event_setup import setup_event_handlers
+
+    setup_event_handlers()
+    reaper_task = asyncio.create_task(stale_reaper_loop(SessionLocal))
+    try:
+        yield
+    finally:
+        reaper_task.cancel()
+
+
 app = FastAPI(
     title="UPCP Backend",
     version="0.1.0",
+    lifespan=lifespan,
     openapi_tags=[
         {"name": "projects", "description": "Project CRUD operations"},
         {"name": "structure", "description": "Components and modules within projects"},
@@ -75,13 +99,13 @@ app.add_middleware(CorrelationMiddleware)
 try:
     from app.shared.rate_limit_middleware import RateLimitMiddleware
 
-    if settings.env != "test":
+    if not settings.disable_rate_limit:
         app.add_middleware(RateLimitMiddleware)
 except ImportError:
     pass
 
-# Auth middleware — protects all /api/v1/ routes except public ones
-if settings.env != "test":
+# Auth middleware — protects all /api/v1/ and /mcp/ routes except public ones
+if not settings.disable_auth:
     app.add_middleware(AuthMiddleware)
 
 # CORS — configured via UPCP_CORS_ORIGINS and UPCP_CORS_ALLOW_HEADERS env vars
@@ -105,7 +129,7 @@ async def security_headers(request: Request, call_next: object) -> Response:
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
     )
     return response
 
@@ -123,7 +147,10 @@ app.include_router(audit_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(agent_self_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(notification_channels_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(agent_router, prefix="/api/v1")
+app.include_router(reaper_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/auth")
 
 # MCP server

@@ -13,6 +13,7 @@ export function useGitProviders(projectId: string) {
     queryKey: ['git-providers', projectId],
     queryFn: () => fetchGitProviders(projectId),
     enabled: !!projectId,
+    staleTime: 2 * 60_000,
   });
 }
 
@@ -47,6 +48,7 @@ export function useGitBranches(providerId: string) {
     queryKey: ['git-branches', providerId],
     queryFn: () => fetchGitBranches(providerId),
     enabled: !!providerId,
+    staleTime: 2 * 60_000,
   });
 }
 
@@ -55,5 +57,6 @@ export function useGitCommits(providerId: string, limit = 20) {
     queryKey: ['git-commits', providerId, limit],
     queryFn: () => fetchGitCommits(providerId, limit),
     enabled: !!providerId,
+    staleTime: 2 * 60_000,
   });
 }
