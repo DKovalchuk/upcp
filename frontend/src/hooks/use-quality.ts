@@ -14,6 +14,7 @@ import {
   createEvidence,
   acceptEvidence,
   rejectEvidence,
+  uploadEvidence,
   createReviewRound,
 } from '@/lib/api';
 import type {
@@ -170,6 +171,18 @@ export function useCreateEvidence(taskId: string) {
   return useMutation({
     mutationFn: (data: { title: string; type: string; description?: string; url?: string; content_snippet?: string }) =>
       createEvidence(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'evidence'] });
+    },
+  });
+}
+
+export function useUploadEvidence(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ file, title, description }: { file: File; title?: string; description?: string }) =>
+      uploadEvidence(taskId, file, title, description),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'evidence'] });
     },

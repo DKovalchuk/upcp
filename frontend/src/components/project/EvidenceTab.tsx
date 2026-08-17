@@ -1,8 +1,8 @@
 // Dedicated Evidence Tab — TASK-0099 Sprint 4
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useTaskEvidence } from '@/hooks/use-task-execution';
-import { useCreateEvidence, useAcceptEvidence, useRejectEvidence } from '@/hooks/use-quality';
+import { useCreateEvidence, useAcceptEvidence, useRejectEvidence, useUploadEvidence } from '@/hooks/use-quality';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { formatRelativeTime } from '@/lib/format';
 import { showToast } from '@/lib/toast';
-import { ExternalLink, FileText, Plus, CheckCircle, XCircle } from 'lucide-react';
+import { ExternalLink, FileText, Plus, CheckCircle, XCircle, Upload, Paperclip } from 'lucide-react';
 
 interface EvidenceTabProps {
   taskId: string;
@@ -35,14 +35,17 @@ const EVIDENCE_TYPES = [
 export function EvidenceTab({ taskId }: EvidenceTabProps) {
   const { data: evidence, isLoading } = useTaskEvidence(taskId);
   const createEvidence = useCreateEvidence(taskId);
+  const uploadEvidence = useUploadEvidence(taskId);
   const acceptEvidence = useAcceptEvidence(taskId);
   const rejectEvidence = useRejectEvidence(taskId);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showAttach, setShowAttach] = useState(false);
   const [title, setTitle] = useState('');
   const [type, setType] = useState('test_output');
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const items = evidence?.items ?? [];
 
@@ -61,6 +64,25 @@ export function EvidenceTab({ taskId }: EvidenceTabProps) {
     setUrl('');
   };
 
+  const handleFileUpload = useCallback(async (file: File) => {
+    await uploadEvidence.mutateAsync({ file, title: file.name });
+    showToast.created('Evidence');
+  }, [uploadEvidence]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileUpload(file);
+  }, [handleFileUpload]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => setIsDragOver(false), []);
+
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading...</div>;
   }
@@ -69,10 +91,33 @@ export function EvidenceTab({ taskId }: EvidenceTabProps) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium">Evidence ({items.length})</h4>
-        <Button size="sm" variant="outline" onClick={() => setShowAttach(!showAttach)}>
-          <Plus className="mr-1 h-3 w-3" />
-          Attach
-        </Button>
+        <div className="flex gap-1">
+          <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="mr-1 h-3 w-3" />
+            Upload
+          </Button>
+          <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFileUpload(f);
+            e.target.value = '';
+          }} />
+          <Button size="sm" variant="outline" onClick={() => setShowAttach(!showAttach)}>
+            <Plus className="mr-1 h-3 w-3" />
+            Attach
+          </Button>
+        </div>
+      </div>
+
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`rounded-md border-2 border-dashed p-4 text-center text-sm transition-colors ${
+          isDragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+        }`}
+      >
+        <Upload className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
+        <p className="text-muted-foreground">Drop a file here to upload</p>
       </div>
 
       {showAttach && (
@@ -104,13 +149,18 @@ export function EvidenceTab({ taskId }: EvidenceTabProps) {
           <div key={e.id} className="rounded-md border p-3">
             <div className="flex items-start gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
-                <FileText className="h-4 w-4 text-muted-foreground" />
+                {e.file_name ? <Paperclip className="h-4 w-4 text-muted-foreground" /> : <FileText className="h-4 w-4 text-muted-foreground" />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-medium">{e.title}</h4>
                   <StatusBadge status={e.verification_state} />
                 </div>
+                {e.file_name && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {e.file_name}{e.file_size != null ? ` (${(e.file_size / 1024).toFixed(1)} KB)` : ''}
+                  </p>
+                )}
                 {e.description && <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{e.description}</p>}
                 {e.url && (
                   <a href={e.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline dark:text-blue-400">

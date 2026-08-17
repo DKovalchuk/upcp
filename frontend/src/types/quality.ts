@@ -48,6 +48,9 @@ export interface Evidence {
   verified_by_type: string | null;
   verified_by_id: string | null;
   verified_at: string | null;
+  file_path: string | null;
+  file_name: string | null;
+  file_size: number | null;
   created_at: string;
 }
 
