@@ -54,6 +54,10 @@ class Evidence(Base):
     url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     content_snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
     artifact_ref: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    file_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    content_type: Mapped[str | None] = mapped_column(String(127), nullable=True)
     created_by_type: Mapped[str] = mapped_column(String(50), nullable=False)
     created_by_id: Mapped[str] = mapped_column(String(255), nullable=False)
     verification_state: Mapped[str] = mapped_column(
@@ -62,9 +66,6 @@ class Evidence(Base):
     verified_by_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     verified_by_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    file_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
-    file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

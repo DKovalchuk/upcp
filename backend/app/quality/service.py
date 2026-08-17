@@ -1,4 +1,6 @@
 import logging
+import uuid as _uuid
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import func
@@ -13,11 +15,31 @@ from app.quality.models import (
     ReviewFinding,
     ReviewRound,
 )
-from app.shared.errors import AppError, Conflict, NotFound
+from app.shared.errors import AppError, Conflict, NotFound, ValidationError
 from app.shared.events import event_bus
 from app.shared.text import utcnow
 
 logger = logging.getLogger(__name__)
+
+# Allowed MIME types for file upload evidence.
+ALLOWED_UPLOAD_TYPES: frozenset[str] = frozenset(
+    {
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/webp",
+        "application/pdf",
+        "text/plain",
+        "text/markdown",
+        "text/csv",
+        "text/x-python",
+        "text/x-typescript",
+        "text/javascript",
+        "application/json",
+        "application/xml",
+        "image/svg+xml",
+    }
+)
 
 
 class QualityError(AppError):
@@ -91,6 +113,74 @@ class EvidenceService:
         q = self._session.query(Evidence).filter_by(task_id=task_id)
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
+
+    def upload_file(
+        self,
+        *,
+        task_id: str,
+        file: Any,
+        title: str,
+        created_by_type: str,
+        created_by_id: str,
+        storage_dir: str,
+        max_size_bytes: int = 10 * 1024 * 1024,
+        dod_item_id: str | None = None,
+    ) -> Evidence:
+        """Upload a file and create an evidence record with file metadata."""
+        content_type = getattr(file, "content_type", None) or "application/octet-stream"
+        file_name = getattr(file, "filename", None) or "unnamed"
+
+        if content_type not in ALLOWED_UPLOAD_TYPES:
+            raise ValidationError(
+                f"File type '{content_type}' is not allowed. "
+                f"Allowed: {', '.join(sorted(ALLOWED_UPLOAD_TYPES))}"
+            )
+
+        content = file.file.read()
+        file_size = len(content)
+
+        if file_size > max_size_bytes:
+            max_mb = max_size_bytes // (1024 * 1024)
+            raise ValidationError(f"File size {file_size} bytes exceeds maximum of {max_mb}MB")
+
+        storage_path = Path(storage_dir)
+        storage_path.mkdir(parents=True, exist_ok=True)
+        file_id = _uuid.uuid4().hex[:12]
+        dest = storage_path / f"{file_id}_{file_name}"
+        dest.write_bytes(content)
+
+        e = Evidence(
+            task_id=task_id,
+            type="file",
+            title=title,
+            file_path=str(dest),
+            file_name=file_name,
+            file_size=file_size,
+            content_type=content_type,
+            created_by_type=created_by_type,
+            created_by_id=created_by_id,
+            dod_item_id=dod_item_id,
+        )
+        self._session.add(e)
+        self._session.flush()
+
+        event_bus.publish(
+            "evidence.attached",
+            session=self._session,
+            entity_type="task",
+            entity_id=task_id,
+            actor_id=created_by_id,
+            metadata={"evidence_title": title, "file_name": file_name},
+        )
+
+        return e
+
+    def get_file(self, evidence_id: str) -> tuple[Path, str]:
+        """Return (file_path, content_type) for download. Raises if no file."""
+        e = self.get(evidence_id)
+        if not e.file_path:
+            raise ValidationError(f"Evidence '{evidence_id}' has no file")
+        return Path(e.file_path), e.content_type or "application/octet-stream"
 
     def _transition(self, evidence: Evidence, target: str, by_type: str, by_id: str) -> None:
         allowed = _EVIDENCE_TRANSITIONS.get(evidence.verification_state, set())

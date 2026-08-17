@@ -1,0 +1,649 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="260" failures="0" errors="0" time="24.83050922">
+    <testsuite name="src/contexts/AuthContext.test.tsx" timestamp="2026-08-11T21:11:45.434Z" hostname="2f17cd49ec7f" tests="7" failures="0" errors="0" skipped="0" time="0.175129232">
+        <testcase classname="src/contexts/AuthContext.test.tsx" name="AuthContext &gt; starts unauthenticated with no token" time="0.050211491">
+        </testcase>
+        <testcase classname="src/contexts/AuthContext.test.tsx" name="AuthContext &gt; loads user when token exists in storage" time="0.020069585">
+        </testcase>
+        <testcase classname="src/contexts/AuthContext.test.tsx" name="AuthContext &gt; tries refresh when authMe fails" time="0.021708285">
+        </testcase>
+        <testcase classname="src/contexts/AuthContext.test.tsx" name="AuthContext &gt; clears tokens when refresh fails" time="0.01820777">
+        </testcase>
+        <testcase classname="src/contexts/AuthContext.test.tsx" name="AuthContext &gt; setTokens stores tokens and updates state" time="0.03539741">
+        </testcase>
+        <testcase classname="src/contexts/AuthContext.test.tsx" name="AuthContext &gt; logout clears tokens and resets state" time="0.014486053">
+        </testcase>
+        <testcase classname="src/contexts/AuthContext.test.tsx" name="AuthContext &gt; throws when useAuth used outside provider" time="0.011039319">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/CommandPalette.test.tsx" timestamp="2026-08-11T21:11:45.436Z" hostname="2f17cd49ec7f" tests="11" failures="0" errors="0" skipped="0" time="2.607804863">
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; does not render when closed" time="0.123778891">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; renders when open" time="0.584770281">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; shows navigation commands" time="0.205108964">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; filters commands by typing" time="0.205029153">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; navigates on command select" time="0.144305782">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; passes onOpenChange to CommandDialog" time="0.174820287">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; shows project-specific commands when on project page" time="0.310687168">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; shows Actions group with New Project" time="0.095449368">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; shows project actions when on project page" time="0.212618154">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; dispatches upcp:action event for Refresh Data" time="0.273153849">
+        </testcase>
+        <testcase classname="src/components/CommandPalette.test.tsx" name="CommandPalette &gt; navigates to delivery and dispatches new-feature action" time="0.267226515">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/Dashboard.test.tsx" timestamp="2026-08-11T21:11:45.437Z" hostname="2f17cd49ec7f" tests="7" failures="0" errors="0" skipped="0" time="0.76866923">
+        <testcase classname="src/components/Dashboard.test.tsx" name="Dashboard &gt; renders loading skeleton initially" time="0.113190924">
+        </testcase>
+        <testcase classname="src/components/Dashboard.test.tsx" name="Dashboard &gt; renders error state on failure" time="0.069871117">
+        </testcase>
+        <testcase classname="src/components/Dashboard.test.tsx" name="Dashboard &gt; renders empty state when no projects" time="0.050340597">
+        </testcase>
+        <testcase classname="src/components/Dashboard.test.tsx" name="Dashboard &gt; renders stat cards with data" time="0.262838847">
+        </testcase>
+        <testcase classname="src/components/Dashboard.test.tsx" name="Dashboard &gt; renders recent projects list" time="0.118664277">
+        </testcase>
+        <testcase classname="src/components/Dashboard.test.tsx" name="Dashboard &gt; renders activity feed" time="0.069286445">
+        </testcase>
+        <testcase classname="src/components/Dashboard.test.tsx" name="Dashboard &gt; shows no activity message when empty" time="0.068806365">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/ErrorBoundary.test.tsx" timestamp="2026-08-11T21:11:45.437Z" hostname="2f17cd49ec7f" tests="4" failures="0" errors="0" skipped="0" time="0.214511483">
+        <testcase classname="src/components/ErrorBoundary.test.tsx" name="ErrorBoundary &gt; renders children when no error" time="0.049063968">
+        </testcase>
+        <testcase classname="src/components/ErrorBoundary.test.tsx" name="ErrorBoundary &gt; renders fallback UI when error occurs" time="0.035284944">
+        </testcase>
+        <testcase classname="src/components/ErrorBoundary.test.tsx" name="ErrorBoundary &gt; renders reload button" time="0.118262115">
+        </testcase>
+        <testcase classname="src/components/ErrorBoundary.test.tsx" name="ErrorBoundary &gt; logs error to console" time="0.007669145">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/HealthPage.test.tsx" timestamp="2026-08-11T21:11:45.438Z" hostname="2f17cd49ec7f" tests="8" failures="0" errors="0" skipped="0" time="0.369759927">
+        <testcase classname="src/components/HealthPage.test.tsx" name="HealthPage &gt; renders loading state" time="0.104716543">
+        </testcase>
+        <testcase classname="src/components/HealthPage.test.tsx" name="HealthPage &gt; renders error state" time="0.030323333">
+        </testcase>
+        <testcase classname="src/components/HealthPage.test.tsx" name="HealthPage &gt; renders healthy status" time="0.053742159">
+        </testcase>
+        <testcase classname="src/components/HealthPage.test.tsx" name="HealthPage &gt; renders down status" time="0.042928513">
+        </testcase>
+        <testcase classname="src/components/HealthPage.test.tsx" name="HealthPage &gt; shows Database connected when db.status is ok" time="0.03332457">
+        </testcase>
+        <testcase classname="src/components/HealthPage.test.tsx" name="HealthPage &gt; shows Database disconnected when db.status is error" time="0.02005181">
+        </testcase>
+        <testcase classname="src/components/HealthPage.test.tsx" name="HealthPage &gt; shows Redis connected when redis.status is ok" time="0.038738042">
+        </testcase>
+        <testcase classname="src/components/HealthPage.test.tsx" name="HealthPage &gt; shows Redis disconnected when redis.status is error" time="0.037227414">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/NotFoundPage.test.tsx" timestamp="2026-08-11T21:11:45.439Z" hostname="2f17cd49ec7f" tests="5" failures="0" errors="0" skipped="0" time="0.1848174">
+        <testcase classname="src/components/NotFoundPage.test.tsx" name="NotFoundPage &gt; renders 404 title" time="0.05352146">
+        </testcase>
+        <testcase classname="src/components/NotFoundPage.test.tsx" name="NotFoundPage &gt; renders &quot;Page not found&quot; message" time="0.005947241">
+        </testcase>
+        <testcase classname="src/components/NotFoundPage.test.tsx" name="NotFoundPage &gt; renders description text" time="0.005930684">
+        </testcase>
+        <testcase classname="src/components/NotFoundPage.test.tsx" name="NotFoundPage &gt; renders &quot;Back to Dashboard&quot; link" time="0.105840158">
+        </testcase>
+        <testcase classname="src/components/NotFoundPage.test.tsx" name="NotFoundPage &gt; links to root path" time="0.009485533">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/ProjectList.test.tsx" timestamp="2026-08-11T21:11:45.439Z" hostname="2f17cd49ec7f" tests="6" failures="0" errors="0" skipped="0" time="0.80101626">
+        <testcase classname="src/components/ProjectList.test.tsx" name="ProjectList &gt; shows skeleton while loading" time="0.127531123">
+        </testcase>
+        <testcase classname="src/components/ProjectList.test.tsx" name="ProjectList &gt; shows error state on failure" time="0.03735549">
+        </testcase>
+        <testcase classname="src/components/ProjectList.test.tsx" name="ProjectList &gt; shows empty state when no projects" time="0.03314759">
+        </testcase>
+        <testcase classname="src/components/ProjectList.test.tsx" name="ProjectList &gt; renders project table with data" time="0.088584772">
+        </testcase>
+        <testcase classname="src/components/ProjectList.test.tsx" name="ProjectList &gt; opens create dialog when New Project clicked" time="0.483957282">
+        </testcase>
+        <testcase classname="src/components/ProjectList.test.tsx" name="ProjectList &gt; navigates to project on row click" time="0.02407089">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/SettingsPage.test.tsx" timestamp="2026-08-11T21:11:45.440Z" hostname="2f17cd49ec7f" tests="9" failures="0" errors="0" skipped="0" time="0.551281242">
+        <testcase classname="src/components/SettingsPage.test.tsx" name="SettingsPage &gt; renders Settings heading" time="0.133870499">
+        </testcase>
+        <testcase classname="src/components/SettingsPage.test.tsx" name="SettingsPage &gt; renders Appearance section" time="0.085486697">
+        </testcase>
+        <testcase classname="src/components/SettingsPage.test.tsx" name="SettingsPage &gt; renders theme toggle buttons" time="0.049930233">
+        </testcase>
+        <testcase classname="src/components/SettingsPage.test.tsx" name="SettingsPage &gt; renders API Information section" time="0.033859429">
+        </testcase>
+        <testcase classname="src/components/SettingsPage.test.tsx" name="SettingsPage &gt; renders Backend Status" time="0.063443815">
+        </testcase>
+        <testcase classname="src/components/SettingsPage.test.tsx" name="SettingsPage &gt; shows Connected when backend is healthy" time="0.07018968">
+        </testcase>
+        <testcase classname="src/components/SettingsPage.test.tsx" name="SettingsPage &gt; shows Disconnected when backend is down" time="0.052669394">
+        </testcase>
+        <testcase classname="src/components/SettingsPage.test.tsx" name="SettingsPage &gt; renders About section with version" time="0.027894249">
+        </testcase>
+        <testcase classname="src/components/SettingsPage.test.tsx" name="SettingsPage &gt; has no emoji in content" time="0.026771356">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/hooks/use-lazy-mount.test.ts" timestamp="2026-08-11T21:11:45.441Z" hostname="2f17cd49ec7f" tests="6" failures="0" errors="0" skipped="0" time="0.129011933">
+        <testcase classname="src/hooks/use-lazy-mount.test.ts" name="useLazyMount &gt; returns mounted=false when not yet opened" time="0.0676766">
+        </testcase>
+        <testcase classname="src/hooks/use-lazy-mount.test.ts" name="useLazyMount &gt; returns mounted=true when open=true" time="0.019078469">
+        </testcase>
+        <testcase classname="src/hooks/use-lazy-mount.test.ts" name="useLazyMount &gt; mounts on first open" time="0.018487657">
+        </testcase>
+        <testcase classname="src/hooks/use-lazy-mount.test.ts" name="useLazyMount &gt; stays mounted after first open even when closed" time="0.003903915">
+        </testcase>
+        <testcase classname="src/hooks/use-lazy-mount.test.ts" name="useLazyMount &gt; delegates onOpenChange to parent callback" time="0.004688978">
+        </testcase>
+        <testcase classname="src/hooks/use-lazy-mount.test.ts" name="useLazyMount &gt; does not re-mount on subsequent opens" time="0.004448535">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/hooks/use-url-pagination.test.ts" timestamp="2026-08-11T21:11:45.442Z" hostname="2f17cd49ec7f" tests="5" failures="0" errors="0" skipped="0" time="0.081614501">
+        <testcase classname="src/hooks/use-url-pagination.test.ts" name="useUrlPagination &gt; returns default values" time="0.045662231">
+        </testcase>
+        <testcase classname="src/hooks/use-url-pagination.test.ts" name="useUrlPagination &gt; reads values from URL" time="0.007084195">
+        </testcase>
+        <testcase classname="src/hooks/use-url-pagination.test.ts" name="useUrlPagination &gt; uses custom default page size" time="0.003928029">
+        </testcase>
+        <testcase classname="src/hooks/use-url-pagination.test.ts" name="useUrlPagination &gt; setPageSize updates URL" time="0.008530208">
+        </testcase>
+        <testcase classname="src/hooks/use-url-pagination.test.ts" name="useUrlPagination &gt; setOffset updates URL with correct page" time="0.00761574">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/toast.test.ts" timestamp="2026-08-11T21:11:45.444Z" hostname="2f17cd49ec7f" tests="7" failures="0" errors="0" skipped="0" time="0.006345076">
+        <testcase classname="src/lib/toast.test.ts" name="showToast &gt; calls toast.success for success" time="0.003080359">
+        </testcase>
+        <testcase classname="src/lib/toast.test.ts" name="showToast &gt; calls toast.error for error" time="0.000329279">
+        </testcase>
+        <testcase classname="src/lib/toast.test.ts" name="showToast &gt; calls toast.info for info" time="0.00022743">
+        </testcase>
+        <testcase classname="src/lib/toast.test.ts" name="showToast &gt; formats created message" time="0.000314454">
+        </testcase>
+        <testcase classname="src/lib/toast.test.ts" name="showToast &gt; formats updated message" time="0.000375102">
+        </testcase>
+        <testcase classname="src/lib/toast.test.ts" name="showToast &gt; formats deleted message" time="0.000241823">
+        </testcase>
+        <testcase classname="src/lib/toast.test.ts" name="showToast &gt; formats mutation error" time="0.000175331">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/agents/AgentCard.test.tsx" timestamp="2026-08-11T21:11:45.445Z" hostname="2f17cd49ec7f" tests="4" failures="0" errors="0" skipped="0" time="0.079619866">
+        <testcase classname="src/components/agents/AgentCard.test.tsx" name="AgentCard &gt; renders agent name" time="0.054892761">
+        </testcase>
+        <testcase classname="src/components/agents/AgentCard.test.tsx" name="AgentCard &gt; renders description" time="0.007615934">
+        </testcase>
+        <testcase classname="src/components/agents/AgentCard.test.tsx" name="AgentCard &gt; calls onSelect when clicked" time="0.009144001">
+        </testcase>
+        <testcase classname="src/components/agents/AgentCard.test.tsx" name="AgentCard &gt; renders without description" time="0.005555172">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/agents/AgentCenterPage.test.tsx" timestamp="2026-08-11T21:11:45.445Z" hostname="2f17cd49ec7f" tests="4" failures="0" errors="0" skipped="0" time="0.306915245">
+        <testcase classname="src/components/agents/AgentCenterPage.test.tsx" name="AgentCenterPage &gt; renders loading state" time="0.055350996">
+        </testcase>
+        <testcase classname="src/components/agents/AgentCenterPage.test.tsx" name="AgentCenterPage &gt; renders empty state when no agents" time="0.103732127">
+        </testcase>
+        <testcase classname="src/components/agents/AgentCenterPage.test.tsx" name="AgentCenterPage &gt; renders agent cards" time="0.110922975">
+        </testcase>
+        <testcase classname="src/components/agents/AgentCenterPage.test.tsx" name="AgentCenterPage &gt; renders page title" time="0.03112002">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/agents/AgentDetailPage.test.tsx" timestamp="2026-08-11T21:11:45.446Z" hostname="2f17cd49ec7f" tests="5" failures="0" errors="0" skipped="0" time="0.476748088">
+        <testcase classname="src/components/agents/AgentDetailPage.test.tsx" name="AgentDetailPage &gt; renders loading state" time="0.159490147">
+        </testcase>
+        <testcase classname="src/components/agents/AgentDetailPage.test.tsx" name="AgentDetailPage &gt; renders error state when agent not found" time="0.038195375">
+        </testcase>
+        <testcase classname="src/components/agents/AgentDetailPage.test.tsx" name="AgentDetailPage &gt; renders agent name and metrics" time="0.114093688">
+        </testcase>
+        <testcase classname="src/components/agents/AgentDetailPage.test.tsx" name="AgentDetailPage &gt; renders tab list" time="0.076625427">
+        </testcase>
+        <testcase classname="src/components/agents/AgentDetailPage.test.tsx" name="AgentDetailPage &gt; renders current task when agent is working" time="0.073816589">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/auth/LoginPage.test.tsx" timestamp="2026-08-11T21:11:45.446Z" hostname="2f17cd49ec7f" tests="7" failures="0" errors="0" skipped="0" time="0.955772739">
+        <testcase classname="src/components/auth/LoginPage.test.tsx" name="LoginPage &gt; renders email and password fields" time="0.180384558">
+        </testcase>
+        <testcase classname="src/components/auth/LoginPage.test.tsx" name="LoginPage &gt; renders sign in button" time="0.280605275">
+        </testcase>
+        <testcase classname="src/components/auth/LoginPage.test.tsx" name="LoginPage &gt; password field is type=password by default" time="0.016773223">
+        </testcase>
+        <testcase classname="src/components/auth/LoginPage.test.tsx" name="LoginPage &gt; toggles password visibility on button click" time="0.1460571">
+        </testcase>
+        <testcase classname="src/components/auth/LoginPage.test.tsx" name="LoginPage &gt; uses navigate instead of window.location after login" time="0.144052583">
+        </testcase>
+        <testcase classname="src/components/auth/LoginPage.test.tsx" name="LoginPage &gt; does not use window.location after login" time="0.100009358">
+        </testcase>
+        <testcase classname="src/components/auth/LoginPage.test.tsx" name="LoginPage &gt; shows error message on login failure" time="0.072279195">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/auth/SetupPage.test.tsx" timestamp="2026-08-11T21:11:45.447Z" hostname="2f17cd49ec7f" tests="8" failures="0" errors="0" skipped="0" time="1.012630221">
+        <testcase classname="src/components/auth/SetupPage.test.tsx" name="SetupPage &gt; renders display name, email, and password fields" time="0.149738558">
+        </testcase>
+        <testcase classname="src/components/auth/SetupPage.test.tsx" name="SetupPage &gt; renders create account button" time="0.365863857">
+        </testcase>
+        <testcase classname="src/components/auth/SetupPage.test.tsx" name="SetupPage &gt; password field is type=password by default" time="0.030511498">
+        </testcase>
+        <testcase classname="src/components/auth/SetupPage.test.tsx" name="SetupPage &gt; toggles password visibility on button click" time="0.200933495">
+        </testcase>
+        <testcase classname="src/components/auth/SetupPage.test.tsx" name="SetupPage &gt; shows minimum 8 characters hint" time="0.024186738">
+        </testcase>
+        <testcase classname="src/components/auth/SetupPage.test.tsx" name="SetupPage &gt; uses navigate instead of window.location after setup" time="0.111198397">
+        </testcase>
+        <testcase classname="src/components/auth/SetupPage.test.tsx" name="SetupPage &gt; shows error message on setup failure" time="0.109659117">
+        </testcase>
+        <testcase classname="src/components/auth/SetupPage.test.tsx" name="SetupPage &gt; password has minLength=8 constraint" time="0.014527773">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/dashboard/AgentActivitySummary.test.tsx" timestamp="2026-08-11T21:11:45.448Z" hostname="2f17cd49ec7f" tests="4" failures="0" errors="0" skipped="0" time="0.330357627">
+        <testcase classname="src/components/dashboard/AgentActivitySummary.test.tsx" name="AgentActivitySummary &gt; renders loading skeleton initially" time="0.129116005">
+        </testcase>
+        <testcase classname="src/components/dashboard/AgentActivitySummary.test.tsx" name="AgentActivitySummary &gt; renders empty state when no agents" time="0.040823771">
+        </testcase>
+        <testcase classname="src/components/dashboard/AgentActivitySummary.test.tsx" name="AgentActivitySummary &gt; renders agent cards with data" time="0.106796578">
+        </testcase>
+        <testcase classname="src/components/dashboard/AgentActivitySummary.test.tsx" name="AgentActivitySummary &gt; renders stale agents with warning indicator" time="0.049041644">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/forms/EntityFormDialog.test.tsx" timestamp="2026-08-11T21:11:45.448Z" hostname="2f17cd49ec7f" tests="11" failures="0" errors="0" skipped="0" time="1.976665203">
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; renders dialog when open" time="0.54303647">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; does not render when closed" time="0.005878013">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; renders all fields" time="0.236101463">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; shows required indicator for required fields" time="0.161245703">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; validates required fields on submit" time="0.234132025">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; calls onSubmit with form data when valid" time="0.187578825">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; auto-generates slug from name" time="0.164275054">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; renders select field with shadcn Select component" time="0.142298946">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; calls onOpenChange when cancel is clicked" time="0.076762337">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; shows description when provided" time="0.120759634">
+        </testcase>
+        <testcase classname="src/components/forms/EntityFormDialog.test.tsx" name="EntityFormDialog &gt; uses custom submit label" time="0.093978382">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/layouts/AppShell.test.tsx" timestamp="2026-08-11T21:11:45.449Z" hostname="2f17cd49ec7f" tests="6" failures="0" errors="0" skipped="0" time="0.426651986">
+        <testcase classname="src/components/layouts/AppShell.test.tsx" name="AppShell &gt; renders sidebar" time="0.298510608">
+        </testcase>
+        <testcase classname="src/components/layouts/AppShell.test.tsx" name="AppShell &gt; renders topbar" time="0.019666083">
+        </testcase>
+        <testcase classname="src/components/layouts/AppShell.test.tsx" name="AppShell &gt; renders breadcrumb" time="0.031649957">
+        </testcase>
+        <testcase classname="src/components/layouts/AppShell.test.tsx" name="AppShell &gt; renders outlet content" time="0.017012192">
+        </testcase>
+        <testcase classname="src/components/layouts/AppShell.test.tsx" name="AppShell &gt; renders skip to main content link for accessibility" time="0.034799569">
+        </testcase>
+        <testcase classname="src/components/layouts/AppShell.test.tsx" name="AppShell &gt; command palette starts closed" time="0.01925611">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/layouts/TopBar.test.tsx" timestamp="2026-08-11T21:11:45.449Z" hostname="2f17cd49ec7f" tests="9" failures="0" errors="0" skipped="0" time="1.354705207">
+        <testcase classname="src/components/layouts/TopBar.test.tsx" name="TopBar &gt; renders UPCP branding" time="0.181225401">
+        </testcase>
+        <testcase classname="src/components/layouts/TopBar.test.tsx" name="TopBar &gt; renders search button with Ctrl+K hint" time="0.04296937">
+        </testcase>
+        <testcase classname="src/components/layouts/TopBar.test.tsx" name="TopBar &gt; calls onCommandOpen when search clicked" time="0.045811286">
+        </testcase>
+        <testcase classname="src/components/layouts/TopBar.test.tsx" name="TopBar &gt; calls onCommandOpen when mobile search clicked" time="0.134416983">
+        </testcase>
+        <testcase classname="src/components/layouts/TopBar.test.tsx" name="TopBar &gt; cycles theme on theme toggle click" time="0.084137048">
+        </testcase>
+        <testcase classname="src/components/layouts/TopBar.test.tsx" name="TopBar &gt; calls logout when Logout clicked" time="0.658827977">
+        </testcase>
+        <testcase classname="src/components/layouts/TopBar.test.tsx" name="TopBar &gt; shows notification bell" time="0.069537726">
+        </testcase>
+        <testcase classname="src/components/layouts/TopBar.test.tsx" name="TopBar &gt; shows user avatar" time="0.098989066">
+        </testcase>
+        <testcase classname="src/components/layouts/TopBar.test.tsx" name="TopBar &gt; shows sidebar trigger" time="0.028177372">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/AuditPage.test.tsx" timestamp="2026-08-11T21:11:45.450Z" hostname="2f17cd49ec7f" tests="9" failures="0" errors="0" skipped="0" time="0.729171188">
+        <testcase classname="src/components/project/AuditPage.test.tsx" name="AuditPage &gt; renders loading state" time="0.08877144">
+        </testcase>
+        <testcase classname="src/components/project/AuditPage.test.tsx" name="AuditPage &gt; renders error state" time="0.035387366">
+        </testcase>
+        <testcase classname="src/components/project/AuditPage.test.tsx" name="AuditPage &gt; renders heading and filters" time="0.129814229">
+        </testcase>
+        <testcase classname="src/components/project/AuditPage.test.tsx" name="AuditPage &gt; renders empty state" time="0.081906668">
+        </testcase>
+        <testcase classname="src/components/project/AuditPage.test.tsx" name="AuditPage &gt; renders audit events" time="0.178881823">
+        </testcase>
+        <testcase classname="src/components/project/AuditPage.test.tsx" name="AuditPage &gt; renders search input" time="0.041963748">
+        </testcase>
+        <testcase classname="src/components/project/AuditPage.test.tsx" name="AuditPage &gt; filters events by search query" time="0.066093915">
+        </testcase>
+        <testcase classname="src/components/project/AuditPage.test.tsx" name="AuditPage &gt; shows no-match message when search has no results" time="0.047441649">
+        </testcase>
+        <testcase classname="src/components/project/AuditPage.test.tsx" name="AuditPage &gt; search is case-insensitive" time="0.049670723">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/BoardView.test.tsx" timestamp="2026-08-11T21:11:45.451Z" hostname="2f17cd49ec7f" tests="9" failures="0" errors="0" skipped="0" time="0.589249195">
+        <testcase classname="src/components/project/BoardView.test.tsx" name="BoardView &gt; renders all four status columns" time="0.14738053">
+        </testcase>
+        <testcase classname="src/components/project/BoardView.test.tsx" name="BoardView &gt; shows &quot;No tasks&quot; in empty columns" time="0.026346038">
+        </testcase>
+        <testcase classname="src/components/project/BoardView.test.tsx" name="BoardView &gt; distributes tasks to correct columns" time="0.121846871">
+        </testcase>
+        <testcase classname="src/components/project/BoardView.test.tsx" name="BoardView &gt; shows feature name on task cards" time="0.04718513">
+        </testcase>
+        <testcase classname="src/components/project/BoardView.test.tsx" name="BoardView &gt; calls onSelectTask when clicking a task card" time="0.042535026">
+        </testcase>
+        <testcase classname="src/components/project/BoardView.test.tsx" name="BoardView &gt; filters tasks by search" time="0.081631784">
+        </testcase>
+        <testcase classname="src/components/project/BoardView.test.tsx" name="BoardView &gt; shows column counts" time="0.06017393">
+        </testcase>
+        <testcase classname="src/components/project/BoardView.test.tsx" name="BoardView &gt; task cards have draggable attribute" time="0.030497901">
+        </testcase>
+        <testcase classname="src/components/project/BoardView.test.tsx" name="BoardView &gt; columns have droppable attribute" time="0.025441078">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/ClarificationsTab.test.tsx" timestamp="2026-08-11T21:11:45.451Z" hostname="2f17cd49ec7f" tests="3" failures="0" errors="0" skipped="0" time="0.162964098">
+        <testcase classname="src/components/project/ClarificationsTab.test.tsx" name="ClarificationsTab &gt; renders loading state" time="0.062724924">
+        </testcase>
+        <testcase classname="src/components/project/ClarificationsTab.test.tsx" name="ClarificationsTab &gt; renders empty state" time="0.016179187">
+        </testcase>
+        <testcase classname="src/components/project/ClarificationsTab.test.tsx" name="ClarificationsTab &gt; renders clarifications" time="0.072822121">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/DeliveryPage.test.tsx" timestamp="2026-08-11T21:11:45.452Z" hostname="2f17cd49ec7f" tests="9" failures="0" errors="0" skipped="0" time="1.633349117">
+        <testcase classname="src/components/project/DeliveryPage.test.tsx" name="DeliveryPage &gt; renders loading state" time="0.076449517">
+        </testcase>
+        <testcase classname="src/components/project/DeliveryPage.test.tsx" name="DeliveryPage &gt; renders empty state when no features" time="0.119337305">
+        </testcase>
+        <testcase classname="src/components/project/DeliveryPage.test.tsx" name="DeliveryPage &gt; renders Delivery heading" time="0.317204778">
+        </testcase>
+        <testcase classname="src/components/project/DeliveryPage.test.tsx" name="DeliveryPage &gt; renders create feature button in header" time="0.132732271">
+        </testcase>
+        <testcase classname="src/components/project/DeliveryPage.test.tsx" name="DeliveryPage &gt; shows task count per feature" time="0.081565779">
+        </testcase>
+        <testcase classname="src/components/project/DeliveryPage.test.tsx" name="DeliveryPage &gt; expands feature to show tasks" time="0.218015933">
+        </testcase>
+        <testcase classname="src/components/project/DeliveryPage.test.tsx" name="DeliveryPage &gt; opens create feature dialog" time="0.511321779">
+        </testcase>
+        <testcase classname="src/components/project/DeliveryPage.test.tsx" name="DeliveryPage &gt; shows search input" time="0.05579654">
+        </testcase>
+        <testcase classname="src/components/project/DeliveryPage.test.tsx" name="DeliveryPage &gt; filters tasks by search" time="0.113407952">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/EvidenceTab.test.tsx" timestamp="2026-08-11T21:11:45.452Z" hostname="2f17cd49ec7f" tests="3" failures="0" errors="0" skipped="0" time="0.128018002">
+        <testcase classname="src/components/project/EvidenceTab.test.tsx" name="EvidenceTab &gt; renders loading state" time="0.046241497">
+        </testcase>
+        <testcase classname="src/components/project/EvidenceTab.test.tsx" name="EvidenceTab &gt; renders empty state" time="0.047751736">
+        </testcase>
+        <testcase classname="src/components/project/EvidenceTab.test.tsx" name="EvidenceTab &gt; renders evidence items" time="0.029905299">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/GitIntegrationPage.test.tsx" timestamp="2026-08-11T21:11:45.453Z" hostname="2f17cd49ec7f" tests="5" failures="0" errors="0" skipped="0" time="0.356280567">
+        <testcase classname="src/components/project/GitIntegrationPage.test.tsx" name="GitIntegrationPage &gt; renders Git Integration heading" time="0.194834942">
+        </testcase>
+        <testcase classname="src/components/project/GitIntegrationPage.test.tsx" name="GitIntegrationPage &gt; shows provider name" time="0.062903827">
+        </testcase>
+        <testcase classname="src/components/project/GitIntegrationPage.test.tsx" name="GitIntegrationPage &gt; shows branches" time="0.036403616">
+        </testcase>
+        <testcase classname="src/components/project/GitIntegrationPage.test.tsx" name="GitIntegrationPage &gt; shows commits" time="0.027122521">
+        </testcase>
+        <testcase classname="src/components/project/GitIntegrationPage.test.tsx" name="GitIntegrationPage &gt; shows default branch indicator" time="0.02252585">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/ProjectDetail.test.tsx" timestamp="2026-08-11T21:11:45.453Z" hostname="2f17cd49ec7f" tests="7" failures="0" errors="0" skipped="0" time="0.995295651">
+        <testcase classname="src/components/project/ProjectDetail.test.tsx" name="ProjectDetail &gt; renders loading state" time="0.10580027">
+            <system-err>
+Warning: useRouter must be used inside a &lt;RouterProvider&gt; component!
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/components/project/ProjectDetail.test.tsx" name="ProjectDetail &gt; renders error state when project not found" time="0.023660216">
+            <system-err>
+Warning: useRouter must be used inside a &lt;RouterProvider&gt; component!
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/components/project/ProjectDetail.test.tsx" name="ProjectDetail &gt; renders project name and description" time="0.187956188">
+            <system-err>
+Warning: useRouter must be used inside a &lt;RouterProvider&gt; component!
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/components/project/ProjectDetail.test.tsx" name="ProjectDetail &gt; renders tab navigation" time="0.35496309">
+            <system-err>
+Warning: useRouter must be used inside a &lt;RouterProvider&gt; component!
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/components/project/ProjectDetail.test.tsx" name="ProjectDetail &gt; renders status badge" time="0.052990102">
+            <system-err>
+Warning: useRouter must be used inside a &lt;RouterProvider&gt; component!
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/components/project/ProjectDetail.test.tsx" name="ProjectDetail &gt; renders overview tab content by default" time="0.0662097">
+            <system-err>
+Warning: useRouter must be used inside a &lt;RouterProvider&gt; component!
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/components/project/ProjectDetail.test.tsx" name="ProjectDetail &gt; renders edit and delete buttons" time="0.188065259">
+            <system-err>
+Warning: useRouter must be used inside a &lt;RouterProvider&gt; component!
+
+            </system-err>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/QualityPage.test.tsx" timestamp="2026-08-11T21:11:45.454Z" hostname="2f17cd49ec7f" tests="4" failures="0" errors="0" skipped="0" time="0.460971027">
+        <testcase classname="src/components/project/QualityPage.test.tsx" name="QualityPage &gt; renders loading skeleton" time="0.107521641">
+        </testcase>
+        <testcase classname="src/components/project/QualityPage.test.tsx" name="QualityPage &gt; renders error state" time="0.033220012">
+        </testcase>
+        <testcase classname="src/components/project/QualityPage.test.tsx" name="QualityPage &gt; renders stats cards" time="0.233137486">
+        </testcase>
+        <testcase classname="src/components/project/QualityPage.test.tsx" name="QualityPage &gt; renders progress bars" time="0.079144722">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/ReportsPage.test.tsx" timestamp="2026-08-11T21:11:45.454Z" hostname="2f17cd49ec7f" tests="6" failures="0" errors="0" skipped="0" time="0.412198245">
+        <testcase classname="src/components/project/ReportsPage.test.tsx" name="ReportsPage &gt; renders date range filter inputs" time="0.12653729">
+        </testcase>
+        <testcase classname="src/components/project/ReportsPage.test.tsx" name="ReportsPage &gt; filters reports by date range" time="0.191284568">
+        </testcase>
+        <testcase classname="src/components/project/ReportsPage.test.tsx" name="ReportsPage &gt; shows no-reports-in-range message when filter excludes all" time="0.053470599">
+        </testcase>
+        <testcase classname="src/components/project/ReportsPage.test.tsx" name="ReportsPage &gt; shows empty state when no reports exist" time="0.015430912">
+        </testcase>
+        <testcase classname="src/components/project/ReportsPage.test.tsx" name="ReportsPage &gt; renders Reports heading" time="0.011632731">
+        </testcase>
+        <testcase classname="src/components/project/ReportsPage.test.tsx" name="ReportsPage &gt; renders loading state" time="0.007268673">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/ReviewsTab.test.tsx" timestamp="2026-08-11T21:11:45.455Z" hostname="2f17cd49ec7f" tests="3" failures="0" errors="0" skipped="0" time="0.154731157">
+        <testcase classname="src/components/project/ReviewsTab.test.tsx" name="ReviewsTab &gt; renders loading state" time="0.039127809">
+        </testcase>
+        <testcase classname="src/components/project/ReviewsTab.test.tsx" name="ReviewsTab &gt; renders empty state" time="0.063337637">
+        </testcase>
+        <testcase classname="src/components/project/ReviewsTab.test.tsx" name="ReviewsTab &gt; renders review rounds" time="0.044485426">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/StructurePage.test.tsx" timestamp="2026-08-11T21:11:45.455Z" hostname="2f17cd49ec7f" tests="8" failures="0" errors="0" skipped="0" time="1.065619253">
+        <testcase classname="src/components/project/StructurePage.test.tsx" name="StructurePage &gt; renders loading state" time="0.073324152">
+        </testcase>
+        <testcase classname="src/components/project/StructurePage.test.tsx" name="StructurePage &gt; renders empty state when no components" time="0.050723509">
+        </testcase>
+        <testcase classname="src/components/project/StructurePage.test.tsx" name="StructurePage &gt; renders component cards" time="0.041737818">
+        </testcase>
+        <testcase classname="src/components/project/StructurePage.test.tsx" name="StructurePage &gt; shows Structure heading" time="0.026597419">
+        </testcase>
+        <testcase classname="src/components/project/StructurePage.test.tsx" name="StructurePage &gt; renders create component button" time="0.303848258">
+        </testcase>
+        <testcase classname="src/components/project/StructurePage.test.tsx" name="StructurePage &gt; opens create component dialog on button click" time="0.40588824">
+        </testcase>
+        <testcase classname="src/components/project/StructurePage.test.tsx" name="StructurePage &gt; expands component to show modules section" time="0.086858039">
+        </testcase>
+        <testcase classname="src/components/project/StructurePage.test.tsx" name="StructurePage &gt; shows empty modules message when expanded but no modules" time="0.071695559">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/project/TaskDetailSheet.test.tsx" timestamp="2026-08-11T21:11:45.456Z" hostname="2f17cd49ec7f" tests="4" failures="0" errors="0" skipped="0" time="1.870772086">
+        <testcase classname="src/components/project/TaskDetailSheet.test.tsx" name="TaskDetailSheet &gt; renders loading state initially" time="0.527364697">
+            <system-err>
+Query data cannot be undefined. Please make sure to return a value other than undefined from your query function. Affected query key: [&quot;tasks&quot;,&quot;task-123&quot;,&quot;claims&quot;]
+Query data cannot be undefined. Please make sure to return a value other than undefined from your query function. Affected query key: [&quot;tasks&quot;,&quot;task-123&quot;,&quot;heartbeats&quot;]
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/components/project/TaskDetailSheet.test.tsx" name="TaskDetailSheet &gt; renders task details when loaded" time="0.609377912">
+        </testcase>
+        <testcase classname="src/components/project/TaskDetailSheet.test.tsx" name="TaskDetailSheet &gt; renders execution tab with agent claim data" time="0.475722351">
+        </testcase>
+        <testcase classname="src/components/project/TaskDetailSheet.test.tsx" name="TaskDetailSheet &gt; renders empty states when no data exists" time="0.248478626">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/ui/ConfirmDialog.test.tsx" timestamp="2026-08-11T21:11:45.456Z" hostname="2f17cd49ec7f" tests="7" failures="0" errors="0" skipped="0" time="1.226043286">
+        <testcase classname="src/components/ui/ConfirmDialog.test.tsx" name="ConfirmDialog &gt; renders when open" time="0.581357259">
+        </testcase>
+        <testcase classname="src/components/ui/ConfirmDialog.test.tsx" name="ConfirmDialog &gt; does not render when closed" time="0.006741294">
+        </testcase>
+        <testcase classname="src/components/ui/ConfirmDialog.test.tsx" name="ConfirmDialog &gt; renders default button labels" time="0.140538808">
+        </testcase>
+        <testcase classname="src/components/ui/ConfirmDialog.test.tsx" name="ConfirmDialog &gt; renders custom button labels" time="0.149618673">
+        </testcase>
+        <testcase classname="src/components/ui/ConfirmDialog.test.tsx" name="ConfirmDialog &gt; calls onConfirm when confirm is clicked" time="0.164473505">
+            <system-err>
+An update to ConfirmDialog inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() =&gt; {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/components/ui/ConfirmDialog.test.tsx" name="ConfirmDialog &gt; calls onOpenChange(false) when cancel is clicked" time="0.080040211">
+        </testcase>
+        <testcase classname="src/components/ui/ConfirmDialog.test.tsx" name="ConfirmDialog &gt; renders destructive variant" time="0.095677529">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/ui/DataTablePagination.test.tsx" timestamp="2026-08-11T21:11:45.457Z" hostname="2f17cd49ec7f" tests="8" failures="0" errors="0" skipped="0" time="1.297716376">
+        <testcase classname="src/components/ui/DataTablePagination.test.tsx" name="DataTablePagination &gt; renders showing text" time="0.254347308">
+        </testcase>
+        <testcase classname="src/components/ui/DataTablePagination.test.tsx" name="DataTablePagination &gt; shows correct range for page 2" time="0.129035013">
+        </testcase>
+        <testcase classname="src/components/ui/DataTablePagination.test.tsx" name="DataTablePagination &gt; shows 0 results when total is 0" time="0.07219865">
+        </testcase>
+        <testcase classname="src/components/ui/DataTablePagination.test.tsx" name="DataTablePagination &gt; disables previous button on first page" time="0.429009312">
+        </testcase>
+        <testcase classname="src/components/ui/DataTablePagination.test.tsx" name="DataTablePagination &gt; disables next button on last page" time="0.106314998">
+        </testcase>
+        <testcase classname="src/components/ui/DataTablePagination.test.tsx" name="DataTablePagination &gt; calls onPageChange when next is clicked" time="0.125741689">
+        </testcase>
+        <testcase classname="src/components/ui/DataTablePagination.test.tsx" name="DataTablePagination &gt; calls onPageChange when page number is clicked" time="0.088549447">
+        </testcase>
+        <testcase classname="src/components/ui/DataTablePagination.test.tsx" name="DataTablePagination &gt; renders page size selector" time="0.08553693">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/ui/EmptyState.test.tsx" timestamp="2026-08-11T21:11:45.458Z" hostname="2f17cd49ec7f" tests="5" failures="0" errors="0" skipped="0" time="0.339060953">
+        <testcase classname="src/components/ui/EmptyState.test.tsx" name="EmptyState &gt; renders title" time="0.061483868">
+        </testcase>
+        <testcase classname="src/components/ui/EmptyState.test.tsx" name="EmptyState &gt; renders description when provided" time="0.008301016">
+        </testcase>
+        <testcase classname="src/components/ui/EmptyState.test.tsx" name="EmptyState &gt; renders action button when provided" time="0.249929979">
+        </testcase>
+        <testcase classname="src/components/ui/EmptyState.test.tsx" name="EmptyState &gt; does not render action button when not provided" time="0.007876718">
+        </testcase>
+        <testcase classname="src/components/ui/EmptyState.test.tsx" name="EmptyState &gt; renders the icon" time="0.007934535">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/ui/ErrorState.test.tsx" timestamp="2026-08-11T21:11:45.458Z" hostname="2f17cd49ec7f" tests="5" failures="0" errors="0" skipped="0" time="0.179858867">
+        <testcase classname="src/components/ui/ErrorState.test.tsx" name="ErrorState &gt; renders default title" time="0.034862902">
+        </testcase>
+        <testcase classname="src/components/ui/ErrorState.test.tsx" name="ErrorState &gt; renders custom title" time="0.004306487">
+        </testcase>
+        <testcase classname="src/components/ui/ErrorState.test.tsx" name="ErrorState &gt; renders error message" time="0.003148421">
+        </testcase>
+        <testcase classname="src/components/ui/ErrorState.test.tsx" name="ErrorState &gt; renders retry button when onRetry provided" time="0.131941771">
+        </testcase>
+        <testcase classname="src/components/ui/ErrorState.test.tsx" name="ErrorState &gt; does not render retry button when onRetry not provided" time="0.003206201">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/ui/PageSkeleton.test.tsx" timestamp="2026-08-11T21:11:45.459Z" hostname="2f17cd49ec7f" tests="5" failures="0" errors="0" skipped="0" time="0.116206184">
+        <testcase classname="src/components/ui/PageSkeleton.test.tsx" name="PageSkeleton &gt; renders header skeleton by default" time="0.072111386">
+        </testcase>
+        <testcase classname="src/components/ui/PageSkeleton.test.tsx" name="PageSkeleton &gt; renders card skeletons when hasCards is true" time="0.0091142">
+        </testcase>
+        <testcase classname="src/components/ui/PageSkeleton.test.tsx" name="PageSkeleton &gt; renders table row skeletons when hasTable is true" time="0.005210474">
+        </testcase>
+        <testcase classname="src/components/ui/PageSkeleton.test.tsx" name="PageSkeleton &gt; renders correct number of table rows" time="0.016698447">
+        </testcase>
+        <testcase classname="src/components/ui/PageSkeleton.test.tsx" name="PageSkeleton &gt; hides header when hasHeader is false" time="0.003969169">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/ui/PriorityDot.test.tsx" timestamp="2026-08-11T21:11:45.459Z" hostname="2f17cd49ec7f" tests="7" failures="0" errors="0" skipped="0" time="0.166302171">
+        <testcase classname="src/components/ui/PriorityDot.test.tsx" name="PriorityDot &gt; renders a dot element" time="0.094054467">
+        </testcase>
+        <testcase classname="src/components/ui/PriorityDot.test.tsx" name="PriorityDot &gt; applies red color for priority 0 (Critical)" time="0.01003869">
+        </testcase>
+        <testcase classname="src/components/ui/PriorityDot.test.tsx" name="PriorityDot &gt; applies orange color for priority 1 (High)" time="0.008697976">
+        </testcase>
+        <testcase classname="src/components/ui/PriorityDot.test.tsx" name="PriorityDot &gt; applies amber color for priority 2 (Medium)" time="0.007800774">
+        </testcase>
+        <testcase classname="src/components/ui/PriorityDot.test.tsx" name="PriorityDot &gt; applies green color for priority 3 (Low)" time="0.007395227">
+        </testcase>
+        <testcase classname="src/components/ui/PriorityDot.test.tsx" name="PriorityDot &gt; maps high values (4+) to Low color" time="0.015224891">
+        </testcase>
+        <testcase classname="src/components/ui/PriorityDot.test.tsx" name="PriorityDot &gt; maps negative values to Critical color" time="0.015630134">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/ui/StatusBadge.test.tsx" timestamp="2026-08-11T21:11:45.460Z" hostname="2f17cd49ec7f" tests="6" failures="0" errors="0" skipped="0" time="0.071273277">
+        <testcase classname="src/components/ui/StatusBadge.test.tsx" name="StatusBadge &gt; renders status text" time="0.048769004">
+        </testcase>
+        <testcase classname="src/components/ui/StatusBadge.test.tsx" name="StatusBadge &gt; applies correct colors for active status" time="0.004535524">
+        </testcase>
+        <testcase classname="src/components/ui/StatusBadge.test.tsx" name="StatusBadge &gt; applies correct colors for backlog status" time="0.005363299">
+        </testcase>
+        <testcase classname="src/components/ui/StatusBadge.test.tsx" name="StatusBadge &gt; applies correct colors for in-progress status" time="0.004107509">
+        </testcase>
+        <testcase classname="src/components/ui/StatusBadge.test.tsx" name="StatusBadge &gt; applies correct colors for done status" time="0.003158251">
+        </testcase>
+        <testcase classname="src/components/ui/StatusBadge.test.tsx" name="StatusBadge &gt; falls back to backlog colors for unknown status" time="0.002458294">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/api/client.test.ts" timestamp="2026-08-11T21:11:45.462Z" hostname="2f17cd49ec7f" tests="14" failures="0" errors="0" skipped="0" time="0.065401191">
+        <testcase classname="src/lib/api/client.test.ts" name="apiRequest &gt; makes request with correct headers" time="0.023639469">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="apiRequest &gt; includes Authorization header when token exists" time="0.003264377">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="apiRequest &gt; throws on non-ok response" time="0.004775013">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="apiRequest &gt; returns fallback error when body is not JSON" time="0.003346173">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="apiRequest &gt; returns undefined for 204 No Content" time="0.001762212">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="apiRequest &gt; tries refresh on 401 and retries once" time="0.002361514">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="apiRequest &gt; redirects to /login when refresh fails" time="0.002293452">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="apiRequest &gt; does not redirect when already on /login" time="0.002639603">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="apiRequest &gt; does not refresh for /auth/ endpoints" time="0.003305942">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="paginationParams &gt; returns empty string for undefined" time="0.000766409">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="paginationParams &gt; returns empty string for empty object" time="0.00038356">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="paginationParams &gt; builds offset param" time="0.006218041">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="paginationParams &gt; builds limit param" time="0.000629969">
+        </testcase>
+        <testcase classname="src/lib/api/client.test.ts" name="paginationParams &gt; builds both params" time="0.000393976">
+        </testcase>
+    </testsuite>
+</testsuites>

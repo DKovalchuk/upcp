@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.delivery.service import TaskService
@@ -25,10 +26,10 @@ from app.quality.service import (
     ReviewGateService,
     ReviewRoundService,
 )
+from app.shared.config import get_settings
 from app.shared.database import get_session
-from app.shared.errors import Conflict, NotFound
+from app.shared.errors import Conflict, NotFound, ValidationError
 from app.shared.pagination import PaginationParams, pagination_dependency
-from app.shared.storage import LocalStorageAdapter, get_storage_adapter
 
 router = APIRouter(tags=["quality"])
 
@@ -262,15 +263,15 @@ def _evidence_dict(e: Any) -> dict[str, str | int | None]:
         "url": e.url,
         "content_snippet": e.content_snippet,
         "artifact_ref": e.artifact_ref,
+        "file_name": e.file_name,
+        "file_size": e.file_size,
+        "content_type": e.content_type,
         "created_by_type": e.created_by_type,
         "created_by_id": e.created_by_id,
         "verification_state": e.verification_state,
         "verified_by_type": e.verified_by_type,
         "verified_by_id": e.verified_by_id,
         "verified_at": e.verified_at.isoformat() if e.verified_at else None,
-        "file_path": e.file_path,
-        "file_name": e.file_name,
-        "file_size": e.file_size,
         "created_at": e.created_at.isoformat() if e.created_at else None,
     }
 
@@ -391,6 +392,62 @@ def reject_evidence(
     except Conflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
     return _evidence_dict(e)
+
+
+@router.post(
+    "/tasks/{task_id}/evidence/upload",
+    status_code=201,
+    summary="Upload file as evidence",
+    description="Upload a file attachment as evidence for a task.",
+    responses={422: {"description": "Validation error"}},
+)
+async def upload_evidence_file(
+    task_id: str,
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    created_by_type: str = Form(default="human"),
+    created_by_id: str = Form(default="default"),
+    dod_item_id: str | None = Form(default=None),
+    session: Session = Depends(get_session),
+) -> dict[str, str | int | None]:  # noqa: B008
+    settings = get_settings()
+    svc = EvidenceService(session)
+    try:
+        e = svc.upload_file(
+            task_id=task_id,
+            file=file,
+            title=title,
+            created_by_type=created_by_type,
+            created_by_id=created_by_id,
+            storage_dir=settings.upload_dir,
+            max_size_bytes=settings.max_upload_size_bytes,
+            dod_item_id=dod_item_id,
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    return _evidence_dict(e)
+
+
+@router.get(
+    "/evidence/{evidence_id}/download",
+    summary="Download evidence file",
+    description="Download the file attached to an evidence item.",
+    responses={404: {"description": "Evidence not found or no file"}},
+)
+def download_evidence_file(
+    evidence_id: str,
+    session: Session = Depends(get_session),
+) -> FileResponse:  # noqa: B008
+    svc = EvidenceService(session)
+    try:
+        path, ct = svc.get_file(evidence_id)
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    except ValidationError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    return FileResponse(path=path, media_type=ct, filename=path.name)
 
 
 # ── Review Round endpoints ──
@@ -556,62 +613,3 @@ def submit_verdict(
     except Conflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
     return _review_round_dict(rr)
-
-
-@router.post(
-    "/evidence/upload",
-    summary="Upload a file as evidence",
-    description="Upload a file attachment for a task's evidence. Validates file type and size (10MB max).",
-    responses={
-        400: {"description": "Invalid file type or size"},
-        404: {"description": "Task not found"},
-    },
-)
-async def upload_evidence_file(
-    file: UploadFile = File(...),  # noqa: B008
-    task_id: str = Form(...),  # noqa: B008
-    title: str = Form(""),  # noqa: B008
-    description: str = Form(""),  # noqa: B008
-    dod_item_id: str | None = Form(None),  # noqa: B008
-    session: Session = Depends(get_session),  # noqa: B008
-    storage: LocalStorageAdapter = Depends(get_storage_adapter),  # noqa: B008
-) -> dict[str, str | int | None]:  # noqa: B008
-    from app.shared.storage import validate_upload
-
-    # Validate task exists
-    task_svc = TaskService(session)
-    try:
-        task_svc.get(task_id)
-    except NotFound as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from None
-
-    # Read file data
-    data = await file.read()
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No filename provided")
-
-    # Validate type and size
-    error = validate_upload(file.filename, len(data))
-    if error:
-        raise HTTPException(status_code=400, detail=error)
-
-    # Store file
-    stored_path = await storage.save(file.filename, data)
-
-    # Create evidence record
-    svc = EvidenceService(session)
-    ev = svc.create(
-        task_id=task_id,
-        type="file_upload",
-        title=title or file.filename,
-        description=description,
-        created_by_type="user",
-        created_by_id="default",
-        dod_item_id=dod_item_id,
-    )
-    ev.file_path = stored_path
-    ev.file_name = file.filename
-    ev.file_size = len(data)
-    session.flush()
-
-    return _evidence_dict(ev)

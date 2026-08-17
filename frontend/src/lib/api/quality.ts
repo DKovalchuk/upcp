@@ -145,6 +145,30 @@ export async function rejectEvidence(
   });
 }
 
+export async function uploadEvidenceFile(
+  taskId: string,
+  file: File,
+  title: string,
+  dodItemId?: string
+): Promise<Evidence> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('title', title);
+  if (dodItemId) formData.append('dod_item_id', dodItemId);
+
+  const response = await fetch(`/api/v1/tasks/${taskId}/evidence/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+    throw new Error(error.detail || 'Upload failed');
+  }
+
+  return response.json();
+}
+
 // ── Review Rounds ──
 
 export async function fetchReviewRounds(

@@ -103,6 +103,9 @@ class EvidenceResponse(BaseModel):
     url: str | None = None
     content_snippet: str | None = None
     artifact_ref: str | None = None
+    file_name: str | None = None
+    file_size: int | None = None
+    content_type: str | None = None
     status: str
     verification_notes: str | None = None
     dod_item_id: str | None = None

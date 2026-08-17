@@ -9,12 +9,12 @@ import {
   fetchDoDItem,
   createDoDItem,
   updateDoDItem,
+  uploadEvidenceFile,
   deleteDoDItem,
   submitReviewVerdict,
   createEvidence,
   acceptEvidence,
   rejectEvidence,
-  uploadEvidence,
   createReviewRound,
 } from '@/lib/api';
 import type {
@@ -177,12 +177,12 @@ export function useCreateEvidence(taskId: string) {
   });
 }
 
-export function useUploadEvidence(taskId: string) {
+export function useUploadEvidenceFile(taskId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, title, description }: { file: File; title?: string; description?: string }) =>
-      uploadEvidence(taskId, file, title, description),
+    mutationFn: ({ file, title, dodItemId }: { file: File; title: string; dodItemId?: string }) =>
+      uploadEvidenceFile(taskId, file, title, dodItemId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'evidence'] });
     },
