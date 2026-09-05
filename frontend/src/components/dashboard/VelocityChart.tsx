@@ -18,9 +18,11 @@ interface VelocityDataPoint {
 export function VelocityChart({
   data,
   isLoading,
+  deliveryBase,
 }: {
   data?: VelocityDataPoint[];
   isLoading?: boolean;
+  deliveryBase?: string;
 }) {
   const navigate = useNavigate();
 
@@ -60,8 +62,8 @@ export function VelocityChart({
 
   const handleClick = (chartData: any) => {
     if (chartData?.activePayload?.[0]) {
-      const week = chartData.activePayload[0].payload.week;
-      navigate({ to: `/delivery?status=done&week=${week}` });
+      const base = deliveryBase ?? '/projects';
+      navigate({ to: base });
     }
   };
 

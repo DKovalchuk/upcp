@@ -157,9 +157,11 @@ describe('Dashboard', () => {
     mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
     renderDashboard();
     expect(screen.getByText('Projects').closest('a')).toHaveAttribute('href', '/projects');
-    expect(screen.getByText('Active Tasks').closest('a')).toHaveAttribute('href', '/delivery?status=in_progress,claimed,blocked');
-    expect(screen.getByText('Done This Week').closest('a')).toHaveAttribute('href', '/delivery?status=done');
-    expect(screen.getByText('Blocked').closest('a')).toHaveAttribute('href', '/delivery?status=blocked');
+    // Active, Done, Blocked link to delivery page of first project
+    const deliveryHref = `/projects/${FULL_STATS.recent_projects[0].id}/delivery`;
+    expect(screen.getByText('Active Tasks').closest('a')).toHaveAttribute('href', deliveryHref);
+    expect(screen.getByText('Done This Week').closest('a')).toHaveAttribute('href', deliveryHref);
+    expect(screen.getByText('Blocked').closest('a')).toHaveAttribute('href', deliveryHref);
   });
 
   it('health score shows correct color class', () => {

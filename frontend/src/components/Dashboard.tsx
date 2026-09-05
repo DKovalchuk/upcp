@@ -134,6 +134,8 @@ export function Dashboard() {
   const tc = stats?.task_counts_by_status;
   const activeTasks = (tc?.in_progress ?? 0) + (stats?.claimed_count ?? 0) + (tc?.blocked ?? 0);
   const health = stats?.health_score ?? 100;
+  const firstProjectId = projectId ?? stats?.recent_projects?.[0]?.id;
+  const deliveryBase = firstProjectId ? `/projects/${firstProjectId}/delivery` : '/projects';
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -159,7 +161,7 @@ export function Dashboard() {
           icon={GitBranch}
           color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
           variant="info"
-          to="/delivery?status=in_progress,claimed,blocked"
+          to={deliveryBase}
         />
         <StatCard
           label="Done This Week"
@@ -167,7 +169,7 @@ export function Dashboard() {
           icon={CalendarCheck}
           color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           variant="success"
-          to="/delivery?status=done"
+          to={deliveryBase}
         />
         <StatCard
           label="Blocked"
@@ -175,7 +177,7 @@ export function Dashboard() {
           icon={Ban}
           color="bg-red-500/10 text-red-600 dark:text-red-400"
           variant={stats?.blocked_count ? 'error' : 'success'}
-          to="/delivery?status=blocked"
+          to={deliveryBase}
         />
         <StatCard
           label="Health Score"
@@ -189,10 +191,10 @@ export function Dashboard() {
       {/* ── Row 2: Charts ── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <TaskDistributionDonut counts={tc} />
+          <TaskDistributionDonut counts={tc} deliveryBase={deliveryBase} />
         </div>
         <div className="lg:col-span-2">
-          <VelocityChart data={velocityData?.items} isLoading={velocityLoading} />
+          <VelocityChart data={velocityData?.items} isLoading={velocityLoading} deliveryBase={deliveryBase} />
         </div>
       </div>
 

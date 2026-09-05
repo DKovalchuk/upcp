@@ -32,7 +32,7 @@ interface ChartDatum {
   status: string;
 }
 
-export function TaskDistributionDonut({ counts }: { counts?: StatusCount }) {
+export function TaskDistributionDonut({ counts, deliveryBase }: { counts?: StatusCount; deliveryBase?: string }) {
   const navigate = useNavigate();
 
   const data: ChartDatum[] = Object.entries(counts ?? {})
@@ -62,8 +62,9 @@ export function TaskDistributionDonut({ counts }: { counts?: StatusCount }) {
     );
   }
 
-  const handleClick = (datum: ChartDatum) => {
-    navigate({ to: `/delivery?status=${datum.status}` });
+  const handleClick = () => {
+    const base = deliveryBase ?? '/projects';
+    navigate({ to: base });
   };
 
   return (
@@ -86,7 +87,7 @@ export function TaskDistributionDonut({ counts }: { counts?: StatusCount }) {
                   outerRadius={70}
                   paddingAngle={2}
                   dataKey="value"
-                  onClick={(_, index) => handleClick(data[index])}
+                  onClick={() => handleClick()}
                   style={{ cursor: 'pointer' }}
                 >
                   {data.map((d) => (
@@ -114,7 +115,7 @@ export function TaskDistributionDonut({ counts }: { counts?: StatusCount }) {
             {data.map((d) => (
               <button
                 key={d.status}
-                onClick={() => handleClick(d)}
+                onClick={() => handleClick()}
                 className="flex items-center gap-2 rounded px-1 py-0.5 text-left transition-colors hover:bg-muted/50"
               >
                 <span

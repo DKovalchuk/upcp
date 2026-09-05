@@ -55,16 +55,16 @@ describe('TaskDistributionDonut', () => {
     expect(screen.getByText('Done')).toBeInTheDocument();
   });
 
-  it('legend click navigates to filtered view', () => {
-    render(<TaskDistributionDonut counts={{ backlog: 4, done: 30 }} />);
+  it('legend click navigates to delivery', () => {
+    render(<TaskDistributionDonut counts={{ backlog: 4, done: 30 }} deliveryBase="/projects/p1/delivery" />);
     fireEvent.click(screen.getByText('Backlog'));
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/delivery?status=backlog' });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/projects/p1/delivery' });
   });
 
-  it('legend click for done navigates correctly', () => {
+  it('legend click navigates to projects when no deliveryBase', () => {
     render(<TaskDistributionDonut counts={{ done: 30 }} />);
     fireEvent.click(screen.getByText('Done'));
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/delivery?status=done' });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/projects' });
   });
 
   it('renders single status correctly', () => {
