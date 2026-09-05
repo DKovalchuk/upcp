@@ -8,9 +8,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRelativeTime } from '@/lib/format';
 import {
   FolderKanban,
-  Activity,
   GitBranch,
-  ShieldCheck,
+  CalendarCheck,
+  Ban,
+  HeartPulse,
+  ArrowRight,
 } from 'lucide-react';
 import {
   NeedsReviewSection,
@@ -24,6 +26,23 @@ import {
 } from '@/components/dashboard/AttentionCards';
 import { LiveActivityFeed } from '@/components/dashboard/LiveActivityFeed';
 import { AgentActivitySummary } from '@/components/dashboard/AgentActivitySummary';
+import { TaskDistributionDonut } from '@/components/dashboard/TaskDistributionDonut';
+
+// ── Health Score Color ──────────────────────────────────────
+
+function healthVariant(score: number): 'success' | 'warning' | 'error' {
+  if (score >= 80) return 'success';
+  if (score >= 50) return 'warning';
+  return 'error';
+}
+
+function healthColor(score: number): string {
+  if (score >= 80) return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+  if (score >= 50) return 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
+  return 'bg-red-500/10 text-red-600 dark:text-red-400';
+}
+
+// ── Stat Card ───────────────────────────────────────────────
 
 const STAT_CARD_STYLES = {
   default: 'border-l-4 border-l-primary',
@@ -39,29 +58,45 @@ function StatCard({
   icon: Icon,
   color,
   variant = 'default',
+  to,
 }: {
   label: string;
   value: number | string;
   icon: React.ElementType;
   color: string;
   variant?: keyof typeof STAT_CARD_STYLES;
+  to?: string;
 }) {
-  return (
-    <Card className={`transition-all hover:shadow-md ${STAT_CARD_STYLES[variant]}`}>
+  const content = (
+    <Card
+      className={`transition-all ${to ? 'cursor-pointer hover:shadow-md hover:ring-1 hover:ring-ring/20' : ''} ${STAT_CARD_STYLES[variant]}`}
+    >
       <CardContent className="flex items-center gap-4 p-4">
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-lg ${color}`}
-        >
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${color}`}>
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-2xl font-bold tracking-tight">{value}</p>
           <p className="text-sm text-muted-foreground">{label}</p>
         </div>
+        {to && (
+          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+        )}
       </CardContent>
     </Card>
   );
+
+  if (to) {
+    return (
+      <Link to={to} className="group block">
+        {content}
+      </Link>
+    );
+  }
+  return content;
 }
+
+// ── Dashboard ───────────────────────────────────────────────
 
 export function Dashboard() {
   const { data: stats, isLoading, error } = useDashboardStats();
@@ -69,7 +104,7 @@ export function Dashboard() {
   const navigate = useNavigate();
 
   if (isLoading) {
-    return <PageSkeleton hasCards cardCount={4} rows={5} />;
+    return <PageSkeleton hasCards cardCount={5} rows={5} />;
   }
 
   if (error) {
@@ -88,50 +123,76 @@ export function Dashboard() {
   }
 
   const tc = stats?.task_counts_by_status;
-  const totalAttention =
-    (attention?.needs_review?.length ?? 0) +
-    (attention?.open_questions?.length ?? 0) +
-    (attention?.blocked_tasks?.length ?? 0) +
-    (attention?.stale_claims?.length ?? 0) +
-    (attention?.failed_dod?.length ?? 0);
+  const activeTasks = (tc?.in_progress ?? 0) + (stats?.claimed_count ?? 0) + (tc?.blocked ?? 0);
+  const health = stats?.health_score ?? 100;
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* ── Stats Row ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 animate-stagger">
+      {/* ── Row 1: KPI Cards ── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 animate-stagger">
         <StatCard
           label="Projects"
           value={stats?.project_count ?? 0}
           icon={FolderKanban}
           color="bg-primary/10 text-primary"
           variant="default"
+          to="/projects"
         />
         <StatCard
-          label="Tasks In Progress"
-          value={tc?.in_progress ?? 0}
+          label="Active Tasks"
+          value={activeTasks}
           icon={GitBranch}
           color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
           variant="info"
+          to="/delivery?status=in_progress,claimed,blocked"
         />
         <StatCard
-          label="Tasks Done"
-          value={tc?.done ?? 0}
-          icon={ShieldCheck}
+          label="Done This Week"
+          value={stats?.done_this_week ?? 0}
+          icon={CalendarCheck}
           color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           variant="success"
+          to="/delivery?status=done"
         />
         <StatCard
-          label="Needs Attention"
-          value={totalAttention}
-          icon={Activity}
-          color={totalAttention > 0
-            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}
-          variant={totalAttention > 0 ? 'warning' : 'success'}
+          label="Blocked"
+          value={stats?.blocked_count ?? 0}
+          icon={Ban}
+          color="bg-red-500/10 text-red-600 dark:text-red-400"
+          variant={stats?.blocked_count ? 'error' : 'success'}
+          to="/delivery?status=blocked"
+        />
+        <StatCard
+          label="Health Score"
+          value={`${health}%`}
+          icon={HeartPulse}
+          color={healthColor(health)}
+          variant={healthVariant(health)}
         />
       </div>
 
-      {/* ── Attention Dashboard ── */}
+      {/* ── Row 2: Charts ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <TaskDistributionDonut counts={tc} />
+        </div>
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Velocity (8 weeks)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                Velocity chart — coming in Sprint 2
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* ── Row 3: Attention Dashboard ── */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Needs Attention
@@ -147,7 +208,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* ── Activity & Agents ── */}
+      {/* ── Row 4: Activity & Agents ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <LiveActivityFeed />
@@ -157,7 +218,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* ── Recent Projects ── */}
+      {/* ── Row 5: Recent Projects ── */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Projects</CardTitle>

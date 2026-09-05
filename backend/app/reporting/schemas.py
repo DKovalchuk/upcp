@@ -24,6 +24,7 @@ class TaskCountsByStatus(BaseModel):
     in_progress: int = 0
     review: int = 0
     done: int = 0
+    blocked: int = 0
 
 
 class ProjectSummary(BaseModel):
@@ -53,3 +54,7 @@ class DashboardStatsResponse(BaseModel):
     task_counts_by_status: TaskCountsByStatus
     recent_projects: list[ProjectSummary]
     recent_activity: list[AuditEventSummary]
+    done_this_week: int = 0
+    blocked_count: int = 0
+    claimed_count: int = 0
+    health_score: int = 100
