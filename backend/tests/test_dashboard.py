@@ -12,6 +12,7 @@ from app.audit.models import AuditEvent  # noqa: F401
 from app.audit.service import AuditService
 from app.delivery.models import Feature, Heartbeat, Task, TaskClaim  # noqa: F401
 from app.identity.agents import Agent  # noqa: F401
+from app.identity.models import User  # noqa: F401
 from app.projects.models import Project  # noqa: F401
 from app.shared.database import Base, get_session
 from app.shared.errors import register_error_handlers
@@ -340,3 +341,193 @@ def test_agent_activity_fresh_when_recent_heartbeat() -> None:
     resp = client.get("/api/v1/dashboard/agent-activity")
     item = resp.json()["items"][0]
     assert item["is_stale"] is False
+
+
+# ── Sprint 1: New dashboard stats fields ────────────────────
+
+
+def test_dashboard_stats_new_fields_present() -> None:
+    """Test that new fields (done_this_week, blocked_count, claimed_count, health_score) are present."""
+    client = TestClient(_test_app())
+    resp = client.get("/api/v1/dashboard/stats")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "done_this_week" in data
+    assert "blocked_count" in data
+    assert "claimed_count" in data
+    assert "health_score" in data
+    assert "blocked" in data["task_counts_by_status"]
+
+
+def test_dashboard_stats_empty_db_defaults() -> None:
+    """Test new fields default to correct values on empty DB."""
+    client = TestClient(_test_app())
+    resp = client.get("/api/v1/dashboard/stats")
+    data = resp.json()
+    assert data["done_this_week"] == 0
+    assert data["blocked_count"] == 0
+    assert data["claimed_count"] == 0
+    assert data["health_score"] == 100
+    assert data["task_counts_by_status"]["blocked"] == 0
+
+
+def test_dashboard_stats_done_this_week_counts_recent() -> None:
+    """Test done_this_week counts only tasks completed in last 7 days."""
+    client = TestClient(_test_app())
+    project = client.post("/api/v1/projects", json={"name": "P1"}).json()
+    feature = client.post(
+        f"/api/v1/projects/{project['id']}/features",
+        json={"name": "F1", "slug": "f1"},
+    ).json()
+
+    # Create task and mark done (updated_at will be now)
+    client.post(
+        f"/api/v1/features/{feature['id']}/tasks",
+        json={"title": "Recent done", "status": "done"},
+    )
+
+    resp = client.get("/api/v1/dashboard/stats")
+    assert resp.json()["done_this_week"] >= 1
+
+
+def test_dashboard_stats_done_this_week_excludes_old() -> None:
+    """Test done_this_week excludes tasks done more than 7 days ago."""
+    client = TestClient(_test_app())
+    session = TestSessionLocal()
+
+    project = client.post("/api/v1/projects", json={"name": "P1"}).json()
+    feature = client.post(
+        f"/api/v1/projects/{project['id']}/features",
+        json={"name": "F1", "slug": "f1"},
+    ).json()
+    task = client.post(
+        f"/api/v1/features/{feature['id']}/tasks",
+        json={"title": "Old done", "status": "done"},
+    ).json()
+
+    # Backdate the task's updated_at
+    from app.delivery.models import Task
+
+    old_time = utcnow() - timedelta(days=10)
+    session.query(Task).filter(Task.id == task["id"]).update({"updated_at": old_time})
+    session.commit()
+    session.close()
+
+    resp = client.get("/api/v1/dashboard/stats")
+    assert resp.json()["done_this_week"] == 0
+
+
+def test_dashboard_stats_blocked_count() -> None:
+    """Test blocked_count counts tasks with blocked status."""
+    client = TestClient(_test_app())
+    project = client.post("/api/v1/projects", json={"name": "P1"}).json()
+    feature = client.post(
+        f"/api/v1/projects/{project['id']}/features",
+        json={"name": "F1", "slug": "f1"},
+    ).json()
+
+    client.post(
+        f"/api/v1/features/{feature['id']}/tasks",
+        json={"title": "Blocked 1", "status": "blocked"},
+    )
+    client.post(
+        f"/api/v1/features/{feature['id']}/tasks",
+        json={"title": "Blocked 2", "status": "blocked"},
+    )
+    client.post(
+        f"/api/v1/features/{feature['id']}/tasks",
+        json={"title": "Not blocked", "status": "in_progress"},
+    )
+
+    resp = client.get("/api/v1/dashboard/stats")
+    assert resp.json()["blocked_count"] == 2
+    assert resp.json()["task_counts_by_status"]["blocked"] == 2
+
+
+def test_dashboard_stats_claimed_count() -> None:
+    """Test claimed_count counts tasks with active agent claims."""
+    client = TestClient(_test_app())
+    session = TestSessionLocal()
+
+    project = client.post("/api/v1/projects", json={"name": "P1"}).json()
+    feature = client.post(
+        f"/api/v1/projects/{project['id']}/features",
+        json={"name": "F1", "slug": "f1"},
+    ).json()
+    task = client.post(
+        f"/api/v1/features/{feature['id']}/tasks",
+        json={"title": "Claimed task", "status": "in_progress"},
+    ).json()
+
+    # Create agent and claim
+    from app.delivery.models import TaskClaim
+    from app.identity.agents import Agent
+
+    agent = Agent(id=new_id(), name="test-agent", description="Test Agent")
+    session.add(agent)
+    claim = TaskClaim(
+        id=new_id(),
+        task_id=task["id"],
+        agent_id=agent.id,
+        state="active",
+        claimed_at=utcnow(),
+    )
+    session.add(claim)
+    session.commit()
+    session.close()
+
+    resp = client.get("/api/v1/dashboard/stats")
+    assert resp.json()["claimed_count"] >= 1
+
+
+def test_dashboard_stats_health_score_range() -> None:
+    """Test health_score is between 0 and 100."""
+    client = TestClient(_test_app())
+    client.post("/api/v1/projects", json={"name": "P1"})
+    resp = client.get("/api/v1/dashboard/stats")
+    score = resp.json()["health_score"]
+    assert 0 <= score <= 100
+
+
+def test_dashboard_stats_project_id_filter() -> None:
+    """Test stats scoped to a specific project."""
+    client = TestClient(_test_app())
+
+    p1 = client.post("/api/v1/projects", json={"name": "P1"}).json()
+    p2 = client.post("/api/v1/projects", json={"name": "P2"}).json()
+
+    f1 = client.post(
+        f"/api/v1/projects/{p1['id']}/features", json={"name": "F1", "slug": "f1"}
+    ).json()
+    f2 = client.post(
+        f"/api/v1/projects/{p2['id']}/features", json={"name": "F2", "slug": "f2"}
+    ).json()
+
+    client.post(f"/api/v1/features/{f1['id']}/tasks", json={"title": "T1", "status": "done"})
+    client.post(f"/api/v1/features/{f1['id']}/tasks", json={"title": "T2", "status": "done"})
+    client.post(f"/api/v1/features/{f2['id']}/tasks", json={"title": "T3", "status": "in_progress"})
+
+    # Global stats
+    global_stats = client.get("/api/v1/dashboard/stats").json()
+    assert global_stats["task_counts_by_status"]["done"] == 2
+    assert global_stats["task_counts_by_status"]["in_progress"] == 1
+
+    # Scoped to P1
+    p1_stats = client.get(f"/api/v1/dashboard/stats?project_id={p1['id']}").json()
+    assert p1_stats["task_counts_by_status"]["done"] == 2
+    assert p1_stats["task_counts_by_status"]["in_progress"] == 0
+
+    # Scoped to P2
+    p2_stats = client.get(f"/api/v1/dashboard/stats?project_id={p2['id']}").json()
+    assert p2_stats["task_counts_by_status"]["done"] == 0
+    assert p2_stats["task_counts_by_status"]["in_progress"] == 1
+
+
+def test_dashboard_stats_nonexistent_project() -> None:
+    """Test stats with nonexistent project_id returns zeros, not error."""
+    client = TestClient(_test_app())
+    resp = client.get("/api/v1/dashboard/stats?project_id=nonexistent-uuid")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["task_counts_by_status"]["done"] == 0
+    assert data["done_this_week"] == 0

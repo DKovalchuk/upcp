@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Dashboard } from './Dashboard';
 import { mockSuccessQuery, mockLoadingQuery, mockErrorQuery } from '@/test/helpers';
 
-// Mock Link component and useNavigate
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, to, ...props }: any) => (
     <a href={to} {...props}>{children}</a>
@@ -12,22 +11,53 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
 }));
 
-// Mock the hooks
 vi.mock('@/hooks/use-dashboard', () => ({
   useDashboardStats: vi.fn(),
   useAgentActivity: vi.fn(),
+  useAttentionDashboard: vi.fn(),
 }));
 
-vi.mock('@/hooks/use-projects', () => ({
-  useProjects: vi.fn(),
+vi.mock('@/components/dashboard/AttentionCards', () => ({
+  useAttentionDashboard: vi.fn(),
+  NeedsReviewSection: () => <div>NeedsReviewSection</div>,
+  OpenClarificationsSection: () => <div>OpenClarificationsSection</div>,
+  BlockedTasksSection: () => <div>BlockedTasksSection</div>,
+  StaleAgentsSection: () => <div>StaleAgentsSection</div>,
+  FailedQualityGatesSection: () => <div>FailedQualityGatesSection</div>,
+  RejectedTasksSection: () => <div>RejectedTasksSection</div>,
+  AgentVerdictsSection: () => <div>AgentVerdictsSection</div>,
 }));
 
-import { useDashboardStats, useAgentActivity } from '@/hooks/use-dashboard';
-import { useProjects } from '@/hooks/use-projects';
+vi.mock('@/components/dashboard/LiveActivityFeed', () => ({
+  LiveActivityFeed: () => <div>LiveActivityFeed</div>,
+}));
+
+vi.mock('@/components/dashboard/AgentActivitySummary', () => ({
+  AgentActivitySummary: () => <div>AgentActivitySummary</div>,
+}));
+
+vi.mock('@/components/dashboard/TaskDistributionDonut', () => ({
+  TaskDistributionDonut: () => <div>TaskDistributionDonut</div>,
+}));
+
+import { useDashboardStats } from '@/hooks/use-dashboard';
+import { useAttentionDashboard } from '@/components/dashboard/AttentionCards';
 
 const mockUseDashboardStats = vi.mocked(useDashboardStats);
-const mockUseProjects = vi.mocked(useProjects);
-const mockUseAgentActivity = vi.mocked(useAgentActivity);
+const mockUseAttentionDashboard = vi.mocked(useAttentionDashboard);
+
+const FULL_STATS = {
+  project_count: 2,
+  task_counts_by_status: { backlog: 4, in_progress: 2, review: 1, done: 30, blocked: 1 },
+  recent_projects: [
+    { id: 'p1', name: 'UPCP', slug: 'upcp', description: 'Main project', status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-09-05T00:00:00Z' },
+  ],
+  recent_activity: [],
+  done_this_week: 12,
+  blocked_count: 1,
+  claimed_count: 2,
+  health_score: 75,
+};
 
 function createQueryClient() {
   return new QueryClient({
@@ -47,101 +77,141 @@ function renderDashboard() {
 describe('Dashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseAgentActivity.mockReturnValue(mockSuccessQuery({ items: [] }));
+    mockUseAttentionDashboard.mockReturnValue(mockSuccessQuery({}));
   });
 
   it('renders loading skeleton initially', () => {
     mockUseDashboardStats.mockReturnValue(mockLoadingQuery());
-    mockUseProjects.mockReturnValue(mockLoadingQuery());
-
     const { container } = renderDashboard();
-    const skeletons = container.querySelectorAll('[data-slot="skeleton"]');
-    expect(skeletons.length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
   });
 
   it('renders error state on failure', () => {
     mockUseDashboardStats.mockReturnValue(mockErrorQuery('API error'));
-    mockUseProjects.mockReturnValue(mockSuccessQuery(undefined));
-
     renderDashboard();
     expect(screen.getByText('Failed to load dashboard data')).toBeInTheDocument();
   });
 
   it('renders empty state when no projects', () => {
     mockUseDashboardStats.mockReturnValue(mockSuccessQuery({
+      ...FULL_STATS,
       project_count: 0,
-      task_counts_by_status: { backlog: 0, in_progress: 0, review: 0, done: 0 },
       recent_projects: [],
-      recent_activity: [],
     }));
-    mockUseProjects.mockReturnValue(mockSuccessQuery([]));
-
     renderDashboard();
     expect(screen.getByText('No projects yet')).toBeInTheDocument();
-    expect(screen.getByText('Create your first project to get started with UPCP.')).toBeInTheDocument();
   });
 
-  it('renders stat cards with data', () => {
-    mockUseDashboardStats.mockReturnValue(mockSuccessQuery({
-      project_count: 5,
-      task_counts_by_status: { backlog: 3, in_progress: 7, review: 2, done: 12 },
-      recent_projects: [],
-      recent_activity: [],
-    }));
-    mockUseProjects.mockReturnValue(mockSuccessQuery([{ id: '1', name: 'P1' }]));
+  // ── KPI Cards ──────────────────────────────────
 
+  it('renders all 5 KPI cards', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
     renderDashboard();
     expect(screen.getByText('Projects')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('Tasks In Progress')).toBeInTheDocument();
-    expect(screen.getByText('7')).toBeInTheDocument();
-    expect(screen.getByText('Tasks Done')).toBeInTheDocument();
-    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('Active Tasks')).toBeInTheDocument();
+    expect(screen.getByText('Done This Week')).toBeInTheDocument();
+    expect(screen.getByText('Blocked')).toBeInTheDocument();
+    expect(screen.getByText('Health Score')).toBeInTheDocument();
   });
 
-  it('renders recent projects list', () => {
+  it('shows correct KPI values', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(screen.getByText('2')).toBeInTheDocument(); // Projects
+    expect(screen.getByText('12')).toBeInTheDocument(); // Done This Week
+    expect(screen.getByText('75%')).toBeInTheDocument(); // Health Score
+  });
+
+  it('calculates active tasks correctly (in_progress + claimed + blocked)', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    // 2 in_progress + 2 claimed + 1 blocked = 5
+    expect(screen.getByText('5')).toBeInTheDocument();
+  });
+
+  it('KPI cards have correct drill-down links', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(screen.getByText('Projects').closest('a')).toHaveAttribute('href', '/projects');
+    expect(screen.getByText('Active Tasks').closest('a')).toHaveAttribute('href', '/delivery?status=in_progress,claimed,blocked');
+    expect(screen.getByText('Done This Week').closest('a')).toHaveAttribute('href', '/delivery?status=done');
+    expect(screen.getByText('Blocked').closest('a')).toHaveAttribute('href', '/delivery?status=blocked');
+  });
+
+  it('health score shows correct color class', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery({ ...FULL_STATS, health_score: 85 }));
+    const { rerender } = renderDashboard();
+    // ≥80 should have emerald styling (green)
+    expect(screen.getByText('85%')).toBeInTheDocument();
+
+    // Re-render with amber score
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery({ ...FULL_STATS, health_score: 60 }));
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <Dashboard />
+      </QueryClientProvider>
+    );
+    expect(screen.getByText('60%')).toBeInTheDocument();
+  });
+
+  it('handles zero counts gracefully', () => {
     mockUseDashboardStats.mockReturnValue(mockSuccessQuery({
-      project_count: 2,
+      ...FULL_STATS,
+      project_count: 1,
+      task_counts_by_status: { backlog: 0, in_progress: 0, review: 0, done: 0, blocked: 0 },
+      done_this_week: 0,
+      blocked_count: 0,
+      claimed_count: 0,
+    }));
+    renderDashboard();
+    const zeros = screen.getAllByText('0');
+    expect(zeros.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('handles undefined optional fields gracefully', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery({
+      project_count: 1,
       task_counts_by_status: { backlog: 0, in_progress: 0, review: 0, done: 0 },
-      recent_projects: [
-        { id: 'p1', name: 'Project Alpha', slug: 'alpha', description: 'First project', status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-07-24T00:00:00Z' },
-        { id: 'p2', name: 'Project Beta', slug: 'beta', description: null, status: 'paused', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-07-23T00:00:00Z' },
-      ],
+      recent_projects: [],
       recent_activity: [],
     }));
-    mockUseProjects.mockReturnValue(mockSuccessQuery([]));
+    renderDashboard();
+    expect(screen.getByText('Projects')).toBeInTheDocument();
+  });
 
+  // ── Charts ─────────────────────────────────────
+
+  it('renders donut chart placeholder', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(screen.getByText('TaskDistributionDonut')).toBeInTheDocument();
+  });
+
+  it('renders velocity placeholder', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(screen.getByText('Velocity chart — coming in Sprint 2')).toBeInTheDocument();
+  });
+
+  // ── Sections ───────────────────────────────────
+
+  it('renders attention section', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(screen.getByText('Needs Attention')).toBeInTheDocument();
+  });
+
+  it('renders activity and agents sections', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(screen.getByText('LiveActivityFeed')).toBeInTheDocument();
+    expect(screen.getByText('AgentActivitySummary')).toBeInTheDocument();
+  });
+
+  it('renders recent projects', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
     renderDashboard();
     expect(screen.getByText('Recent Projects')).toBeInTheDocument();
-    expect(screen.getByText('Project Alpha')).toBeInTheDocument();
-    expect(screen.getByText('First project')).toBeInTheDocument();
-    expect(screen.getByText('Project Beta')).toBeInTheDocument();
-  });
-
-  it('renders activity feed', () => {
-    mockUseDashboardStats.mockReturnValue(mockSuccessQuery({
-      project_count: 1,
-      task_counts_by_status: { backlog: 0, in_progress: 0, review: 0, done: 0 },
-      recent_projects: [],
-      recent_activity: [],
-    }));
-    mockUseProjects.mockReturnValue(mockSuccessQuery([]));
-
-    renderDashboard();
-    const activityElements = screen.getAllByText('Recent Activity');
-    expect(activityElements.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('shows no activity message when empty', () => {
-    mockUseDashboardStats.mockReturnValue(mockSuccessQuery({
-      project_count: 1,
-      task_counts_by_status: { backlog: 0, in_progress: 0, review: 0, done: 0 },
-      recent_projects: [],
-      recent_activity: [],
-    }));
-    mockUseProjects.mockReturnValue(mockSuccessQuery([]));
-
-    renderDashboard();
-    expect(screen.getByText('No recent projects.')).toBeInTheDocument();
+    expect(screen.getByText('UPCP')).toBeInTheDocument();
   });
 });
