@@ -1,5 +1,5 @@
-import { useAcceptanceCriteria, useDoDItems } from '@/hooks/use-quality';
-import { useSubtasks } from '@/hooks/use-subtasks';
+import { useAcceptanceCriteria, useDoDItems, useDeleteAcceptanceCriterion, useDeleteDoDItem } from '@/hooks/use-quality';
+import { useSubtasks, useDeleteSubtask } from '@/hooks/use-subtasks';
 import {
   useTaskClaims,
   useTaskHeartbeats,
@@ -59,6 +59,9 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
   const { data: acs } = useAcceptanceCriteria(taskId ?? '');
   const { data: dods } = useDoDItems(taskId ?? '');
   const { data: subtasks } = useSubtasks(taskId ?? '');
+  const deleteAC = useDeleteAcceptanceCriterion();
+  const deleteDoD = useDeleteDoDItem();
+  const deleteSubtask = useDeleteSubtask();
   const { data: claims, isLoading: isLoadingClaims } = useTaskClaims(taskId ?? '');
   const { data: heartbeats, isLoading: isLoadingHeartbeats } = useTaskHeartbeats(taskId ?? '');
   const { data: gitLinks } = useGitLinks('task', taskId ?? '');
@@ -382,7 +385,12 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     <ListSection
                       items={acs ?? []}
                       renderItem={(ac) => (
-                        <span className="text-sm">{ac.description}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">{ac.description}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteAC.mutate(ac.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       )}
                       emptyText="No acceptance criteria yet."
                     />
@@ -407,7 +415,12 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     <ListSection
                       items={dods ?? []}
                       renderItem={(dod) => (
-                        <span className="text-sm">{dod.name}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">{dod.name}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteDoD.mutate(dod.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       )}
                       emptyText="No DoD items yet."
                     />
@@ -432,9 +445,14 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     <ListSection
                       items={subtasks ?? []}
                       renderItem={(st) => (
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={st.status} size="sm" />
-                          <span className="text-sm">{st.title}</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <StatusBadge status={st.status} size="sm" />
+                            <span className="text-sm">{st.title}</span>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteSubtask.mutate(st.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       )}
                       emptyText="No subtasks yet."
