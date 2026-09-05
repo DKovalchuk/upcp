@@ -6,6 +6,7 @@ import {
 } from '@/hooks/use-task-execution';
 import { useTaskDetail } from '@/hooks/use-task-detail';
 import { useUpdateTask } from '@/hooks/use-tasks';
+import { useGitLinks } from '@/hooks/use-git-links';
 import { useComponents } from '@/hooks/use-components';
 import { useModules } from '@/hooks/use-modules';
 import { useState, useCallback } from 'react';
@@ -60,6 +61,7 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
   const { data: subtasks } = useSubtasks(taskId ?? '');
   const { data: claims, isLoading: isLoadingClaims } = useTaskClaims(taskId ?? '');
   const { data: heartbeats, isLoading: isLoadingHeartbeats } = useTaskHeartbeats(taskId ?? '');
+  const { data: gitLinks } = useGitLinks('task', taskId ?? '');
 
   // UUID resolution
   const { data: components } = useComponents(projectId ?? '');
@@ -334,9 +336,20 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                       <GitBranch className="h-3 w-3" />
                       Git
                     </h4>
-                    <div className="rounded-lg border border-border p-3">
-                      <p className="text-sm text-muted-foreground">No linked commits.</p>
-                    </div>
+                    {gitLinks && gitLinks.length > 0 ? (
+                      <div className="space-y-1">
+                        {gitLinks.map((link) => (
+                          <div key={link.id} className="flex items-center gap-2 rounded border px-2 py-1.5 text-xs">
+                            <GitBranch className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-mono">{link.git_type}: {link.git_id.slice(0, 12)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-3">
+                        <p className="text-sm text-muted-foreground text-center">No linked commits.</p>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
