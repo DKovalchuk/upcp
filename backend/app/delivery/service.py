@@ -62,9 +62,23 @@ class FeatureService:
         self._session.flush()
 
     def list_features(
-        self, project_id: str, *, offset: int = 0, limit: int = 20
+        self,
+        project_id: str,
+        *,
+        offset: int = 0,
+        limit: int = 20,
+        status: str | None = None,
+        search: str | None = None,
+        sort_by: str = "created_at",
+        sort_dir: str = "desc",
     ) -> tuple[list[Feature], int]:
         q = self._session.query(Feature).filter_by(project_id=project_id)
+        if status is not None:
+            q = q.filter(Feature.status == status)
+        if search:
+            q = q.filter(Feature.name.ilike(f"%{search}%"))
+        sort_col = getattr(Feature, sort_by, Feature.created_at)
+        q = q.order_by(sort_col.desc() if sort_dir == "desc" else sort_col.asc())
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
 
@@ -184,9 +198,22 @@ class TaskService:
         return updated
 
     def list_tasks(
-        self, feature_id: str, *, offset: int = 0, limit: int = 20
+        self,
+        feature_id: str,
+        *,
+        offset: int = 0,
+        limit: int = 20,
+        status: str | None = None,
+        priority: int | None = None,
+        search: str | None = None,
     ) -> tuple[list[Task], int]:
         q = self._session.query(Task).filter_by(feature_id=feature_id)
+        if status is not None:
+            q = q.filter(Task.status == status)
+        if priority is not None:
+            q = q.filter(Task.priority >= priority)
+        if search:
+            q = q.filter(Task.title.ilike(f"%{search}%"))
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
 
@@ -199,6 +226,8 @@ class TaskService:
         status: str | None = None,
         feature_id: str | None = None,
         assignee_type: str | None = None,
+        priority: int | None = None,
+        search: str | None = None,
     ) -> tuple[list[Task], int]:
         """List all tasks belonging to features of a project (JOIN via Feature)."""
         q = (
@@ -212,6 +241,10 @@ class TaskService:
             q = q.filter(Task.feature_id == feature_id)
         if assignee_type is not None:
             q = q.filter(Task.assignee_type == assignee_type)
+        if priority is not None:
+            q = q.filter(Task.priority >= priority)
+        if search:
+            q = q.filter(Task.title.ilike(f"%{search}%"))
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
 

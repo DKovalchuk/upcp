@@ -16,22 +16,29 @@ import { apiRequest, paginationParams } from './client';
 
 export async function fetchTasks(
   featureId: string,
-  pagination?: { offset?: number; limit?: number }
+  pagination?: { offset?: number; limit?: number },
+  filters?: { status?: string; priority?: number; search?: string },
 ): Promise<PaginatedResponse<Task>> {
+  const params = new URLSearchParams(paginationParams(pagination));
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.priority !== undefined) params.set('priority', String(filters.priority));
+  if (filters?.search) params.set('search', filters.search);
   return apiRequest<PaginatedResponse<Task>>(
-    `/api/v1/features/${featureId}/tasks${paginationParams(pagination)}`
+    `/api/v1/features/${featureId}/tasks?${params}`,
   );
 }
 
 export async function fetchProjectTasks(
   projectId: string,
-  filters?: { status?: string; feature_id?: string; assignee_type?: string },
+  filters?: { status?: string; feature_id?: string; assignee_type?: string; priority?: number; search?: string },
   pagination?: { offset?: number; limit?: number }
 ): Promise<PaginatedResponse<Task>> {
   const params = new URLSearchParams();
   if (filters?.status) params.set('status', filters.status);
   if (filters?.feature_id) params.set('feature_id', filters.feature_id);
   if (filters?.assignee_type) params.set('assignee_type', filters.assignee_type);
+  if (filters?.priority !== undefined) params.set('priority', String(filters.priority));
+  if (filters?.search) params.set('search', filters.search);
   if (pagination?.offset !== undefined) params.set('offset', String(pagination.offset));
   if (pagination?.limit !== undefined) params.set('limit', String(pagination.limit));
   const qs = params.toString();

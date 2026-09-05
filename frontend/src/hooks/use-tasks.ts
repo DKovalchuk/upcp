@@ -14,11 +14,12 @@ import type { TaskCreate, TaskUpdate } from '@/types/task';
 
 export function useTasks(
   featureId: string,
-  pagination?: { offset?: number; limit?: number }
+  pagination?: { offset?: number; limit?: number },
+  filters?: { status?: string; priority?: number; search?: string },
 ) {
   return useQuery({
-    queryKey: ['tasks', featureId, pagination],
-    queryFn: () => fetchTasks(featureId, pagination),
+    queryKey: ['tasks', featureId, pagination, filters],
+    queryFn: () => fetchTasks(featureId, pagination, filters),
     enabled: !!featureId,
   });
 }
