@@ -75,6 +75,8 @@ export function useSSE(userId: string = 'default') {
               try {
                 const data: SSENotification = JSON.parse(parsed.data);
                 queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+                queryClient.invalidateQueries({ queryKey: ['attention-dashboard'] });
                 if (data.critical) {
                   const title = data.task_title || data.event_type;
                   showToast.info(`New: ${title}`);

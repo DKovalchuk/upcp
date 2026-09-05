@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRelativeTime } from '@/lib/format';
 import { useDashboardStats } from '@/hooks/use-dashboard';
+import { useSSEConnected } from '@/hooks/use-sse-connected';
 import { Link } from '@tanstack/react-router';
 import { Activity } from 'lucide-react';
 import type { AuditEventSummary } from '@/types/api';
@@ -49,6 +50,7 @@ function mapEvent(event: AuditEventSummary) {
 
 export function LiveActivityFeed() {
   const { data: stats, isLoading } = useDashboardStats();
+  const sseConnected = useSSEConnected();
   const rawEvents = stats?.recent_activity ?? [];
   const events = rawEvents.map(mapEvent);
 
@@ -58,6 +60,12 @@ export function LiveActivityFeed() {
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-4 w-4" />
           Recent Activity
+          {sseConnected && (
+            <span className="ml-auto flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>

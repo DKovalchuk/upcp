@@ -253,9 +253,9 @@ export function Dashboard() {
                       </p>
                     )}
                   </div>
-                  <div className="ml-4 flex items-center gap-3">
+                  <div className="ml-4 flex items-center gap-3 shrink-0">
                     <StatusBadge status={project.status} />
-                    <span className="whitespace-nowrap text-xs text-muted-foreground">
+                    <span className="hidden sm:inline whitespace-nowrap text-xs text-muted-foreground">
                       {formatRelativeTime(project.updated_at)}
                     </span>
                   </div>
