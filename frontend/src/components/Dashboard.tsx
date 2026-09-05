@@ -1,5 +1,4 @@
-import { Link, useNavigate } from '@tanstack/react-router';
-import { useDashboardStats } from '@/hooks/use-dashboard';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
@@ -29,7 +28,10 @@ import { LiveActivityFeed } from '@/components/dashboard/LiveActivityFeed';
 import { AgentActivitySummary } from '@/components/dashboard/AgentActivitySummary';
 import { TaskDistributionDonut } from '@/components/dashboard/TaskDistributionDonut';
 import { VelocityChart } from '@/components/dashboard/VelocityChart';
+import { PortfolioTable } from '@/components/dashboard/PortfolioTable';
+import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
 import { useGlobalVelocity } from '@/hooks/use-analytics';
+import { useDashboardStats, usePortfolioOverview } from '@/hooks/use-dashboard';
 
 // ── Health Score Color ──────────────────────────────────────
 
@@ -102,9 +104,12 @@ function StatCard({
 // ── Dashboard ───────────────────────────────────────────────
 
 export function Dashboard() {
-  const { data: stats, isLoading, error } = useDashboardStats();
+  const search = useSearch({ strict: false }) as Record<string, string | undefined>;
+  const projectId = search.project_id;
+  const { data: stats, isLoading, error } = useDashboardStats(projectId);
   const { data: attention } = useAttentionDashboard();
-  const { data: velocityData, isLoading: velocityLoading } = useGlobalVelocity(8);
+  const { data: velocityData, isLoading: velocityLoading } = useGlobalVelocity(8, projectId);
+  const { data: portfolio, isLoading: portfolioLoading } = usePortfolioOverview();
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -132,6 +137,12 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
+      {/* ── Project Selector ── */}
+      <div className="flex items-center justify-between">
+        <div />
+        <ProjectSelector />
+      </div>
+
       {/* ── Row 1: KPI Cards ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 animate-stagger">
         <StatCard
@@ -212,7 +223,10 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* ── Row 5: Recent Projects ── */}
+      {/* ── Row 5: Portfolio ── */}
+      <PortfolioTable projects={portfolio?.projects} isLoading={portfolioLoading} />
+
+      {/* ── Row 6: Recent Projects ── */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Projects</CardTitle>

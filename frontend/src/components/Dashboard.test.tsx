@@ -9,12 +9,14 @@ vi.mock('@tanstack/react-router', () => ({
     <a href={to} {...props}>{children}</a>
   ),
   useNavigate: () => vi.fn(),
+  useSearch: () => ({}),
 }));
 
 vi.mock('@/hooks/use-dashboard', () => ({
   useDashboardStats: vi.fn(),
   useAgentActivity: vi.fn(),
   useAttentionDashboard: vi.fn(),
+  usePortfolioOverview: vi.fn(),
 }));
 
 vi.mock('@/components/dashboard/AttentionCards', () => ({
@@ -45,17 +47,26 @@ vi.mock('@/components/dashboard/VelocityChart', () => ({
   VelocityChart: () => <div>VelocityChart</div>,
 }));
 
+vi.mock('@/components/dashboard/PortfolioTable', () => ({
+  PortfolioTable: () => <div>PortfolioTable</div>,
+}));
+
+vi.mock('@/components/dashboard/ProjectSelector', () => ({
+  ProjectSelector: () => <div>ProjectSelector</div>,
+}));
+
 vi.mock('@/hooks/use-analytics', () => ({
   useGlobalVelocity: vi.fn(),
 }));
 
-import { useDashboardStats } from '@/hooks/use-dashboard';
+import { useDashboardStats, usePortfolioOverview } from '@/hooks/use-dashboard';
 import { useAttentionDashboard } from '@/components/dashboard/AttentionCards';
 import { useGlobalVelocity } from '@/hooks/use-analytics';
 
 const mockUseDashboardStats = vi.mocked(useDashboardStats);
 const mockUseAttentionDashboard = vi.mocked(useAttentionDashboard);
 const mockUseGlobalVelocity = vi.mocked(useGlobalVelocity);
+const mockUsePortfolioOverview = vi.mocked(usePortfolioOverview);
 
 const FULL_STATS = {
   project_count: 2,
@@ -90,6 +101,7 @@ describe('Dashboard', () => {
     vi.clearAllMocks();
     mockUseAttentionDashboard.mockReturnValue(mockSuccessQuery({}));
     mockUseGlobalVelocity.mockReturnValue(mockSuccessQuery({ items: [] }));
+    mockUsePortfolioOverview.mockReturnValue(mockSuccessQuery(undefined));
   });
 
   it('renders loading skeleton initially', () => {

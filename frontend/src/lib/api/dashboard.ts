@@ -10,8 +10,9 @@ import { apiRequest } from './client';
 
 // ── Dashboard Stats ──
 
-export async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
-  return apiRequest<DashboardStatsResponse>('/api/v1/dashboard/stats');
+export async function fetchDashboardStats(projectId?: string): Promise<DashboardStatsResponse> {
+  const params = projectId ? `?project_id=${projectId}` : '';
+  return apiRequest<DashboardStatsResponse>(`/api/v1/dashboard/stats${params}`);
 }
 
 // ── Attention Dashboard ──
