@@ -32,6 +32,10 @@ export function AgentCenterPage() {
 
   const filtered = agents.filter((a) => {
     if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (statusFilter && statusFilter !== 'all') {
+      const agentStatus = a.is_active ? 'idle' : 'offline';
+      if (agentStatus !== statusFilter) return false;
+    }
     return true;
   });
 
