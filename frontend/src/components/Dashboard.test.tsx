@@ -26,6 +26,7 @@ vi.mock('@/components/dashboard/AttentionCards', () => ({
   FailedQualityGatesSection: () => <div>FailedQualityGatesSection</div>,
   RejectedTasksSection: () => <div>RejectedTasksSection</div>,
   AgentVerdictsSection: () => <div>AgentVerdictsSection</div>,
+  LowHealthProjectsSection: () => <div>LowHealthProjectsSection</div>,
 }));
 
 vi.mock('@/components/dashboard/LiveActivityFeed', () => ({
@@ -40,11 +41,21 @@ vi.mock('@/components/dashboard/TaskDistributionDonut', () => ({
   TaskDistributionDonut: () => <div>TaskDistributionDonut</div>,
 }));
 
+vi.mock('@/components/dashboard/VelocityChart', () => ({
+  VelocityChart: () => <div>VelocityChart</div>,
+}));
+
+vi.mock('@/hooks/use-analytics', () => ({
+  useGlobalVelocity: vi.fn(),
+}));
+
 import { useDashboardStats } from '@/hooks/use-dashboard';
 import { useAttentionDashboard } from '@/components/dashboard/AttentionCards';
+import { useGlobalVelocity } from '@/hooks/use-analytics';
 
 const mockUseDashboardStats = vi.mocked(useDashboardStats);
 const mockUseAttentionDashboard = vi.mocked(useAttentionDashboard);
+const mockUseGlobalVelocity = vi.mocked(useGlobalVelocity);
 
 const FULL_STATS = {
   project_count: 2,
@@ -78,6 +89,7 @@ describe('Dashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAttentionDashboard.mockReturnValue(mockSuccessQuery({}));
+    mockUseGlobalVelocity.mockReturnValue(mockSuccessQuery({ items: [] }));
   });
 
   it('renders loading skeleton initially', () => {
@@ -187,10 +199,10 @@ describe('Dashboard', () => {
     expect(screen.getByText('TaskDistributionDonut')).toBeInTheDocument();
   });
 
-  it('renders velocity placeholder', () => {
+  it('renders velocity chart', () => {
     mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
     renderDashboard();
-    expect(screen.getByText('Velocity chart — coming in Sprint 2')).toBeInTheDocument();
+    expect(screen.getByText('VelocityChart')).toBeInTheDocument();
   });
 
   // ── Sections ───────────────────────────────────

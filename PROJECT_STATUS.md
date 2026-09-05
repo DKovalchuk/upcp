@@ -1,11 +1,12 @@
 # PROJECT_STATUS
 
-Updated: 2026-08-17
+Updated: 2026-08-18
 Version: 0.21.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 — Test Quality & Architecture (COMPLETE)
-Current Task: M20 S22.3+S22.4 on branch (ready for MR), S22.1+S22.2 pending
+Current Task: Test Environment Foundation (Phase 1 complete), Phase 2 pending
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` for post-M15 plan (M16-M20, ~23 weeks)
+Spec: SPEC-0024 (Test Environment — Comprehensive Quality Gate)
 
 ## M17 Summary — Security & Stability
 
@@ -19,6 +20,58 @@ All 4 sprints completed and merged:
 | S19.4 | TASK-0107 | Architecture cleanup (logging, dead code, inbox, lifespan, target) | ✅ Done |
 
 **Evidence:** 732 tests pass, ruff + mypy clean, all pipelines green
+
+## Test Environment — Comprehensive Quality Gate (SPEC-0024)
+
+Three pillars: **Performance**, **Chaos Engineering**, **Security Testing**.
+
+### Phase 1: Foundation ✅ Complete (2026-08-18)
+
+| Component | Status | Files |
+|-----------|--------|-------|
+| docker-compose.test.yml | ✅ Expanded | Redis, Locust (master+workers), ZAP, Kali, seeder, observability stack |
+| .env.test | ✅ Updated | 14 ports: core + perf + security + observability |
+| Metrics middleware | ✅ Created | `backend/app/shared/metrics.py`, `metrics_middleware.py` |
+| /metrics endpoint | ✅ Added | `backend/app/main.py` |
+| Prometheus config | ✅ Created | `observability/prometheus-test.yml` |
+| Loki config | ✅ Created | `observability/loki-config.yaml` |
+| Tempo config | ✅ Created | `observability/tempo-config.yaml` |
+| OTel Collector config | ✅ Created | `observability/otel-collector-config.yaml` |
+| Grafana provisioning | ✅ Created | datasources + dashboards provisioning |
+| Grafana dashboard | ✅ Created | `test/overview.json` — request rate, latency, errors, DB pool |
+| Test data seeder | ✅ Created | `tests/infrastructure/seeder.py` — small/medium/large profiles |
+| Locust mixed scenario | ✅ Created | `tests/performance/locustfiles/scenario_mixed.py` |
+| Locust base class | ✅ Created | `tests/performance/locustfiles/common.py` — UPCPBaseUser |
+| SPEC-0024 | ✅ Created | Full spec in `specs/SPEC-0024-test-environment.md` |
+
+**Verification:** ruff clean, mypy clean, docker-compose valid, 16 existing tests pass.
+
+### Test Environment Ports
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| Frontend | 3071 | Nginx → frontend |
+| Backend API | 38082 | FastAPI + /metrics |
+| PostgreSQL | 35434 | Database |
+| Redis | 36383 | Cache/rate-limit |
+| Locust | 38089 | Load testing UI |
+| OWASP ZAP | 38090 | DAST security |
+| Kali | 38091 | Pentest agent |
+| Prometheus | 39091 | Metrics |
+| Grafana | 33001 | Dashboards (8 total) |
+| Loki | 3101 | Logs |
+| Tempo | 3201 | Traces |
+| OTel Collector | 4319/4320 | Telemetry |
+
+### Phase Roadmap
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| Phase 1: Foundation | docker-compose, metrics, seeder, basic Locust | ✅ Done |
+| Phase 2: Performance | All Locust scenarios, concurrency, SLI/SLO, analyzer | Pending |
+| Phase 3: Chaos | Docker chaos scripts, assertions, cascade failures | Pending |
+| Phase 4: Security | SAST, DAST, API fuzzing, auth tests, Kali pentest agent | Pending |
+| Phase 5: Integration | Aggregate reporter, CI/CD, Makefile targets, docs | Pending |
 
 ## UPCP v2 Project (Stage)
 

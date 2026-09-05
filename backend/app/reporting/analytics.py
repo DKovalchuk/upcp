@@ -81,7 +81,7 @@ class AnalyticsService:
         ]
 
     def get_team_velocity(self, project_id: str, weeks: int = 8) -> list[dict[str, Any]]:
-        """Tasks completed per week."""
+        """Tasks completed per week for a project."""
         now = datetime.now(UTC)
         tasks = (
             self._session.query(Task)
@@ -90,6 +90,32 @@ class AnalyticsService:
             .filter(Task.status == "done")
             .all()
         )
+
+        weekly: dict[str, int] = {}
+        for i in range(weeks):
+            week_start = now - timedelta(weeks=i + 1)
+            weekly[week_start.strftime("%Y-W%W")] = 0
+
+        for t in tasks:
+            if t.updated_at and t.updated_at >= now - timedelta(weeks=weeks):
+                key = t.updated_at.strftime("%Y-W%W")
+                if key in weekly:
+                    weekly[key] += 1
+
+        return [{"week": k, "count": v} for k, v in sorted(weekly.items())]
+
+    def get_global_velocity(
+        self, weeks: int = 8, project_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Tasks completed per week, optionally scoped to project."""
+        now = datetime.now(UTC)
+        query = self._session.query(Task).filter(Task.status == "done")
+        if project_id:
+            query = query.join(Feature, Task.feature_id == Feature.id).filter(
+                Feature.project_id == project_id,
+            )
+
+        tasks = query.all()
 
         weekly: dict[str, int] = {}
         for i in range(weeks):

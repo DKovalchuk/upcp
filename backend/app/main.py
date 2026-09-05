@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.api.v1.agent_self import router as agent_self_router
 from app.api.v1.analytics import router as analytics_router
@@ -94,6 +95,14 @@ except ImportError:
 
 # Correlation middleware — adds request_id to all logs
 app.add_middleware(CorrelationMiddleware)
+
+# Metrics middleware — Prometheus HTTP request instrumentation
+try:
+    from app.shared.metrics_middleware import MetricsMiddleware
+
+    app.add_middleware(MetricsMiddleware)
+except ImportError:
+    pass
 
 # Rate limiting middleware — Redis sliding window (lazy import)
 try:
@@ -190,3 +199,18 @@ def health() -> dict[str, object]:
 @app.get("/api/v1/health")
 def api_health() -> dict[str, object]:
     return health()
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    """Prometheus metrics endpoint."""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+# Initialize app_info metric with version and environment
+try:
+    from app.shared.metrics import app_info
+
+    app_info.info({"version": "0.21.0", "environment": settings.env})
+except Exception:
+    pass

@@ -22,11 +22,14 @@ import {
   FailedQualityGatesSection,
   RejectedTasksSection,
   AgentVerdictsSection,
+  LowHealthProjectsSection,
   useAttentionDashboard,
 } from '@/components/dashboard/AttentionCards';
 import { LiveActivityFeed } from '@/components/dashboard/LiveActivityFeed';
 import { AgentActivitySummary } from '@/components/dashboard/AgentActivitySummary';
 import { TaskDistributionDonut } from '@/components/dashboard/TaskDistributionDonut';
+import { VelocityChart } from '@/components/dashboard/VelocityChart';
+import { useGlobalVelocity } from '@/hooks/use-analytics';
 
 // ── Health Score Color ──────────────────────────────────────
 
@@ -101,6 +104,7 @@ function StatCard({
 export function Dashboard() {
   const { data: stats, isLoading, error } = useDashboardStats();
   const { data: attention } = useAttentionDashboard();
+  const { data: velocityData, isLoading: velocityLoading } = useGlobalVelocity(8);
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -177,18 +181,7 @@ export function Dashboard() {
           <TaskDistributionDonut counts={tc} />
         </div>
         <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Velocity (8 weeks)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                Velocity chart — coming in Sprint 2
-              </div>
-            </CardContent>
-          </Card>
+          <VelocityChart data={velocityData?.items} isLoading={velocityLoading} />
         </div>
       </div>
 
@@ -205,6 +198,7 @@ export function Dashboard() {
           <FailedQualityGatesSection items={attention?.failed_dod ?? []} />
           <RejectedTasksSection items={attention?.rejected_tasks ?? []} />
           <AgentVerdictsSection items={attention?.agent_verdicts_waiting ?? []} />
+          <LowHealthProjectsSection items={attention?.low_health_projects ?? []} />
         </div>
       </div>
 

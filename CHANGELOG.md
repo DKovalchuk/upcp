@@ -7,6 +7,17 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+### Test Environment — Phase 1: Foundation (SPEC-0024)
+- **docker-compose.test.yml**: Expanded with Redis, Locust (master+workers), OWASP ZAP, Kali Linux, test data seeder, full observability stack (Prometheus, Grafana, Loki, Tempo, OTel Collector)
+- **Metrics**: New `shared/metrics.py` with 11 Prometheus metrics (HTTP, business, infra) + `metrics_middleware.py` for automatic HTTP instrumentation
+- **/metrics endpoint**: Added to `main.py` for Prometheus scraping
+- **Observability configs**: `prometheus-test.yml`, `loki-config.yaml`, `tempo-config.yaml`, `otel-collector-config.yaml`
+- **Grafana**: Provisioning for datasources + dashboards, test/overview.json dashboard
+- **Test data seeder**: `tests/infrastructure/seeder.py` with small/medium/large profiles, clean-slate + seed pattern
+- **Locust**: `tests/performance/locustfiles/common.py` (UPCPBaseUser) + `scenario_mixed.py` (mixed workload across all API endpoints)
+- **.env.test**: 14 ports for core, perf, security, and observability services
+- **SPEC-0024**: Full specification in `specs/SPEC-0024-test-environment.md`
+
 ## [0.21.0] — 2026-08-12 — M19 — Test Quality & Architecture
 
 ### S21.1: Test Infrastructure (TASK-0112)

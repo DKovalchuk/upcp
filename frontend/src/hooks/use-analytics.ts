@@ -4,6 +4,7 @@ import {
   fetchProjectVelocity,
   fetchHealthHistory,
   fetchAgentsOverview,
+  fetchGlobalVelocity,
   fetchNotificationChannels,
 } from '@/lib/api/analytics';
 
@@ -35,6 +36,14 @@ export function useAgentsOverview() {
   return useQuery({
     queryKey: ['analytics', 'agents-overview'],
     queryFn: fetchAgentsOverview,
+  });
+}
+
+export function useGlobalVelocity(weeks = 8, projectId?: string) {
+  return useQuery({
+    queryKey: ['analytics', 'global-velocity', weeks, projectId],
+    queryFn: () => fetchGlobalVelocity(weeks, projectId),
+    staleTime: 30_000,
   });
 }
 
