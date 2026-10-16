@@ -3,7 +3,7 @@
 Updated: 2026-10-17
 Version: 0.21.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 закоммичен (merge/bump не подтверждены); текущий фронт — SPEC-0025/0026
-Current Task: TASK-0119 port externalization DONE (branch `feature/TASK-0119-port-externalization`, MR pending); sprint stack слит в develop (MR !56, 2026-10-16)
+Current Task: TASK-0119 port externalization DONE — MR !57 слит в develop (2026-10-17, merge `f79ca77`); sprint stack слит ранее (MR !56, 2026-10-16)
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
@@ -26,7 +26,7 @@ deleted server-side and was restored first at its last known SHA `d73868e`.
 | Sprint 7 | Quality tab CRUD + dead code cleanup | ✅ merged |
 | Closure batch | TASK-0120-0127 AC gaps, test regressions, CI/CD fix, SPEC-0024 Phase 1, npm lock fix | ✅ merged (MR !56) |
 
-**In progress:** TASK-0119 — Externalize Port Configuration (S22.5, SPEC-0024).
+**In progress:** none — next: pick from Queued.
 
 **Known discrepancies (to sync):**
 - SPEC-0024 Phase 2-5 pending (Phase 1 files теперь в develop после MR !56).
@@ -80,10 +80,14 @@ ports for all three envs; backend 912 passed, frontend 336/336, tsc clean.
 Follow-up: `bootstrap_upcp.py` scaffold templates still use legacy names
 (internally consistent — separate modernization task).
 
+**Merged 2026-10-17:** MR **!57** `feature/TASK-0119-port-externalization` →
+`develop` (merge commit `f79ca77`, pipeline success).
+
 **Queued:**
-- Merge `feature/TASK-0119-port-externalization` → `develop` (MR).
 - Version bump после закрытия M20 (S22.1+S22.2 ещё pending) — по VERSIONING.md.
 - TASK-0128 Parts C/D/E (e2e/a11y/security matrix) — follow-up задача.
+- SPEC-0024 Phase 2-5 (performance → chaos → security → integration).
+- `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 
 ## M17 Summary — Security & Stability
 
