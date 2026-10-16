@@ -200,7 +200,8 @@ A task is done only if:
 - no secrets are introduced;
 - task file status is updated;
 - `PROJECT_STATUS.md` is updated;
-- evidence is available: test output, command output, or artifact.
+- evidence is available: test output, command output, or artifact;
+- multi-factor analysis performed for features and significant chunks of work (see section 12).
 
 ## 8. Versioning
 
@@ -288,3 +289,16 @@ Blockers
 
 Do not output entire files unless explicitly requested.
 Do not output long explanations unless debugging.
+
+## 12. Multi-Factor Analysis
+
+For features and other significant chunks of work, perform a multi-factor analysis of the change before considering it done.
+
+Rules:
+
+- Select analysis aspects from the actual situation each time; there is no fixed universal checklist.
+- Typical aspects: architecture and best practices, code quality, test coverage and test quality, security, performance, reliability, observability.
+- Assess test quality, not just coverage: unit tests alone are insufficient where integration, e2e, contract, load, or security tests are warranted by the change.
+- Extend the aspect set when the change calls for it (e.g., DDD boundaries, API contract compatibility, accessibility, scalability, data integrity, documentation completeness, cost/resource usage).
+- Record findings with severity; critical/high findings must be fixed or filed as tasks before done.
+- For critical/security-sensitive changes, run the analysis at Pro-model level (see section 9).

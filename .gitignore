@@ -59,4 +59,5 @@ backups/
 /*.jpeg
 frontend/coverage/
 frontend/test-results/
+/test-results/
 tests/e2e/.auth/

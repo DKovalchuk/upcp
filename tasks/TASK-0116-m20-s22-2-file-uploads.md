@@ -4,7 +4,7 @@
 **Sprint:** S22.2
 **Points:** 8
 **Spec:** SPEC-0023 §S22.2
-**Status:** PENDING
+**Status:** DUPLICATE — see `TASK-0116-m20-s22-2-file-uploads-evidence.md` (the real task file, Status: DONE). This file was auto-created by a6e49d5 and never used.
 
 ## Objective
 
