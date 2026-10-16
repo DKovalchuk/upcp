@@ -1,29 +1,35 @@
 # PROJECT_STATUS
 
-Updated: 2026-10-16
+Updated: 2026-10-17
 Version: 0.21.0 (see `VERSIONING.md` for scheme)
-Milestone: M19 ✅ DONE; M20 закоммичен (merge/bump не подтверждены); текущий фронт — SPEC-0025/0026 + TASK-0119
-Current Task: TASK-0119 port externalization (IN_PROGRESS) + sprint stack on `feature/sprint7-polish` awaiting merge
+Milestone: M19 ✅ DONE; M20 закоммичен (merge/bump не подтверждены); текущий фронт — SPEC-0025/0026
+Current Task: TASK-0119 port externalization DONE (branch `feature/TASK-0119-port-externalization`, MR pending); sprint stack слит в develop (MR !56, 2026-10-16)
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
 
 ## Current Work (2026-10-16)
 
-**Branch:** `feature/sprint7-polish` — 16 commits ahead of `develop`, не слит (все коммиты от 2026-09-05):
+**Merged:** MR **!56** `feature/sprint7-polish` → `develop` merged 2026-10-16
+(merge commit `96b80ae`, pipeline green). Note: `develop` branch had been
+deleted server-side and was restored first at its last known SHA `d73868e`.
+
+**Branch:** `feature/sprint7-polish` — merged; 20 commits включая 5 коммитов
+закрытия (dashboard AC, CI/CD fix, docs sync, SPEC-0024 Phase 1, lock fix):
 
 | Batch | Scope | Status |
 |-------|-------|--------|
-| Dashboard Sprints 1-4 | SPEC-0025 S25.1-S25.8: KPI drill-down, donut, velocity, clickable attention, portfolio table, project selector, SSE activity, responsive + fix | ✅ committed |
-| Filtering | SPEC-0026: backend filters + shared FilterBar/URL-sync, StructurePage, AgentCenter fix | ✅ committed (спека всё ещё DRAFT, задачи TASK-0129-0135 не созданы) |
-| Sprint 5 | Core UX: task editing + password change | ✅ committed |
-| Sprint 6 | Git-links wiring in TaskDetailSheet | ✅ committed |
-| Sprint 7 | Quality tab CRUD + dead code cleanup | ✅ committed (HEAD) |
+| Dashboard Sprints 1-4 | SPEC-0025 S25.1-S25.8: KPI drill-down, donut, velocity, clickable attention, portfolio table, project selector, SSE activity, responsive + fix | ✅ merged |
+| Filtering | SPEC-0026: backend filters + shared FilterBar/URL-sync, StructurePage, AgentCenter fix | ✅ merged (спека всё ещё DRAFT, задачи TASK-0129-0135 не созданы) |
+| Sprint 5 | Core UX: task editing + password change | ✅ merged |
+| Sprint 6 | Git-links wiring in TaskDetailSheet | ✅ merged |
+| Sprint 7 | Quality tab CRUD + dead code cleanup | ✅ merged |
+| Closure batch | TASK-0120-0127 AC gaps, test regressions, CI/CD fix, SPEC-0024 Phase 1, npm lock fix | ✅ merged (MR !56) |
 
 **In progress:** TASK-0119 — Externalize Port Configuration (S22.5, SPEC-0024).
 
 **Known discrepancies (to sync):**
-- SPEC-0024 Phase 2-5 pending; `observability/`, `tests/{performance,chaos,infrastructure}`, `Dockerfile.chaos` ещё untracked.
+- SPEC-0024 Phase 2-5 pending (Phase 1 files теперь в develop после MR !56).
 - ~~Дубль файла TASK-0116~~ — resolved 2026-10-16: `TASK-0116-m20-s22-2-file-uploads.md` помечен DUPLICATE (канонический файл — `...-evidence.md`, DONE).
 
 **Closed 2026-10-16 — dashboard tasks TASK-0120…0127 (SPEC-0025):** all 8
@@ -60,9 +66,24 @@ Docs: `docs/ops/ci-retention.md`.
 
 **Known CI findings:** deploy tag mismatch и коллизия `:dev` исправлены
 2026-10-16 (см. выше «Closed 2026-10-16 — CI deploy tag mismatch»).
+Дополнительно в MR !56: `frontend/package-lock.json` синхронизирован с
+recharts-деревом (npm ci в CI падал на рассинхроне lock-файла).
+
+**Closed 2026-10-17 — TASK-0119 port externalization (S22.5):** all 14 AC
+verified against real files. Gaps closed this session: `docker-compose.yml`
+legacy vars (`UPCP_HTTP_PORT`/`UPCP_REDIS_PORT`/`UPCP_PROMETHEUS_PORT`/
+`UPCP_GRAFANA_PORT`) renamed → `UPCP_PORT_*`; `docker-compose.stage.yml`
+hardcoded redis `36382` + backend `38081` → `${UPCP_PORT_*:-default}`;
+`.env.example` + local `.env` renamed to match. Evidence:
+`docker compose --env-file .env.{dev,test,stage} config` resolves expected
+ports for all three envs; backend 912 passed, frontend 336/336, tsc clean.
+Follow-up: `bootstrap_upcp.py` scaffold templates still use legacy names
+(internally consistent — separate modernization task).
 
 **Queued:**
-- Merge sprint-стека в `develop` после ревью, затем version bump.
+- Merge `feature/TASK-0119-port-externalization` → `develop` (MR).
+- Version bump после закрытия M20 (S22.1+S22.2 ещё pending) — по VERSIONING.md.
+- TASK-0128 Parts C/D/E (e2e/a11y/security matrix) — follow-up задача.
 
 ## M17 Summary — Security & Stability
 
