@@ -1,9 +1,9 @@
 # PROJECT_STATUS
 
 Updated: 2026-10-17
-Version: 0.21.0 (see `VERSIONING.md` for scheme)
-Milestone: M19 ✅ DONE; M20 закоммичен (merge/bump не подтверждены); текущий фронт — SPEC-0025/0026
-Current Task: TASK-0119 port externalization DONE — MR !57 слит в develop (2026-10-17, merge `f79ca77`); sprint stack слит ранее (MR !56, 2026-10-16)
+Version: 0.22.0 (see `VERSIONING.md` for scheme)
+Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
+Current Task: version bump 0.22.0 (branch `chore/version-0.22.0`, MR pending); next from Queued
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
@@ -84,7 +84,7 @@ Follow-up: `bootstrap_upcp.py` scaffold templates still use legacy names
 `develop` (merge commit `f79ca77`, pipeline success).
 
 **Queued:**
-- Version bump после закрытия M20 (S22.1+S22.2 ещё pending) — по VERSIONING.md.
+- ~~Version bump~~ — done 2026-10-17: **0.22.0** (M20 ✅).
 - TASK-0128 Parts C/D/E (e2e/a11y/security matrix) — follow-up задача.
 - SPEC-0024 Phase 2-5 (performance → chaos → security → integration).
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
@@ -221,7 +221,7 @@ Three pillars: **Performance**, **Chaos Engineering**, **Security Testing**.
 ## Roadmap
 
 ```
-0.17.0 ✅ → 0.18.0 → 0.19.0 ✅ → 0.20.0 → 0.21.0 ✅ → 0.22.0 → ...
+0.17.0 ✅ → 0.18.0 → 0.19.0 ✅ → 0.20.0 → 0.21.0 ✅ → 0.22.0 ✅ → ...
    M15         M16        M17         M18         M19         M20
 ```
 
@@ -231,7 +231,7 @@ See `ROADMAP_UNIFIED.md` for full plan with sprint breakdown.
 ### M17: 0.19.0 — Security & Stability ✅ DONE
 ### M18: 0.20.0 — UX Polish, Accessibility & Settings (planned, SPEC-0021)
 ### M19: 0.21.0 — Test Quality & Architecture ✅ DONE
-### M20: 0.22.0 — Extended Features (S22.3+S22.4 done on branch, S22.1+S22.2 pending)
+### M20: 0.22.0 — Extended Features ✅ DONE (S22.1-S22.5 закрыты 2026-10-17)
 
 ### Comprehensive Audit (2026-08-12)
 

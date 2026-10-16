@@ -4,7 +4,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 
 ## Current Version
 
-**0.21.0** — M19 Test Quality & Architecture (see `pyproject.toml` for authoritative value)
+**0.22.0** — M20 Extended Features (see `pyproject.toml` for authoritative value)
 
 ## Scheme
 
@@ -23,7 +23,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 ```
 0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 0.18.0 ──▶ 0.19.0 ──▶ 0.20.0 ──▶ 0.21.0 ──▶ 0.22.0 ──▶ ...
  M11        M12        M13        M14        M15        M16         M17         M18         M19         M20
- done       done       done       done       done       in prog     done        planned     done        in prog
+ done       done       done       done       done       in prog     done        planned     done        done
 ```
 
 See `ROADMAP_UNIFIED.md` for full post-M15 plan.
@@ -79,18 +79,19 @@ See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 | S21.2 | TASK-0113 | Service-layer tests + lifecycle integration test | ✅ DONE |
 | S21.3 | TASK-0114 | Event bus implementation + frontend test coverage | ✅ DONE |
 
-### 0.22.0 — Extended Features (M20, in progress)
+### 0.22.0 — Extended Features (M20, DONE)
 
 **Goal**: Real-time notifications, file uploads, bulk operations, task comments, audit export.
 **Spec**: SPEC-0023
-**Sprints**: 4 (1-week sprints)
+**Sprints**: 4 (1-week sprints) + S22.5 port externalization
 
 | Sprint | TASK | Focus | Status |
 |--------|------|-------|--------|
-| S22.1 | TASK-0115 | Real-time notifications via SSE | ⏳ IN PROGRESS |
-| S22.2 | TASK-0116 | File uploads for evidence | ❌ PENDING |
+| S22.1 | TASK-0115 | Real-time notifications via SSE | ✅ DONE |
+| S22.2 | TASK-0116 | File uploads for evidence | ✅ DONE |
 | S22.3 | TASK-0117 | Bulk task operations | ✅ DONE |
 | S22.4 | TASK-0118 | Task comments + audit export | ✅ DONE |
+| S22.5 | TASK-0119 | Port externalization (`UPCP_PORT_*`) | ✅ DONE |
 
 ### 0.14.0 — Critical Fixes & Security
 
@@ -231,7 +232,7 @@ See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 | 0.19.0 | M17 — Security & Stability | 2026-08-14 |
 | 0.20.0 | M18 — UX Polish, A11y & Settings | planned |
 | 0.21.0 | M19 — Test Quality & Architecture | 2026-08-14 |
-| 0.22.0 | M20 — Extended Features | in progress |
+| 0.22.0 | M20 — Extended Features | 2026-10-17 |
 
 ## How to Update Versions
 
