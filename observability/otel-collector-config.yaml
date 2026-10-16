@@ -1,0 +1,60 @@
+# OpenTelemetry Collector configuration — UPCP Test Environment
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: upcp
+    const_labels:
+      environment: test
+
+  otlp/loki:
+    endpoint: loki:3100/otlp
+    tls:
+      insecure: true
+
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1000
+
+  attributes:
+    actions:
+      - key: service.name
+        value: upcp
+        action: upsert
+      - key: deployment.environment
+        value: test
+        action: upsert
+
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, attributes]
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, attributes]
+      exporters: [otlp/tempo]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, attributes]
+      exporters: [otlp/loki]
