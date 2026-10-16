@@ -28,7 +28,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "127.0.0.1:36382:6379"
+      - "127.0.0.1:${UPCP_PORT_REDIS:-36382}:6379"
     volumes:
       - ./data/redis-stage:/data
     healthcheck:
@@ -52,7 +52,7 @@ services:
       UPCP_SECRET_KEY: REDACTED_STAGE_SECRET
       UPCP_DEBUG: "false"
     ports:
-      - "127.0.0.1:38081:8080"
+      - "127.0.0.1:${UPCP_PORT_BACKEND:-38081}:8080"
     depends_on:
       db:
         condition: service_healthy
