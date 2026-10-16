@@ -2,9 +2,16 @@ import type { Component, ComponentCreate, ComponentUpdate } from '@/types/compon
 import type { PaginatedResponse } from '@/types/api';
 import { apiRequest } from './client';
 
-export async function fetchComponents(projectId: string): Promise<Component[]> {
+export async function fetchComponents(
+  projectId: string,
+  filters?: { status?: string; search?: string },
+): Promise<Component[]> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.search) params.set('search', filters.search);
+  const qs = params.toString();
   const data = await apiRequest<PaginatedResponse<Component>>(
-    `/api/v1/projects/${projectId}/components`
+    `/api/v1/projects/${projectId}/components${qs ? `?${qs}` : ''}`,
   );
   return data.items ?? [];
 }

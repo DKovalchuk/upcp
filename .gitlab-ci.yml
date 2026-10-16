@@ -9,6 +9,7 @@
 # CD (continuous delivery):
 #   develop   → build → deploy:dev    (automatic)
 #   main      → build → deploy:stage  (manual)
+#   (manual)  maintenance:cleanup     → retention sweep on runner host
 #
 # Stage ordering: lint → test → build → deploy
 # Pipeline stops at first failed stage.
@@ -284,30 +285,69 @@ container:scan:backend:
 build:backend:
   extends: .docker-build-base
   script:
-    - docker build
-        --cache-from $REGISTRY/backend:dev
-        --tag $REGISTRY/backend:$CI_COMMIT_SHORT_SHA
-        --tag $REGISTRY/backend:dev
+    # FLOAT_TAG is the branch floating tag: dev on develop, stage on main.
+    # cache-from: branch tag first, :dev always included as cross-branch
+    # fallback (BuildKit tolerates a missing cache image — warning only).
+    - |
+      CACHE_ARGS="--cache-from $REGISTRY/backend:dev"
+      if [ "$FLOAT_TAG" != "dev" ]; then
+        CACHE_ARGS="--cache-from $REGISTRY/backend:$FLOAT_TAG $CACHE_ARGS"
+      fi
+      docker build $CACHE_ARGS \
+        --tag $REGISTRY/backend:$CI_COMMIT_SHORT_SHA \
+        --tag $REGISTRY/backend:$FLOAT_TAG \
         .
     - docker push $REGISTRY/backend:$CI_COMMIT_SHORT_SHA
-    - docker push $REGISTRY/backend:dev
+    - docker push $REGISTRY/backend:$FLOAT_TAG
+  after_script:
+    # Retention: SHA tag is already in registry — drop it locally; keep only
+    # the branch floating tag ($FLOAT_TAG) as the cache-from source. Prune
+    # stale dangling images so builds don't pile up on the shared runner host;
+    # `until=24h` protects concurrent/other builds.
+    - |
+      for t in $(docker images --format '{{.Tag}}' "$REGISTRY/backend"); do
+        [ "$t" = "$FLOAT_TAG" ] || docker rmi "$REGISTRY/backend:$t" || true
+      done
+      docker image prune -f --filter "until=24h" || true
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
+      variables:
+        FLOAT_TAG: "dev"
     - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        FLOAT_TAG: "stage"
 
 build:frontend:
   extends: .docker-build-base
   script:
-    - docker build
-        --cache-from $REGISTRY/frontend:dev
-        --tag $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA
-        --tag $REGISTRY/frontend:dev
+    # Same tag scheme as build:backend — FLOAT_TAG from rules below.
+    - |
+      CACHE_ARGS="--cache-from $REGISTRY/frontend:dev"
+      if [ "$FLOAT_TAG" != "dev" ]; then
+        CACHE_ARGS="--cache-from $REGISTRY/frontend:$FLOAT_TAG $CACHE_ARGS"
+      fi
+      docker build $CACHE_ARGS \
+        --tag $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA \
+        --tag $REGISTRY/frontend:$FLOAT_TAG \
         frontend/
     - docker push $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA
-    - docker push $REGISTRY/frontend:dev
+    - docker push $REGISTRY/frontend:$FLOAT_TAG
+  after_script:
+    # Retention: same as build:backend — keep only the branch floating tag
+    # locally, prune stale dangling images older than 24h (safe for
+    # concurrent jobs).
+    - |
+      for t in $(docker images --format '{{.Tag}}' "$REGISTRY/frontend"); do
+        [ "$t" = "$FLOAT_TAG" ] || docker rmi "$REGISTRY/frontend:$t" || true
+      done
+      docker image prune -f --filter "until=24h" || true
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
+      variables:
+        FLOAT_TAG: "dev"
     - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        FLOAT_TAG: "stage"
 
 # ══════════════════════════════════════════════════════════════
 # CD: DEPLOY — stage 4
@@ -332,8 +372,10 @@ deploy:dev:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
     - docker pull $REGISTRY/backend:dev
     - docker pull $REGISTRY/frontend:dev
-    - docker tag $REGISTRY/backend:dev upcp-backend:stage
-    - docker tag $REGISTRY/frontend:dev upcp-frontend:stage
+    # Point compose at exactly the images pulled above — recreates containers
+    # with the image the pipeline just built (no local re-tag aliases).
+    - export UPCP_BACKEND_IMAGE=$REGISTRY/backend:dev
+    - export UPCP_FRONTEND_IMAGE=$REGISTRY/frontend:dev
     - docker compose -f docker-compose.stage.yml build nginx
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
@@ -361,10 +403,12 @@ deploy:stage:
     - build:frontend
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
-    - docker pull $REGISTRY/backend:dev
-    - docker pull $REGISTRY/frontend:dev
-    - docker tag $REGISTRY/backend:dev upcp-backend:stage
-    - docker tag $REGISTRY/frontend:dev upcp-frontend:stage
+    - docker pull $REGISTRY/backend:stage
+    - docker pull $REGISTRY/frontend:stage
+    # Point compose at exactly the images pulled above — the build stage of
+    # this main pipeline pushed :stage, so this deploys the just-built image.
+    - export UPCP_BACKEND_IMAGE=$REGISTRY/backend:stage
+    - export UPCP_FRONTEND_IMAGE=$REGISTRY/frontend:stage
     - docker compose -f docker-compose.stage.yml build nginx
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
@@ -390,4 +434,47 @@ stop:stage:
   when: manual
   allow_failure: true
   rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ══════════════════════════════════════════════════════════════
+# CD: MAINTENANCE — manual retention sweep (TASK-0136)
+# ══════════════════════════════════════════════════════════════
+
+maintenance:cleanup:
+  stage: deploy
+  image: docker:24
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
+    DOCKER_TLS_CERTDIR: ""
+    REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
+  resource_group: maintenance
+  script:
+    # 1. Local SHA tags of upcp images — already pushed to registry by build
+    #    jobs; the branch floating tag (dev/stage) is kept as --cache-from
+    #    source (this loop only ever matches SHA tags).
+    - |
+      for repo in backend frontend; do
+        for t in $(docker images --format '{{.Tag}}' "$REGISTRY/$repo" | grep -E '^[0-9a-f]{7,40}$' || true); do
+          docker rmi "$REGISTRY/$repo:$t" && echo "removed local tag $repo:$t" || true
+        done
+      done
+    # 2. Dangling images older than 30d. `until` filters by creation time;
+    #    docker skips images referenced by any container (verified against
+    #    moby prune source) — safe on this shared runner host.
+    - docker image prune -f --filter "until=720h" || true
+    # 3. GitLab runner cache volumes (runner-*-cache-*) older than 30d and
+    #    not linked to any container. Worst case a cache miss on next build.
+    - |
+      CUT=$(date -u -d @$(( $(date +%s) - 2592000 )) +%Y-%m-%dT%H:%M:%S)
+      for v in $(docker volume ls -q --filter name='runner-' --filter dangling=true | grep -E 'runner-[0-9a-f]+-cache' || true); do
+        created=$(docker volume inspect -f '{{.CreatedAt}}' "$v" | cut -c1-19)
+        if [ "$created" \< "$CUT" ]; then
+          docker volume rm "$v" && echo "removed old cache volume $v" || true
+        fi
+      done
+    - docker system df
+  when: manual
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"

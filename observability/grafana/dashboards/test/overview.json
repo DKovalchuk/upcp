@@ -1,0 +1,150 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "App Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "up{job=\"upcp-app\"}",
+          "legendFormat": "UP",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}] }
+        }
+      }
+    },
+    {
+      "title": "Request Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(rate(upcp_http_requests_total[5m])) by (method)",
+          "legendFormat": "{{method}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "title": "Error Rate (%)",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(rate(upcp_http_requests_total{status=~\"5..\"}[5m])) / sum(rate(upcp_http_requests_total[5m])) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}] }
+        }
+      }
+    },
+    {
+      "title": "Latency (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(upcp_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(upcp_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(upcp_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    },
+    {
+      "title": "DB Pool Connections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "upcp_db_pool_connections",
+          "legendFormat": "{{state}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Requests by Status",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(increase(upcp_http_requests_total[1h])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "In-Progress Requests",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(upcp_http_requests_in_progress)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Rate Limit Hits",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(rate(upcp_rate_limit_hits_total[5m])) by (endpoint)",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["upcp", "test"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "UPCP Test — Overview",
+  "uid": "upcp-test-overview",
+  "version": 1
+}

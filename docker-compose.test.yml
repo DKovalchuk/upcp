@@ -1,6 +1,22 @@
+# ══════════════════════════════════════════════════════════════
+# UPCP Test Environment — Quality Gate
+# ══════════════════════════════════════════════════════════════
+#
+# Three pillars: Performance, Chaos Engineering, Security Testing
+# All ports bind to 127.0.0.1 for local-only access.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up -d
+#   docker compose -f docker-compose.test.yml run --rm seeder
+#   docker compose -f docker-compose.test.yml run --rm locust-master ...
+#
 name: upcp-test
 
 services:
+  # ════════════════════════════════════════════════════════════
+  # Core Services
+  # ════════════════════════════════════════════════════════════
+
   db:
     image: postgres:16
     restart: unless-stopped
@@ -17,6 +33,28 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_REDIS:-36383}:6379"
+    volumes:
+      - ./data/redis-test:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   app:
     build:
@@ -28,14 +66,17 @@ services:
              uvicorn app.main:app --host 0.0.0.0 --port 8080"
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-upcp}:${POSTGRES_PASSWORD:-upcp_local_change_me}@db:5432/${POSTGRES_DB:-upcp}
+      REDIS_URL: redis://redis:6379/0
       UPCP_ENV: test
       UPCP_LOG_LEVEL: INFO
-      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-test_change_me}
+      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-test_secret_for_quality_gate_only}
       UPCP_DEBUG: "false"
     ports:
       - "127.0.0.1:${UPCP_PORT_BACKEND:-38082}:8080"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
@@ -43,6 +84,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   frontend:
     build:
@@ -64,3 +109,174 @@ services:
     depends_on:
       - app
       - frontend
+
+  # ════════════════════════════════════════════════════════════
+  # Test Infrastructure
+  # ════════════════════════════════════════════════════════════
+
+  seeder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "tests.infrastructure.seeder"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-upcp}:${POSTGRES_PASSWORD:-upcp_local_change_me}@db:5432/${POSTGRES_DB:-upcp}
+      REDIS_URL: redis://redis:6379/0
+      UPCP_ENV: test
+      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-test_secret_for_quality_gate_only}
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  # ════════════════════════════════════════════════════════════
+  # Load Testing (Locust)
+  # ════════════════════════════════════════════════════════════
+
+  locust-master:
+    image: locustio/locust:2.32.4
+    ports:
+      - "127.0.0.1:${UPCP_PORT_LOCUST:-38089}:8089"
+    volumes:
+      - ./tests/performance/locustfiles:/locustfiles:ro
+    command: >
+      -f /locustfiles/scenario_mixed.py
+      --master
+      --host=http://app:8080
+      --web-host=0.0.0.0
+      --web-port=8089
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles:
+      - perf
+
+  locust-worker:
+    image: locustio/locust:2.32.4
+    volumes:
+      - ./tests/performance/locustfiles:/locustfiles:ro
+    command: >
+      -f /locustfiles/scenario_mixed.py
+      --worker
+      --master-host=locust-master
+    depends_on:
+      - locust-master
+    profiles:
+      - perf
+
+  # ════════════════════════════════════════════════════════════
+  # Security Testing — OWASP ZAP
+  # ════════════════════════════════════════════════════════════
+
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    ports:
+      - "127.0.0.1:${UPCP_PORT_ZAP:-38090}:8080"
+    environment:
+      ZAP_PORT: 8080
+      ZAP_CONF: /zap/config/
+    volumes:
+      - ./tests/security/dast/zap_config.yaml:/zap/config/zap-config.yaml:ro
+      - ./tests/security/reports:/zap/reports:rw
+    profiles:
+      - security
+
+  # ════════════════════════════════════════════════════════════
+  # Security Testing — Kali Linux (Pentest Agent)
+  # ════════════════════════════════════════════════════════════
+
+  kali:
+    build:
+      context: .
+      dockerfile: Dockerfile.kali
+    ports:
+      - "127.0.0.1:${UPCP_PORT_KALI:-38091}:22"
+    environment:
+      KALI_TARGET: http://app:8080
+      KALI_REPORT_DIR: /reports
+    volumes:
+      - ./tests/security/kali:/kali-agent:ro
+      - ./tests/security/reports:/reports:rw
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles:
+      - security
+
+  # ════════════════════════════════════════════════════════════
+  # Observability Stack
+  # ════════════════════════════════════════════════════════════
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_PROMETHEUS:-39091}:9090"
+    volumes:
+      - ./observability/prometheus-test.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-test-data:/prometheus
+    profiles:
+      - observability
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_GRAFANA:-33001}:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_test}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/test/overview.json
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-test-data:/var/lib/grafana
+    profiles:
+      - observability
+
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_LOKI:-3101}:3100"
+    volumes:
+      - ./observability/loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki-test-data:/loki
+    command: -config.file=/etc/loki/config.yaml
+    profiles:
+      - observability
+
+  tempo:
+    image: grafana/tempo:2.7.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_TEMPO:-3201}:3200"
+    volumes:
+      - ./observability/tempo-config.yaml:/etc/tempo/config.yaml:ro
+      - tempo-test-data:/var/tempo
+    command: -config.file=/etc/tempo/config.yaml
+    profiles:
+      - observability
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_OTEL_GRPC:-4319}:4317"
+      - "127.0.0.1:${UPCP_PORT_OTEL_HTTP:-4320}:4318"
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    command: --config=/etc/otel/config.yaml
+    profiles:
+      - observability
+
+# ══════════════════════════════════════════════════════════════
+# Named Volumes
+# ══════════════════════════════════════════════════════════════
+
+volumes:
+  prometheus-test-data:
+  grafana-test-data:
+  loki-test-data:
+  tempo-test-data:

@@ -116,12 +116,18 @@ def delete_component(component_id: str, session: Session = Depends(get_session))
 )
 def list_components(
     project_id: str,
+    status: str | None = None,
+    search: str | None = None,
     pagination: PaginationParams = Depends(pagination_dependency),  # noqa: B008
     session: Session = Depends(get_session),  # noqa: B008
 ) -> dict[str, object]:
     service = ComponentService(session)
     items, total = service.list_components(
-        project_id, offset=pagination.offset, limit=pagination.limit
+        project_id,
+        offset=pagination.offset,
+        limit=pagination.limit,
+        status=status,
+        search=search,
     )
     return {
         "items": [_comp_resp(c) for c in items],
@@ -204,12 +210,18 @@ def delete_module(module_id: str, session: Session = Depends(get_session)) -> No
 )
 def list_modules(
     component_id: str,
+    status: str | None = None,
+    search: str | None = None,
     pagination: PaginationParams = Depends(pagination_dependency),  # noqa: B008
     session: Session = Depends(get_session),  # noqa: B008
 ) -> dict[str, object]:
     service = ModuleService(session)
     items, total = service.list_modules(
-        component_id, offset=pagination.offset, limit=pagination.limit
+        component_id,
+        offset=pagination.offset,
+        limit=pagination.limit,
+        status=status,
+        search=search,
     )
     return {
         "items": [_mod_resp(m) for m in items],

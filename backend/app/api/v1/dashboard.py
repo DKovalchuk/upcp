@@ -23,15 +23,22 @@ router = APIRouter(tags=["dashboard"])
     summary="Get dashboard statistics",
     description="Get aggregated dashboard statistics including project count, task counts, and recent activity.",
 )
-def get_dashboard_stats(session: Session = Depends(get_session)) -> DashboardStatsResponse:  # noqa: B008
+def get_dashboard_stats(
+    project_id: str | None = None,
+    session: Session = Depends(get_session),  # noqa: B008
+) -> DashboardStatsResponse:
     """Get aggregated dashboard statistics."""
     service = DashboardService(session)
-    stats = service.get_stats()
+    stats = service.get_stats(project_id=project_id)
     return DashboardStatsResponse(
         project_count=stats["project_count"],
         task_counts_by_status=TaskCountsByStatus(**stats["task_counts_by_status"]),
         recent_projects=[ProjectSummary(**p) for p in stats["recent_projects"]],
         recent_activity=[AuditEventSummary(**a) for a in stats["recent_activity"]],
+        done_this_week=stats["done_this_week"],
+        blocked_count=stats["blocked_count"],
+        claimed_count=stats["claimed_count"],
+        health_score=stats["health_score"],
     )
 
 
@@ -41,11 +48,12 @@ def get_dashboard_stats(session: Session = Depends(get_session)) -> DashboardSta
     description="Get action items requiring user attention such as blocked tasks and overdue items.",
 )
 def get_dashboard_attention(
+    project_id: str | None = None,
     session: Session = Depends(get_session),
 ) -> dict[str, list[dict[str, object]]]:  # noqa: B008
     """Get attention dashboard — action items requiring user attention."""
     svc = AttentionDashboardService(session)
-    return svc.get_attention()
+    return svc.get_attention(project_id=project_id)
 
 
 @router.get(

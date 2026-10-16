@@ -1,0 +1,91 @@
+# Chaos experiment profiles — define which experiments to run and expected behavior.
+
+experiments:
+  service_kill_app:
+    description: "Kill app container (SIGKILL), measure MTTR"
+    service: app
+    expected:
+      detection_time_s: 15
+      recovery_time_s: 30
+      data_integrity: true
+
+  service_kill_db:
+    description: "Kill DB container (SIGKILL), measure MTTR"
+    service: db
+    expected:
+      detection_time_s: 15
+      recovery_time_s: 45
+      data_integrity: true
+
+  redis_failure:
+    description: "Stop Redis → app degrades gracefully → restart Redis → full recovery"
+    expected:
+      core_crud_works: true
+      rate_limit_disabled: true
+      no_crashes: true
+      recovery_time_s: 30
+
+  cascade_redis_app:
+    description: "Redis failure cascades to app → verify degradation → recovery chain"
+    expected:
+      error_rate_during_chaos_pct: 30
+      core_available: true
+      recovery_time_s: 60
+      data_integrity: true
+
+  db_restart:
+    description: "Restart PostgreSQL during active requests"
+    expected:
+      error_rate_during_restart_pct: 50
+      recovery_time_s: 45
+      data_integrity: true
+      no_memory_leak: true
+
+  app_restart:
+    description: "Kill app mid-request, verify clean restart"
+    expected:
+      error_rate_during_chaos_pct: 60
+      recovery_time_s: 30
+      data_integrity: true
+
+  full_outage:
+    description: "Kill all services, restart in order (DB → Redis → App)"
+    expected:
+      recovery_time_s: 90
+      data_integrity: true
+      no_memory_leak: true
+
+profiles:
+  quick:
+    description: "Quick smoke — 3 fast experiments (~3 min)"
+    experiments:
+      - service_kill_app
+      - redis_failure
+      - db_restart
+
+  standard:
+    description: "Standard suite — 5 experiments (~8 min)"
+    experiments:
+      - service_kill_app
+      - service_kill_db
+      - redis_failure
+      - cascade_redis_app
+      - db_restart
+
+  full:
+    description: "Full suite — all 7 experiments (~15 min)"
+    experiments:
+      - service_kill_app
+      - service_kill_db
+      - redis_failure
+      - cascade_redis_app
+      - db_restart
+      - app_restart
+      - full_outage
+
+  resilience:
+    description: "Resilience focus — cascade and outage (~10 min)"
+    experiments:
+      - cascade_redis_app
+      - app_restart
+      - full_outage

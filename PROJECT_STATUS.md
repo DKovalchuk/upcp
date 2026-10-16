@@ -1,11 +1,68 @@
 # PROJECT_STATUS
 
-Updated: 2026-08-17
+Updated: 2026-10-16
 Version: 0.21.0 (see `VERSIONING.md` for scheme)
-Milestone: M19 — Test Quality & Architecture (COMPLETE)
-Current Task: M20 S22.3+S22.4 on branch (ready for MR), S22.1+S22.2 pending
+Milestone: M19 ✅ DONE; M20 закоммичен (merge/bump не подтверждены); текущий фронт — SPEC-0025/0026 + TASK-0119
+Current Task: TASK-0119 port externalization (IN_PROGRESS) + sprint stack on `feature/sprint7-polish` awaiting merge
 Blockers: none
-Roadmap: See `ROADMAP_UNIFIED.md` for post-M15 plan (M16-M20, ~23 weeks)
+Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
+Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
+
+## Current Work (2026-10-16)
+
+**Branch:** `feature/sprint7-polish` — 16 commits ahead of `develop`, не слит (все коммиты от 2026-09-05):
+
+| Batch | Scope | Status |
+|-------|-------|--------|
+| Dashboard Sprints 1-4 | SPEC-0025 S25.1-S25.8: KPI drill-down, donut, velocity, clickable attention, portfolio table, project selector, SSE activity, responsive + fix | ✅ committed |
+| Filtering | SPEC-0026: backend filters + shared FilterBar/URL-sync, StructurePage, AgentCenter fix | ✅ committed (спека всё ещё DRAFT, задачи TASK-0129-0135 не созданы) |
+| Sprint 5 | Core UX: task editing + password change | ✅ committed |
+| Sprint 6 | Git-links wiring in TaskDetailSheet | ✅ committed |
+| Sprint 7 | Quality tab CRUD + dead code cleanup | ✅ committed (HEAD) |
+
+**In progress:** TASK-0119 — Externalize Port Configuration (S22.5, SPEC-0024).
+
+**Known discrepancies (to sync):**
+- SPEC-0024 Phase 2-5 pending; `observability/`, `tests/{performance,chaos,infrastructure}`, `Dockerfile.chaos` ещё untracked.
+- ~~Дубль файла TASK-0116~~ — resolved 2026-10-16: `TASK-0116-m20-s22-2-file-uploads.md` помечен DUPLICATE (канонический файл — `...-evidence.md`, DONE).
+
+**Closed 2026-10-16 — dashboard tasks TASK-0120…0127 (SPEC-0025):** all 8
+tasks DONE after AC gap closure — status-filtered KPI drill-down, donut/velocity
+sector click-through, "View all →" in attention, PortfolioTable (Status column,
+row click, Show more >5), attention scoping by `?project_id` (backend endpoint
+now accepts it), sticky project selector (fixed `main { overflow-x-hidden }`
+silently breaking descendant sticky). Deviations recorded in task files:
+single-select status filter (no comma-multi), no `week`/`since` params (not
+consumed by delivery), portfolio done/total + server-side status not in schema.
+Evidence: frontend 47 files / **336/336 tests pass** (34 regressions from
+filter/sprint commits fixed in test mocks — verified against develop baseline),
+backend 31 dashboard+attention tests pass, ruff/mypy/tsc/lint clean.
+TASK-0128 marked **PARTIAL** — unit levels green, Parts C/D/E (e2e, a11y,
+security) + dark-mode/responsive visual checks remain.
+
+**Closed 2026-10-16 — CI deploy tag mismatch:** compose referenced port-less
+`registry.gitlab.local/...:stage` (stale 2-month local images) while CI's
+`upcp-*-stage` aliases were unread — deploys silently served old images. Fixed:
+per-branch `FLOAT_TAG` (`:dev` on develop, `:stage` on main — main no longer
+overwrites `:dev`), compose images parametrized via `UPCP_BACKEND_IMAGE` /
+`UPCP_FRONTEND_IMAGE` (default `:5050/...:stage` for manual runs), deploy jobs
+export the exact pulled tag, dead aliases removed. Evidence: CI lint
+`valid: true`, `docker compose config` resolves expected refs, docs updated
+(`docs/ops/docker-compose.md`, `docs/ops/ci-retention.md`).
+
+**Done 2026-10-16 — CI retention (TASK-0136, variant A):** registry expiration
+policy enabled (keep_n=10, SHA-only, dev/stage/latest protected; older_than=null —
+OCI-index tags have no created_at), registry tags 81/58 → 11/11, build jobs now
+drop local SHA tags + prune dangling after push, manual `maintenance:cleanup` job
+added (lint valid), one-time host cleanup: 44 orphaned runner cache volumes
+(18.84→11.43GB) + dead stage aliases removed, online GC confirmed automatic.
+Docs: `docs/ops/ci-retention.md`.
+
+**Known CI findings:** deploy tag mismatch и коллизия `:dev` исправлены
+2026-10-16 (см. выше «Closed 2026-10-16 — CI deploy tag mismatch»).
+
+**Queued:**
+- Merge sprint-стека в `develop` после ревью, затем version bump.
 
 ## M17 Summary — Security & Stability
 
@@ -19,6 +76,58 @@ All 4 sprints completed and merged:
 | S19.4 | TASK-0107 | Architecture cleanup (logging, dead code, inbox, lifespan, target) | ✅ Done |
 
 **Evidence:** 732 tests pass, ruff + mypy clean, all pipelines green
+
+## Test Environment — Comprehensive Quality Gate (SPEC-0024)
+
+Three pillars: **Performance**, **Chaos Engineering**, **Security Testing**.
+
+### Phase 1: Foundation ✅ Complete (2026-08-18)
+
+| Component | Status | Files |
+|-----------|--------|-------|
+| docker-compose.test.yml | ✅ Expanded | Redis, Locust (master+workers), ZAP, Kali, seeder, observability stack |
+| .env.test | ✅ Updated | 14 ports: core + perf + security + observability |
+| Metrics middleware | ✅ Created | `backend/app/shared/metrics.py`, `metrics_middleware.py` |
+| /metrics endpoint | ✅ Added | `backend/app/main.py` |
+| Prometheus config | ✅ Created | `observability/prometheus-test.yml` |
+| Loki config | ✅ Created | `observability/loki-config.yaml` |
+| Tempo config | ✅ Created | `observability/tempo-config.yaml` |
+| OTel Collector config | ✅ Created | `observability/otel-collector-config.yaml` |
+| Grafana provisioning | ✅ Created | datasources + dashboards provisioning |
+| Grafana dashboard | ✅ Created | `test/overview.json` — request rate, latency, errors, DB pool |
+| Test data seeder | ✅ Created | `tests/infrastructure/seeder.py` — small/medium/large profiles |
+| Locust mixed scenario | ✅ Created | `tests/performance/locustfiles/scenario_mixed.py` |
+| Locust base class | ✅ Created | `tests/performance/locustfiles/common.py` — UPCPBaseUser |
+| SPEC-0024 | ✅ Created | Full spec in `specs/SPEC-0024-test-environment.md` |
+
+**Verification:** ruff clean, mypy clean, docker-compose valid, 16 existing tests pass.
+
+### Test Environment Ports
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| Frontend | 3071 | Nginx → frontend |
+| Backend API | 38082 | FastAPI + /metrics |
+| PostgreSQL | 35434 | Database |
+| Redis | 36383 | Cache/rate-limit |
+| Locust | 38089 | Load testing UI |
+| OWASP ZAP | 38090 | DAST security |
+| Kali | 38091 | Pentest agent |
+| Prometheus | 39091 | Metrics |
+| Grafana | 33001 | Dashboards (8 total) |
+| Loki | 3101 | Logs |
+| Tempo | 3201 | Traces |
+| OTel Collector | 4319/4320 | Telemetry |
+
+### Phase Roadmap
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| Phase 1: Foundation | docker-compose, metrics, seeder, basic Locust | ✅ Done |
+| Phase 2: Performance | All Locust scenarios, concurrency, SLI/SLO, analyzer | Pending |
+| Phase 3: Chaos | Docker chaos scripts, assertions, cascade failures | Pending |
+| Phase 4: Security | SAST, DAST, API fuzzing, auth tests, Kali pentest agent | Pending |
+| Phase 5: Integration | Aggregate reporter, CI/CD, Makefile targets, docs | Pending |
 
 ## UPCP v2 Project (Stage)
 

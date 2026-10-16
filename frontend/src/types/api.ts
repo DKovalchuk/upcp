@@ -45,6 +45,7 @@ export interface TaskCountsByStatus {
   in_progress: number;
   review: number;
   done: number;
+  blocked: number;
 }
 
 export interface DashboardStatsResponse {
@@ -52,6 +53,10 @@ export interface DashboardStatsResponse {
   task_counts_by_status: TaskCountsByStatus;
   recent_projects: ProjectSummary[];
   recent_activity: AuditEventSummary[];
+  done_this_week: number;
+  blocked_count: number;
+  claimed_count: number;
+  health_score: number;
 }
 
 export interface QualityStatsResponse {

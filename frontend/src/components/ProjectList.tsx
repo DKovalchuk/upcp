@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useProjects, useCreateProject } from '@/hooks/use-projects';
+import { useFilters } from '@/hooks/use-filters';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
 import { ProjectTable } from '@/components/ProjectTable';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -15,7 +17,9 @@ import { FolderKanban } from 'lucide-react';
 
 export function ProjectList() {
   const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
-  const { data, isLoading, error, refetch } = useProjects({ offset, limit });
+  const { filters } = useFilters();
+  const projectFilters = { status: filters.status, search: filters.search };
+  const { data, isLoading, error, refetch } = useProjects({ offset, limit }, projectFilters);
   const createProject = useCreateProject();
   const [showCreate, setShowCreate] = useState(false);
 
@@ -99,7 +103,17 @@ export function ProjectList() {
           <CardTitle className="text-2xl font-bold">Projects</CardTitle>
           <Button size="sm" onClick={() => setShowCreate(true)}>New Project</Button>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
+          <FilterBar
+            showSearch
+            showStatus
+            searchPlaceholder="Search projects..."
+            statusOptions={[
+              { value: 'active', label: 'Active' },
+              { value: 'paused', label: 'Paused' },
+              { value: 'archived', label: 'Archived' },
+            ]}
+          />
           <ProjectTable projects={projects} />
           {total > limit && (
             <DataTablePagination

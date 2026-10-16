@@ -4,9 +4,10 @@ TASK-0083
 """
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query, Session
 
 from app.delivery.models import ClarificationRequest, Feature, Task, TaskClaim
 from app.projects.models import Project
@@ -26,38 +27,60 @@ class AttentionDashboardService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_attention(self) -> dict[str, list[dict[str, object]]]:
-        """Return all attention sections for the dashboard."""
+    def get_attention(self, project_id: str | None = None) -> dict[str, list[dict[str, object]]]:
+        """Return all attention sections for the dashboard.
+
+        When ``project_id`` is provided, every section is scoped to that
+        project; unknown projects yield empty sections.
+        """
         return {
-            "needs_review": self._needs_review(),
-            "open_questions": self._open_questions(),
-            "blocked_tasks": self._blocked_tasks(),
-            "stale_claims": self._stale_claims(),
-            "failed_dod": self._failed_dod(),
-            "rejected_tasks": self._rejected_tasks(),
-            "agent_verdicts_waiting": self._agent_verdicts_waiting(),
-            "low_health_projects": self._low_health_projects(),
+            "needs_review": self._needs_review(project_id),
+            "open_questions": self._open_questions(project_id),
+            "blocked_tasks": self._blocked_tasks(project_id),
+            "stale_claims": self._stale_claims(project_id),
+            "failed_dod": self._failed_dod(project_id),
+            "rejected_tasks": self._rejected_tasks(project_id),
+            "agent_verdicts_waiting": self._agent_verdicts_waiting(project_id),
+            "low_health_projects": self._low_health_projects(project_id),
             "recent_activity": [],
         }
 
-    def _needs_review(self) -> list[dict[str, object]]:
+    @staticmethod
+    def _scoped(query: Query[Any], project_id: str | None) -> Query[Any]:
+        """Apply a project filter to a query selecting Feature.project_id last."""
+        if project_id is None:
+            return query
+        return query.filter(Feature.project_id == project_id)
+
+    def _needs_review(self, project_id: str | None = None) -> list[dict[str, object]]:
         """Tasks with pending review rounds."""
-        rounds = self._session.query(ReviewRound).filter_by(state="pending").all()
+        rows = self._scoped(
+            self._session.query(ReviewRound, Feature.project_id)
+            .join(Task, ReviewRound.task_id == Task.id)
+            .join(Feature, Task.feature_id == Feature.id)
+            .filter(ReviewRound.state == "pending"),
+            project_id,
+        ).all()
         return [
             {
                 "task_id": rr.task_id,
                 "round_id": rr.id,
                 "requested_by": rr.requested_by_id,
                 "created_at": rr.created_at.isoformat() if rr.created_at else None,
+                "project_id": pid,
             }
-            for rr in rounds
+            for rr, pid in rows
         ]
 
-    def _open_questions(self) -> list[dict[str, object]]:
+    def _open_questions(self, project_id: str | None = None) -> list[dict[str, object]]:
         """Blocking open clarification requests."""
-        questions = (
-            self._session.query(ClarificationRequest).filter_by(blocking=True, state="open").all()
-        )
+        rows = self._scoped(
+            self._session.query(ClarificationRequest, Feature.project_id)
+            .join(Task, ClarificationRequest.task_id == Task.id)
+            .join(Feature, Task.feature_id == Feature.id)
+            .filter(ClarificationRequest.blocking == True, ClarificationRequest.state == "open"),  # noqa: E712
+            project_id,
+        ).all()
         return [
             {
                 "task_id": cr.task_id,
@@ -65,82 +88,108 @@ class AttentionDashboardService:
                 "question": cr.question[:200],
                 "author": cr.author_id,
                 "created_at": cr.created_at.isoformat() if cr.created_at else None,
+                "project_id": pid,
             }
-            for cr in questions
+            for cr, pid in rows
         ]
 
-    def _blocked_tasks(self) -> list[dict[str, object]]:
+    def _blocked_tasks(self, project_id: str | None = None) -> list[dict[str, object]]:
         """Tasks in blocked status."""
-        tasks = self._session.query(Task).filter_by(status="blocked").all()
+        rows = self._scoped(
+            self._session.query(Task, Feature.project_id)
+            .join(Feature, Task.feature_id == Feature.id)
+            .filter(Task.status == "blocked"),
+            project_id,
+        ).all()
         return [
             {
                 "task_id": t.id,
                 "title": t.title,
                 "feature_id": t.feature_id,
+                "project_id": pid,
             }
-            for t in tasks
+            for t, pid in rows
         ]
 
-    def _stale_claims(self) -> list[dict[str, object]]:
+    def _stale_claims(self, project_id: str | None = None) -> list[dict[str, object]]:
         """Claims without heartbeat for > 7 minutes."""
         cutoff = datetime.now(UTC) - timedelta(minutes=STALE_HEARTBEAT_MINUTES)
-        claims = (
-            self._session.query(TaskClaim)
-            .filter_by(state="active")
+        rows = self._scoped(
+            self._session.query(TaskClaim, Feature.project_id)
+            .join(Task, TaskClaim.task_id == Task.id)
+            .join(Feature, Task.feature_id == Feature.id)
             .filter(
+                TaskClaim.state == "active",
                 TaskClaim.last_heartbeat_at.isnot(None),
                 TaskClaim.last_heartbeat_at < cutoff,
-            )
-            .all()
-        )
+            ),
+            project_id,
+        ).all()
         return [
             {
                 "task_id": c.task_id,
                 "agent_id": c.agent_id,
                 "last_heartbeat": c.last_heartbeat_at.isoformat() if c.last_heartbeat_at else None,
                 "claimed_at": c.claimed_at.isoformat() if c.claimed_at else None,
+                "project_id": pid,
             }
-            for c in claims
+            for c, pid in rows
         ]
 
-    def _failed_dod(self) -> list[dict[str, object]]:
+    def _failed_dod(self, project_id: str | None = None) -> list[dict[str, object]]:
         """Tasks with failed DoD items."""
-        failed = (
-            self._session.query(DoDItem).filter(DoDItem.status.in_(["failed", "pending"])).all()
-        )
+        rows = self._scoped(
+            self._session.query(DoDItem.task_id, DoDItem.name, Feature.project_id)
+            .join(Task, DoDItem.task_id == Task.id)
+            .join(Feature, Task.feature_id == Feature.id)
+            .filter(DoDItem.status.in_(["failed", "pending"])),
+            project_id,
+        ).all()
         # Group by task_id
-        by_task: dict[str, list[str]] = {}
-        for d in failed:
-            by_task.setdefault(d.task_id, []).append(d.name)
-        return [{"task_id": tid, "failed_items": names} for tid, names in by_task.items()]
+        by_task: dict[str, tuple[str, list[str]]] = {}
+        for tid, name, pid in rows:
+            if tid not in by_task:
+                by_task[tid] = (pid, [])
+            by_task[tid][1].append(name)
+        return [
+            {"task_id": tid, "failed_items": names, "project_id": pid}
+            for tid, (pid, names) in by_task.items()
+        ]
 
-    def _rejected_tasks(self) -> list[dict[str, object]]:
+    def _rejected_tasks(self, project_id: str | None = None) -> list[dict[str, object]]:
         """Tasks with a reject verdict in the latest review round."""
         # Get latest completed round per task with reject verdict
-        rounds = (
-            self._session.query(ReviewRound).filter_by(state="completed", verdict="reject").all()
-        )
+        rows = self._scoped(
+            self._session.query(ReviewRound, Feature.project_id)
+            .join(Task, ReviewRound.task_id == Task.id)
+            .join(Feature, Task.feature_id == Feature.id)
+            .filter(ReviewRound.state == "completed", ReviewRound.verdict == "reject"),
+            project_id,
+        ).all()
         return [
             {
                 "task_id": rr.task_id,
                 "round_id": rr.id,
                 "summary": rr.summary[:200] if rr.summary else None,
                 "completed_at": rr.completed_at.isoformat() if rr.completed_at else None,
+                "project_id": pid,
             }
-            for rr in rounds
+            for rr, pid in rows
         ]
 
-    def _agent_verdicts_waiting(self) -> list[dict[str, object]]:
+    def _agent_verdicts_waiting(self, project_id: str | None = None) -> list[dict[str, object]]:
         """Agent reviewer verdicts awaiting human confirmation."""
-        rounds = (
-            self._session.query(ReviewRound)
+        rows = self._scoped(
+            self._session.query(ReviewRound, Feature.project_id)
+            .join(Task, ReviewRound.task_id == Task.id)
+            .join(Feature, Task.feature_id == Feature.id)
             .filter(
                 ReviewRound.state == "completed",
                 ReviewRound.reviewer_type == "agent",
                 ReviewRound.requested_by_type == "human",
-            )
-            .all()
-        )
+            ),
+            project_id,
+        ).all()
         return [
             {
                 "task_id": rr.task_id,
@@ -148,13 +197,17 @@ class AttentionDashboardService:
                 "verdict": rr.verdict,
                 "confidence": rr.confidence,
                 "summary": rr.summary[:200] if rr.summary else None,
+                "project_id": pid,
             }
-            for rr in rounds
+            for rr, pid in rows
         ]
 
-    def _low_health_projects(self) -> list[dict[str, object]]:
+    def _low_health_projects(self, project_id: str | None = None) -> list[dict[str, object]]:
         """Projects with health score < 70."""
-        projects = self._session.query(Project).all()
+        projects_q = self._session.query(Project)
+        if project_id is not None:
+            projects_q = projects_q.filter(Project.id == project_id)
+        projects = projects_q.all()
         if not projects:
             return []
 

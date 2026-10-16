@@ -32,6 +32,15 @@ export async function fetchAgentsOverview(): Promise<{ items: AgentPerformance[]
   return apiRequest('/api/v1/analytics/agents/overview');
 }
 
+export async function fetchGlobalVelocity(
+  weeks = 8,
+  projectId?: string,
+): Promise<{ items: { week: string; count: number }[] }> {
+  const params = new URLSearchParams({ weeks: String(weeks) });
+  if (projectId) params.set('project_id', projectId);
+  return apiRequest(`/api/v1/analytics/velocity?${params}`);
+}
+
 export async function fetchNotificationChannels(): Promise<{ items: Array<{
   id: string;
   channel_type: string;

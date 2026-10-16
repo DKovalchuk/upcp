@@ -140,11 +140,23 @@ def delete_feature(feature_id: str, session: Session = Depends(get_session)) -> 
 )
 def list_features(
     project_id: str,
+    status: str | None = None,
+    search: str | None = None,
+    sort_by: str = "created_at",
+    sort_dir: str = "desc",
     pagination: PaginationParams = Depends(pagination_dependency),
     session: Session = Depends(get_session),
 ) -> dict[str, object]:  # noqa: B008
     svc = FeatureService(session)
-    items, total = svc.list_features(project_id, offset=pagination.offset, limit=pagination.limit)
+    items, total = svc.list_features(
+        project_id,
+        offset=pagination.offset,
+        limit=pagination.limit,
+        status=status,
+        search=search,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
     return {
         "items": [_feat_resp(f) for f in items],
         "total": total,
@@ -254,11 +266,21 @@ def delete_task(task_id: str, session: Session = Depends(get_session)) -> None: 
 )
 def list_tasks(
     feature_id: str,
+    status: str | None = None,
+    priority: int | None = None,
+    search: str | None = None,
     pagination: PaginationParams = Depends(pagination_dependency),
     session: Session = Depends(get_session),
 ) -> TaskListResponse:  # noqa: B008
     svc = TaskService(session)
-    items, total = svc.list_tasks(feature_id, offset=pagination.offset, limit=pagination.limit)
+    items, total = svc.list_tasks(
+        feature_id,
+        offset=pagination.offset,
+        limit=pagination.limit,
+        status=status,
+        priority=priority,
+        search=search,
+    )
     return TaskListResponse(
         items=[_task_resp(t) for t in items],
         total=total,
@@ -282,6 +304,8 @@ def list_tasks_by_project(
     status: str | None = None,
     feature_id: str | None = None,
     assignee_type: str | None = None,
+    priority: int | None = None,
+    search: str | None = None,
     session: Session = Depends(get_session),  # noqa: B008
 ) -> TaskListResponse:
     svc = TaskService(session)
@@ -292,6 +316,8 @@ def list_tasks_by_project(
         status=status,
         feature_id=feature_id,
         assignee_type=assignee_type,
+        priority=priority,
+        search=search,
     )
     return TaskListResponse(
         items=[_task_resp(t) for t in items],

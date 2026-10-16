@@ -182,6 +182,18 @@ LOG_LEVEL=INFO
 | `CORS_ORIGINS` | Allowed CORS origins | `http://localhost:35173` |
 | `RATE_LIMIT_DEFAULT` | Request limit per minute | `60` |
 
+### Stage stack image variables (`docker-compose.stage.yml`)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `UPCP_BACKEND_IMAGE` | Image for the stage `app` service | `registry.gitlab.local:5050/dmitry.kovalchuk/upcp/backend:stage` |
+| `UPCP_FRONTEND_IMAGE` | Image for the stage `frontend` service | `registry.gitlab.local:5050/dmitry.kovalchuk/upcp/frontend:stage` |
+
+CI `deploy:dev` / `deploy:stage` export these to the image the pipeline just
+built (`:dev` on develop deploys, `:stage` on main deploys), so containers are
+recreated with exactly the pulled image. Outside CI the defaults above are
+used.
+
 ## 5. Volumes
 
 | Volume | Service | Purpose |

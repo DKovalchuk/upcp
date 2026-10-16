@@ -72,3 +72,15 @@ export async function authRefresh(
     body: JSON.stringify({ refresh_token }),
   });
 }
+
+export async function authPasswordChange(
+  token: string,
+  current_password: string,
+  new_password: string,
+): Promise<void> {
+  await authRequest('/auth/password/change', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ current_password, new_password }),
+  });
+}

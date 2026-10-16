@@ -1,0 +1,24 @@
+# Grafana dashboard provisioning — UPCP Test Environment
+
+apiVersion: 1
+
+providers:
+  - name: UPCP Test
+    orgId: 1
+    folder: UPCP Test Environment
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards/test
+      foldersFromFilesStructure: false
+
+  - name: UPCP Production
+    orgId: 1
+    folder: UPCP Production
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards/production
+      foldersFromFilesStructure: false

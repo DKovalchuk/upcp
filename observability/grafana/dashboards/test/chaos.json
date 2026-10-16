@@ -1,0 +1,80 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "title": "App Health Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "up{job=\"upcp-app\"}", "legendFormat": "App" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}] }
+        }
+      }
+    },
+    {
+      "title": "Error Rate During Chaos (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "sum(rate(upcp_http_requests_total{status=~\"5..\"}[1m])) / sum(rate(upcp_http_requests_total[1m])) * 100", "legendFormat": "Error %" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "red", "value": 20}] } } }
+    },
+    {
+      "title": "Latency During Chaos (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(upcp_http_request_duration_seconds_bucket[1m])) by (le))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, sum(rate(upcp_http_request_duration_seconds_bucket[1m])) by (le))", "legendFormat": "p99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "title": "DB Pool During Chaos",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "upcp_db_pool_connections", "legendFormat": "{{state}}" }
+      ]
+    },
+    {
+      "title": "Memory During Chaos",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "process_resident_memory_bytes{job=\"upcp-app\"}", "legendFormat": "App Memory" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "Rate Limit Hits (Chaos Indicator)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "sum(rate(upcp_rate_limit_hits_total[1m])) by (endpoint)", "legendFormat": "{{endpoint}}" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["upcp", "test", "chaos"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "UPCP Test — Chaos Engineering",
+  "uid": "upcp-test-chaos",
+  "version": 1
+}

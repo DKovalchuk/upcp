@@ -67,9 +67,19 @@ class ComponentService:
         self._session.flush()
 
     def list_components(
-        self, project_id: str, *, offset: int = 0, limit: int = 20
+        self,
+        project_id: str,
+        *,
+        offset: int = 0,
+        limit: int = 20,
+        status: str | None = None,
+        search: str | None = None,
     ) -> tuple[list[Component], int]:
         q = self._session.query(Component).filter_by(project_id=project_id)
+        if status is not None:
+            q = q.filter(Component.status == status)
+        if search:
+            q = q.filter(Component.name.ilike(f"%{search}%"))
         total = q.count()
         items = q.offset(offset).limit(limit).all()
         return items, total
@@ -139,9 +149,19 @@ class ModuleService:
         self._session.flush()
 
     def list_modules(
-        self, component_id: str, *, offset: int = 0, limit: int = 20
+        self,
+        component_id: str,
+        *,
+        offset: int = 0,
+        limit: int = 20,
+        status: str | None = None,
+        search: str | None = None,
     ) -> tuple[list[Module], int]:
         q = self._session.query(Module).filter_by(component_id=component_id)
+        if status is not None:
+            q = q.filter(Module.status == status)
+        if search:
+            q = q.filter(Module.name.ilike(f"%{search}%"))
         total = q.count()
         items = q.offset(offset).limit(limit).all()
         return items, total

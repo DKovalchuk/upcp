@@ -8,6 +8,9 @@ vi.mock('@tanstack/react-router', async () => {
   return {
     ...actual,
     useLocation: () => ({ pathname: '/projects/proj-1/delivery' }),
+    // useFilters/useUrlPagination need search state — no router store in tests
+    useSearch: () => ({}),
+    useNavigate: () => vi.fn(),
   };
 });
 
@@ -156,7 +159,7 @@ describe('DeliveryPage', () => {
   it('shows search input', () => {
     mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as any);
     renderDelivery();
-    expect(screen.getByPlaceholderText('Filter tasks...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Filter features...')).toBeInTheDocument();
   });
 
   it('filters tasks by search', () => {
@@ -188,7 +191,7 @@ describe('DeliveryPage', () => {
     expect(screen.getByText('Register form')).toBeInTheDocument();
 
     // Search for "login" - filter is client-side via title match
-    fireEvent.change(screen.getByPlaceholderText('Filter tasks...'), {
+    fireEvent.change(screen.getByPlaceholderText('Filter features...'), {
       target: { value: 'Login' },
     });
 

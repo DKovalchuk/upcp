@@ -1,0 +1,141 @@
+# Load testing profiles — Locust execution parameters
+# Each profile defines user count, spawn rate, duration, and SLO thresholds.
+
+profiles:
+  smoke:
+    description: "Quick sanity — 10 users, 30s. Verifies system is functional under light load."
+    users: 10
+    spawn_rate: 5
+    run_time: "30s"
+    scenarios:
+      - scenario_mixed
+    slos:
+      error_rate_pct: 1.0
+      p95_ms: 500
+      p99_ms: 1000
+
+  load:
+    description: "Normal operational load — 50 users, 5min. Represents typical daily usage."
+    users: 50
+    spawn_rate: 10
+    run_time: "5m"
+    scenarios:
+      - scenario_mixed
+    slos:
+      error_rate_pct: 2.0
+      p95_ms: 1000
+      p99_ms: 2000
+
+  stress:
+    description: "Peak load — 200 users, 10min. Tests system limits."
+    users: 200
+    spawn_rate: 20
+    run_time: "10m"
+    scenarios:
+      - scenario_mixed
+    slos:
+      error_rate_pct: 5.0
+      p95_ms: 2000
+      p99_ms: 5000
+
+  soak:
+    description: "Endurance — 50 users, 30min. Detects memory leaks, connection pool exhaustion."
+    users: 50
+    spawn_rate: 10
+    run_time: "30m"
+    scenarios:
+      - scenario_mixed
+    slos:
+      error_rate_pct: 2.0
+      p95_ms: 1000
+      p99_ms: 2000
+
+  spike:
+    description: "Sudden traffic spike — 500 users, 3min. Tests auto-scaling and recovery."
+    users: 500
+    spawn_rate: 100
+    run_time: "3m"
+    scenarios:
+      - scenario_mixed
+    slos:
+      error_rate_pct: 10.0
+      p95_ms: 3000
+      p99_ms: 10000
+
+  projects:
+    description: "Project CRUD focused — 50 users, 5min."
+    users: 50
+    spawn_rate: 10
+    run_time: "5m"
+    scenarios:
+      - scenario_projects
+    slos:
+      error_rate_pct: 2.0
+      p95_ms: 1000
+      p99_ms: 2000
+
+  tasks:
+    description: "Task workflow focused — 50 users, 5min."
+    users: 50
+    spawn_rate: 10
+    run_time: "5m"
+    scenarios:
+      - scenario_tasks
+    slos:
+      error_rate_pct: 2.0
+      p95_ms: 1000
+      p99_ms: 2000
+
+  dashboard:
+    description: "Dashboard/analytics focused — 100 users, 5min. Read-heavy."
+    users: 100
+    spawn_rate: 20
+    run_time: "5m"
+    scenarios:
+      - scenario_dashboard
+    slos:
+      error_rate_pct: 1.0
+      p95_ms: 500
+      p99_ms: 1000
+
+  agents:
+    description: "Agent workflow focused — 30 users, 5min."
+    users: 30
+    spawn_rate: 5
+    run_time: "5m"
+    scenarios:
+      - scenario_agents
+    slos:
+      error_rate_pct: 3.0
+      p95_ms: 1500
+      p99_ms: 3000
+
+  concurrency:
+    description: "Race condition testing — 50 users, 3min. High contention."
+    users: 50
+    spawn_rate: 25
+    run_time: "3m"
+    scenarios:
+      - scenario_concurrency
+    slos:
+      error_rate_pct: 15.0  # Higher tolerance for expected 409s
+      p95_ms: 2000
+      p99_ms: 5000
+
+  all:
+    description: "Run all scenarios sequentially — comprehensive benchmark."
+    sequential: true
+    scenarios:
+      - scenario_projects
+      - scenario_tasks
+      - scenario_dashboard
+      - scenario_agents
+      - scenario_search
+      - scenario_concurrency
+      - scenario_mixed
+    users_per_scenario: 30
+    run_time_per_scenario: "3m"
+    slos:
+      error_rate_pct: 5.0
+      p95_ms: 2000
+      p99_ms: 5000

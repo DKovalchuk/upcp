@@ -10,11 +10,12 @@ import type { FeatureCreate, FeatureUpdate } from '@/types/feature';
 
 export function useFeatures(
   projectId: string,
-  pagination?: { offset?: number; limit?: number }
+  pagination?: { offset?: number; limit?: number },
+  filters?: { status?: string; search?: string; sort_by?: string; sort_dir?: string },
 ) {
   return useQuery({
-    queryKey: ['features', projectId, pagination],
-    queryFn: () => fetchFeatures(projectId, pagination),
+    queryKey: ['features', projectId, pagination, filters],
+    queryFn: () => fetchFeatures(projectId, pagination, filters),
     enabled: !!projectId,
   });
 }

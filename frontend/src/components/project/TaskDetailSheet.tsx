@@ -1,12 +1,16 @@
-import { useAcceptanceCriteria, useDoDItems } from '@/hooks/use-quality';
-import { useSubtasks } from '@/hooks/use-subtasks';
+import { useAcceptanceCriteria, useDoDItems, useDeleteAcceptanceCriterion, useDeleteDoDItem } from '@/hooks/use-quality';
+import { useSubtasks, useDeleteSubtask } from '@/hooks/use-subtasks';
 import {
   useTaskClaims,
   useTaskHeartbeats,
 } from '@/hooks/use-task-execution';
 import { useTaskDetail } from '@/hooks/use-task-detail';
+import { useUpdateTask } from '@/hooks/use-tasks';
+import { useGitLinks } from '@/hooks/use-git-links';
 import { useComponents } from '@/hooks/use-components';
 import { useModules } from '@/hooks/use-modules';
+import { useState, useCallback } from 'react';
+import { showToast } from '@/lib/toast';
 import { ClarificationsTab } from './ClarificationsTab';
 import { EvidenceTab } from './EvidenceTab';
 import { ReviewsTab } from './ReviewsTab';
@@ -38,6 +42,9 @@ import {
   Bot,
   Clock,
   GitBranch,
+  Pencil,
+  Save,
+  X,
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
@@ -52,8 +59,12 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
   const { data: acs } = useAcceptanceCriteria(taskId ?? '');
   const { data: dods } = useDoDItems(taskId ?? '');
   const { data: subtasks } = useSubtasks(taskId ?? '');
+  const deleteAC = useDeleteAcceptanceCriterion();
+  const deleteDoD = useDeleteDoDItem();
+  const deleteSubtask = useDeleteSubtask();
   const { data: claims, isLoading: isLoadingClaims } = useTaskClaims(taskId ?? '');
   const { data: heartbeats, isLoading: isLoadingHeartbeats } = useTaskHeartbeats(taskId ?? '');
+  const { data: gitLinks } = useGitLinks('task', taskId ?? '');
 
   // UUID resolution
   const { data: components } = useComponents(projectId ?? '');
@@ -62,6 +73,37 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
   const moduleMap = new Map((modules ?? []).map((m) => [m.id, m.name]));
 
   const open = !!taskId;
+  const updateTask = useUpdateTask();
+
+  // Edit mode state
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editPriority, setEditPriority] = useState(0);
+
+  const startEdit = useCallback(() => {
+    if (!detail.task) return;
+    setEditTitle(detail.task.title);
+    setEditDesc(detail.task.description ?? '');
+    setEditPriority(detail.task.priority);
+    setEditing(true);
+  }, [detail.task]);
+
+  const cancelEdit = useCallback(() => setEditing(false), []);
+
+  const saveEdit = useCallback(async () => {
+    if (!taskId) return;
+    try {
+      await updateTask.mutateAsync({
+        id: taskId,
+        data: { title: editTitle, description: editDesc, priority: editPriority },
+      });
+      showToast.updated('Task');
+      setEditing(false);
+    } catch {
+      showToast.mutationError('update', 'task');
+    }
+  }, [taskId, editTitle, editDesc, editPriority, updateTask]);
 
   const { task, isLoading, isReleasing, newAC, setNewAC, newDoD, setNewDoD, newSubtask, setNewSubtask, activeTab, setActiveTab, confirmDelete, setConfirmDelete, handleAddAC, handleAddDoD, handleAddSubtask, handleStatusChange, handleDelete, handleReleaseClaim } = detail;
 
@@ -81,6 +123,11 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                 <div className="flex items-center gap-2">
                   <PriorityDot priority={task.priority} />
                   <SheetTitle className="flex-1">{task.title}</SheetTitle>
+                  {!editing && (
+                    <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" onClick={startEdit} aria-label="Edit task">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -150,28 +197,55 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
 
                 {/* ── Details Tab ── */}
                 <TabsContent value="details" className="mt-4 space-y-4">
-                  {task.description ? (
-                    <p className="text-sm leading-relaxed">{task.description}</p>
+                  {editing ? (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground">Title</label>
+                        <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground">Description</label>
+                        <textarea
+                          value={editDesc}
+                          onChange={(e) => setEditDesc(e.target.value)}
+                          className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          placeholder="Task description..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground">Priority (0-10)</label>
+                        <Input type="number" min={0} max={10} value={editPriority} onChange={(e) => setEditPriority(Number(e.target.value))} />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={saveEdit} disabled={updateTask.isPending}>
+                          <Save className="mr-1 h-3 w-3" /> Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={cancelEdit}>
+                          <X className="mr-1 h-3 w-3" /> Cancel
+                        </Button>
+                      </div>
+                    </>
                   ) : (
-                    <p className="text-sm text-muted-foreground italic">
-                      No description provided.
-                    </p>
+                    <>
+                      {task.description ? (
+                        <p className="text-sm leading-relaxed">{task.description}</p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">No description provided.</p>
+                      )}
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+                        <Select value={task.status} onValueChange={(v) => v && handleStatusChange(v)}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="backlog">Backlog</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="review">Review</SelectItem>
+                            <SelectItem value="done">Done</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
                   )}
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
-                    <Select value={task.status} onValueChange={(v) => v && handleStatusChange(v)}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="backlog">Backlog</SelectItem>
-                        <SelectItem value="in-progress">In Progress</SelectItem>
-                        <SelectItem value="review">Review</SelectItem>
-                        <SelectItem value="done">Done</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </TabsContent>
 
                 {/* ── Execution Tab (claims + heartbeats only) ── */}
@@ -265,9 +339,20 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                       <GitBranch className="h-3 w-3" />
                       Git
                     </h4>
-                    <div className="rounded-lg border border-border p-3">
-                      <p className="text-sm text-muted-foreground">No linked commits.</p>
-                    </div>
+                    {gitLinks && gitLinks.length > 0 ? (
+                      <div className="space-y-1">
+                        {gitLinks.map((link) => (
+                          <div key={link.id} className="flex items-center gap-2 rounded border px-2 py-1.5 text-xs">
+                            <GitBranch className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-mono">{link.git_type}: {link.git_id.slice(0, 12)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-3">
+                        <p className="text-sm text-muted-foreground text-center">No linked commits.</p>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
@@ -300,7 +385,12 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     <ListSection
                       items={acs ?? []}
                       renderItem={(ac) => (
-                        <span className="text-sm">{ac.description}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">{ac.description}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteAC.mutate(ac.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       )}
                       emptyText="No acceptance criteria yet."
                     />
@@ -325,7 +415,12 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     <ListSection
                       items={dods ?? []}
                       renderItem={(dod) => (
-                        <span className="text-sm">{dod.name}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">{dod.name}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteDoD.mutate(dod.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       )}
                       emptyText="No DoD items yet."
                     />
@@ -350,9 +445,14 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
                     <ListSection
                       items={subtasks ?? []}
                       renderItem={(st) => (
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={st.status} size="sm" />
-                          <span className="text-sm">{st.title}</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <StatusBadge status={st.status} size="sm" />
+                            <span className="text-sm">{st.title}</span>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteSubtask.mutate(st.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       )}
                       emptyText="No subtasks yet."
