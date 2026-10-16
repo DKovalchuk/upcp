@@ -1,20 +1,20 @@
 # UPCP Unified Roadmap — Post-M15
 
 **Created:** 2026-08-12
-**Updated:** 2026-08-17
+**Updated:** 2026-10-17
 **Source:** M16 Comprehensive Audit + existing plans
 **Sprint size:** 1 week
-**Current:** 0.21.0 (M19 complete, M20 on branch)
-**Next:** Merge M20 → 0.22.0, then M18 remaining sprints
+**Current:** 0.22.0 (M19 + M20 complete)
+**Next:** M18 remaining sprints (0.20.0)
 
 ---
 
 ## Milestone Overview
 
 ```
-0.17.0 ✅ ──▶ 0.18.0 ──▶ 0.19.0 ✅ ──▶ 0.20.0 ──▶ 0.21.0 ✅ ──▶ 0.22.0 → ...
+0.17.0 ✅ ──▶ 0.18.0 ──▶ 0.19.0 ✅ ──▶ 0.20.0 ──▶ 0.21.0 ✅ ──▶ 0.22.0 ✅ → ...
    M15          M16         M17          M18          M19          M20
-   done      in progress    done        planned       done     on branch
+   done      in progress    done        planned       done        done
 ```
 
 After M20: M18 remaining (S20.1-S20.4) → M16 remaining (S18.2-S18.4) → Production hardening.
@@ -151,7 +151,7 @@ After M20: M18 remaining (S20.1-S20.4) → M16 remaining (S18.2-S18.4) → Produ
 | 0.19.0 | M17 ✅ | 4/4 | DONE | Security + Stability |
 | 0.20.0 | M18 | 0/4 | PLANNED | UX + A11y + Settings |
 | 0.21.0 | M19 ✅ | 3/3 | DONE | Tests + Architecture |
-| 0.22.0 | M20 | 4/4 | ON BRANCH | Extended Features |
+| 0.22.0 | M20 ✅ | 4/4 | DONE | Extended Features |
 
 ### After M20 (remaining work)
 

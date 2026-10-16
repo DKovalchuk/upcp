@@ -63,7 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
 
 app = FastAPI(
     title="UPCP Backend",
-    version="0.1.0",
+    version="0.22.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "projects", "description": "Project CRUD operations"},
@@ -211,6 +211,6 @@ def metrics() -> Response:
 try:
     from app.shared.metrics import app_info
 
-    app_info.info({"version": "0.21.0", "environment": settings.env})
+    app_info.info({"version": "0.22.0", "environment": settings.env})
 except Exception:
     pass
