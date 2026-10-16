@@ -4,12 +4,27 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Dashboard } from './Dashboard';
 import { mockSuccessQuery, mockLoadingQuery, mockErrorQuery } from '@/test/helpers';
 
+const routeState = vi.hoisted(() => ({
+  search: {} as Record<string, string | undefined>,
+}));
+
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, ...props }: any) => (
-    <a href={to} {...props}>{children}</a>
-  ),
+  Link: ({ children, to, search, params, ...props }: any) => {
+    let href: string = to;
+    if (params && typeof href === 'string') {
+      href = href.replace('$projectId', params.projectId ?? '');
+    }
+    if (search && typeof href === 'string') {
+      href += `?${new URLSearchParams(search as Record<string, string>).toString()}`;
+    }
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    );
+  },
   useNavigate: () => vi.fn(),
-  useSearch: () => ({}),
+  useSearch: () => routeState.search,
 }));
 
 vi.mock('@/hooks/use-dashboard', () => ({
@@ -17,6 +32,10 @@ vi.mock('@/hooks/use-dashboard', () => ({
   useAgentActivity: vi.fn(),
   useAttentionDashboard: vi.fn(),
   usePortfolioOverview: vi.fn(),
+}));
+
+vi.mock('@/hooks/use-projects', () => ({
+  useProjects: vi.fn(),
 }));
 
 vi.mock('@/components/dashboard/AttentionCards', () => ({
@@ -62,11 +81,13 @@ vi.mock('@/hooks/use-analytics', () => ({
 import { useDashboardStats, usePortfolioOverview } from '@/hooks/use-dashboard';
 import { useAttentionDashboard } from '@/components/dashboard/AttentionCards';
 import { useGlobalVelocity } from '@/hooks/use-analytics';
+import { useProjects } from '@/hooks/use-projects';
 
 const mockUseDashboardStats = vi.mocked(useDashboardStats);
 const mockUseAttentionDashboard = vi.mocked(useAttentionDashboard);
 const mockUseGlobalVelocity = vi.mocked(useGlobalVelocity);
 const mockUsePortfolioOverview = vi.mocked(usePortfolioOverview);
+const mockUseProjects = vi.mocked(useProjects);
 
 const FULL_STATS = {
   project_count: 2,
@@ -99,9 +120,13 @@ function renderDashboard() {
 describe('Dashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    routeState.search = {};
     mockUseAttentionDashboard.mockReturnValue(mockSuccessQuery({}));
     mockUseGlobalVelocity.mockReturnValue(mockSuccessQuery({ items: [] }));
     mockUsePortfolioOverview.mockReturnValue(mockSuccessQuery(undefined));
+    mockUseProjects.mockReturnValue(
+      mockSuccessQuery({ items: [{ id: 'p1', name: 'UPCP', status: 'active' }], total: 1 }),
+    );
   });
 
   it('renders loading skeleton initially', () => {
@@ -157,11 +182,56 @@ describe('Dashboard', () => {
     mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
     renderDashboard();
     expect(screen.getByText('Projects').closest('a')).toHaveAttribute('href', '/projects');
-    // Active, Done, Blocked link to delivery page of first project
-    const deliveryHref = `/projects/${FULL_STATS.recent_projects[0].id}/delivery`;
-    expect(screen.getByText('Active Tasks').closest('a')).toHaveAttribute('href', deliveryHref);
-    expect(screen.getByText('Done This Week').closest('a')).toHaveAttribute('href', deliveryHref);
-    expect(screen.getByText('Blocked').closest('a')).toHaveAttribute('href', deliveryHref);
+    // Active, Done, Blocked link to delivery page of first project with status filter
+    const base = `/projects/${FULL_STATS.recent_projects[0].id}/delivery`;
+    expect(screen.getByText('Active Tasks').closest('a')).toHaveAttribute(
+      'href',
+      `${base}?status=in_progress`,
+    );
+    expect(screen.getByText('Done This Week').closest('a')).toHaveAttribute(
+      'href',
+      `${base}?status=done`,
+    );
+    expect(screen.getByText('Blocked').closest('a')).toHaveAttribute(
+      'href',
+      `${base}?status=blocked`,
+    );
+  });
+
+  it('health score card links to selected project detail', () => {
+    routeState.search = { project_id: 'p1' };
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(screen.getByText('Health Score').closest('a')).toHaveAttribute(
+      'href',
+      '/projects/p1',
+    );
+  });
+
+  it('health score card is not a link when no project selected', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(screen.getByText('Health Score').closest('a')).toBeNull();
+  });
+
+  it('scopes attention dashboard to selected project', () => {
+    routeState.search = { project_id: 'p1' };
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(mockUseAttentionDashboard).toHaveBeenCalledWith('p1');
+  });
+
+  it('fetches unscoped attention when no project selected', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(mockUseAttentionDashboard).toHaveBeenCalledWith(undefined);
+  });
+
+  it('project selector row is sticky with solid background', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    const row = screen.getByText('ProjectSelector').parentElement;
+    expect(row).toHaveClass('sticky', 'top-0', 'z-10', 'bg-background');
   });
 
   it('health score shows correct color class', () => {

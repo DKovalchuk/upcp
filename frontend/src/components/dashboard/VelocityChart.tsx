@@ -63,7 +63,11 @@ export function VelocityChart({
   const handleClick = (chartData: any) => {
     if (chartData?.activePayload?.[0]) {
       const base = deliveryBase ?? '/projects';
-      navigate({ to: base });
+      if (deliveryBase) {
+        navigate({ to: base, search: { status: 'done' } });
+      } else {
+        navigate({ to: base });
+      }
     }
   };
 

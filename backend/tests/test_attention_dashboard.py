@@ -170,3 +170,99 @@ class TestAttentionDashboardService:
         svc = AttentionDashboardService(session)
         health = svc.get_project_health(project.id)
         assert health["score"] == 100
+
+
+class TestAttentionProjectScoping:
+    """Project scoping for GET /dashboard/attention — TASK-0125."""
+
+    @staticmethod
+    def _second_project(session):
+        p2 = Project(name="Second", slug="second")
+        session.add(p2)
+        session.flush()
+        f2 = Feature(project_id=p2.id, name="F2", slug="f2")
+        session.add(f2)
+        session.flush()
+        return p2, f2
+
+    @staticmethod
+    def _blocked_pair(session, feature, other_feature):
+        t1 = Task(feature_id=feature.id, title="Blocked A", status="blocked")
+        t2 = Task(feature_id=other_feature.id, title="Blocked B", status="blocked")
+        session.add_all([t1, t2])
+        session.flush()
+        return t1, t2
+
+    def test_scoped_returns_only_project_items(self, session, project, feature):
+        """Scoped attention returns only the selected project's items."""
+        p2, f2 = self._second_project(session)
+        t1, t2 = self._blocked_pair(session, feature, f2)
+
+        svc = AttentionDashboardService(session)
+        unscoped = svc.get_attention()
+        assert {i["task_id"] for i in unscoped["blocked_tasks"]} == {t1.id, t2.id}
+
+        scoped = svc.get_attention(project_id=project.id)
+        assert [i["task_id"] for i in scoped["blocked_tasks"]] == [t1.id]
+        assert scoped["blocked_tasks"][0]["project_id"] == project.id
+
+        other_scoped = svc.get_attention(project_id=p2.id)
+        assert [i["task_id"] for i in other_scoped["blocked_tasks"]] == [t2.id]
+
+    def test_scoped_review_sections_filter_by_project(self, session, project, feature):
+        """Review-based sections join tasks to scope rounds by project."""
+        p2, f2 = self._second_project(session)
+        t1 = Task(feature_id=feature.id, title="Review A", status="in_progress")
+        t2 = Task(feature_id=f2.id, title="Review B", status="in_progress")
+        session.add_all([t1, t2])
+        session.flush()
+        for t in (t1, t2):
+            session.add(
+                ReviewRound(
+                    task_id=t.id,
+                    requested_by_type="agent",
+                    requested_by_id="a1",
+                    state="pending",
+                )
+            )
+        session.flush()
+
+        svc = AttentionDashboardService(session)
+        unscoped = svc.get_attention()
+        assert len(unscoped["needs_review"]) == 2
+
+        scoped = svc.get_attention(project_id=project.id)
+        assert [i["task_id"] for i in scoped["needs_review"]] == [t1.id]
+        assert scoped["needs_review"][0]["project_id"] == project.id
+
+        other_scoped = svc.get_attention(project_id=p2.id)
+        assert [i["task_id"] for i in other_scoped["needs_review"]] == [t2.id]
+
+    def test_nonexistent_project_returns_empty_sections(self, session, project, feature):
+        """Unknown project_id yields empty sections, not an error."""
+        _, f2 = self._second_project(session)
+        self._blocked_pair(session, feature, f2)
+        t1 = Task(feature_id=feature.id, title="Review A", status="in_progress")
+        session.add(t1)
+        session.flush()
+        session.add(
+            ReviewRound(
+                task_id=t1.id,
+                requested_by_type="agent",
+                requested_by_id="a1",
+                state="pending",
+            )
+        )
+        session.flush()
+
+        svc = AttentionDashboardService(session)
+        result = svc.get_attention(project_id="nonexistent-uuid")
+        assert result["blocked_tasks"] == []
+        assert result["needs_review"] == []
+        assert result["open_questions"] == []
+        assert result["stale_claims"] == []
+        assert result["failed_dod"] == []
+        assert result["rejected_tasks"] == []
+        assert result["agent_verdicts_waiting"] == []
+        assert result["low_health_projects"] == []
+        assert result["recent_activity"] == []

@@ -62,9 +62,13 @@ export function TaskDistributionDonut({ counts, deliveryBase }: { counts?: Statu
     );
   }
 
-  const handleClick = () => {
+  const handleClick = (status?: string) => {
     const base = deliveryBase ?? '/projects';
-    navigate({ to: base });
+    if (deliveryBase && status) {
+      navigate({ to: base, search: { status } });
+    } else {
+      navigate({ to: base });
+    }
   };
 
   return (
@@ -87,7 +91,10 @@ export function TaskDistributionDonut({ counts, deliveryBase }: { counts?: Statu
                   outerRadius={70}
                   paddingAngle={2}
                   dataKey="value"
-                  onClick={() => handleClick()}
+                  onClick={(datum: unknown) => {
+                    const d = datum as { status?: string; payload?: { status?: string } } | null;
+                    handleClick(d?.status ?? d?.payload?.status);
+                  }}
                   style={{ cursor: 'pointer' }}
                 >
                   {data.map((d) => (
@@ -115,7 +122,7 @@ export function TaskDistributionDonut({ counts, deliveryBase }: { counts?: Statu
             {data.map((d) => (
               <button
                 key={d.status}
-                onClick={() => handleClick()}
+                onClick={() => handleClick(d.status)}
                 className="flex items-center gap-2 rounded px-1 py-0.5 text-left transition-colors hover:bg-muted/50"
               >
                 <span

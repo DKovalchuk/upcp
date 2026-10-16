@@ -48,11 +48,12 @@ def get_dashboard_stats(
     description="Get action items requiring user attention such as blocked tasks and overdue items.",
 )
 def get_dashboard_attention(
+    project_id: str | None = None,
     session: Session = Depends(get_session),
 ) -> dict[str, list[dict[str, object]]]:  # noqa: B008
     """Get attention dashboard — action items requiring user attention."""
     svc = AttentionDashboardService(session)
-    return svc.get_attention()
+    return svc.get_attention(project_id=project_id)
 
 
 @router.get(

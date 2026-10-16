@@ -16,6 +16,14 @@ vi.mock('next-themes', () => ({
   useTheme: vi.fn(() => ({ theme: 'light', setTheme: vi.fn() })),
 }));
 
+// ProfileTab reads auth context — render outside AuthProvider in tests
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: vi.fn(() => ({
+    user: { display_name: 'Default User', email: 'user@example.com', is_superuser: false },
+    token: 'test-token',
+  })),
+}));
+
 import { useHealth } from '@/hooks/use-health';
 const mock = vi.mocked(useHealth);
 

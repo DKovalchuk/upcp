@@ -32,6 +32,7 @@ import { PortfolioTable } from '@/components/dashboard/PortfolioTable';
 import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
 import { useGlobalVelocity } from '@/hooks/use-analytics';
 import { useDashboardStats, usePortfolioOverview } from '@/hooks/use-dashboard';
+import { useProjects } from '@/hooks/use-projects';
 
 // ── Health Score Color ──────────────────────────────────────
 
@@ -64,6 +65,7 @@ function StatCard({
   color,
   variant = 'default',
   to,
+  search,
 }: {
   label: string;
   value: number | string;
@@ -71,6 +73,7 @@ function StatCard({
   color: string;
   variant?: keyof typeof STAT_CARD_STYLES;
   to?: string;
+  search?: Record<string, string>;
 }) {
   const content = (
     <Card
@@ -93,7 +96,7 @@ function StatCard({
 
   if (to) {
     return (
-      <Link to={to} className="group block">
+      <Link to={to} search={search} className="group block">
         {content}
       </Link>
     );
@@ -107,10 +110,16 @@ export function Dashboard() {
   const search = useSearch({ strict: false }) as Record<string, string | undefined>;
   const projectId = search.project_id;
   const { data: stats, isLoading, error } = useDashboardStats(projectId);
-  const { data: attention } = useAttentionDashboard();
+  const { data: attention } = useAttentionDashboard(projectId);
   const { data: velocityData, isLoading: velocityLoading } = useGlobalVelocity(8, projectId);
   const { data: portfolio, isLoading: portfolioLoading } = usePortfolioOverview();
+  const { data: projectsData } = useProjects({ limit: 100 });
   const navigate = useNavigate();
+
+  const projectStatuses: Record<string, string> = {};
+  for (const p of projectsData?.items ?? []) {
+    projectStatuses[p.id] = p.status;
+  }
 
   if (isLoading) {
     return <PageSkeleton hasCards cardCount={5} rows={5} />;
@@ -140,7 +149,7 @@ export function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* ── Project Selector ── */}
-      <div className="flex items-center justify-between">
+      <div className="sticky top-0 z-10 flex items-center justify-between bg-background py-2">
         <div />
         <ProjectSelector />
       </div>
@@ -162,6 +171,7 @@ export function Dashboard() {
           color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
           variant="info"
           to={deliveryBase}
+          search={{ status: 'in_progress' }}
         />
         <StatCard
           label="Done This Week"
@@ -170,6 +180,7 @@ export function Dashboard() {
           color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           variant="success"
           to={deliveryBase}
+          search={{ status: 'done' }}
         />
         <StatCard
           label="Blocked"
@@ -178,6 +189,7 @@ export function Dashboard() {
           color="bg-red-500/10 text-red-600 dark:text-red-400"
           variant={stats?.blocked_count ? 'error' : 'success'}
           to={deliveryBase}
+          search={{ status: 'blocked' }}
         />
         <StatCard
           label="Health Score"
@@ -185,6 +197,7 @@ export function Dashboard() {
           icon={HeartPulse}
           color={healthColor(health)}
           variant={healthVariant(health)}
+          to={projectId ? `/projects/${projectId}` : undefined}
         />
       </div>
 
@@ -226,7 +239,11 @@ export function Dashboard() {
       </div>
 
       {/* ── Row 5: Portfolio ── */}
-      <PortfolioTable projects={portfolio?.projects} isLoading={portfolioLoading} />
+      <PortfolioTable
+        projects={portfolio?.projects}
+        isLoading={portfolioLoading}
+        projectStatuses={projectStatuses}
+      />
 
       {/* ── Row 6: Recent Projects ── */}
       <Card>

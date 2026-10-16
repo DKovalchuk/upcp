@@ -16,10 +16,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { fetchAttentionDashboard } from '@/lib/api';
 import type { AttentionItem } from '@/types/dashboard';
 
-export function useAttentionDashboard() {
+export function useAttentionDashboard(projectId?: string) {
   return useQuery({
-    queryKey: ['attention-dashboard'],
-    queryFn: fetchAttentionDashboard,
+    queryKey: ['attention-dashboard', projectId],
+    queryFn: () => fetchAttentionDashboard(projectId),
     refetchInterval: 30_000,
     staleTime: 15_000,
   });
@@ -32,6 +32,7 @@ interface AttentionSectionProps {
   count: number;
   items: AttentionItem[];
   renderItem: (item: AttentionItem) => React.ReactNode;
+  statusFilter?: string;
 }
 
 function AttentionSection({
@@ -41,7 +42,13 @@ function AttentionSection({
   count,
   items,
   renderItem,
+  statusFilter,
 }: AttentionSectionProps) {
+  const viewAllProjectId = items.find((i) => i.project_id)?.project_id;
+  const viewAllTo = viewAllProjectId ? `/projects/${viewAllProjectId}/delivery` : '/projects';
+  const viewAllSearch =
+    statusFilter && viewAllProjectId ? { status: statusFilter } : undefined;
+
   return (
     <Card>
       <CardHeader>
@@ -60,6 +67,17 @@ function AttentionSection({
           <EmptyState icon={SectionIcon} title={emptyMessage} />
         ) : (
           <div className="space-y-2">{items.map(renderItem)}</div>
+        )}
+        {count > 3 && (
+          <div className="mt-3 border-t pt-2 text-right">
+            <Link
+              to={viewAllTo}
+              search={viewAllSearch}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              View all →
+            </Link>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -101,6 +119,7 @@ export function NeedsReviewSection({ items }: { items: AttentionItem[] }) {
       emptyMessage="No items awaiting review"
       count={items.length}
       items={items}
+      statusFilter="review"
       renderItem={(item) => (
         <TaskLink taskId={item.task_id as string} projectId={item.project_id as string}>
           <p className="font-medium">{(item.task_id as string)?.slice(0, 8)}</p>
@@ -148,6 +167,7 @@ export function BlockedTasksSection({ items }: { items: AttentionItem[] }) {
       emptyMessage="No blocked tasks"
       count={items.length}
       items={items}
+      statusFilter="blocked"
       renderItem={(item) => (
         <TaskLink taskId={item.task_id as string} projectId={item.project_id as string}>
           <p className="font-medium">{item.title as string}</p>

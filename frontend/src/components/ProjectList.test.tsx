@@ -6,6 +6,9 @@ import { ProjectList } from './ProjectList';
 const mockNavigate = vi.fn();
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => mockNavigate,
+  // useFilters reads URL search state — empty object in tests
+  useSearch: () => ({}),
+  Link: ({ children, ...props }: any) => <a {...props}>{children}</a>,
 }));
 
 vi.mock('@/hooks/use-projects', () => ({

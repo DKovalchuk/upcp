@@ -531,3 +531,51 @@ def test_dashboard_stats_nonexistent_project() -> None:
     data = resp.json()
     assert data["task_counts_by_status"]["done"] == 0
     assert data["done_this_week"] == 0
+
+
+# ── Attention endpoint project scoping (TASK-0125) ─────────
+
+
+def test_dashboard_attention_project_id_filter() -> None:
+    """Test attention endpoint scoped to a project returns only its items."""
+    client = TestClient(_test_app())
+
+    p1 = client.post("/api/v1/projects", json={"name": "P1"}).json()
+    p2 = client.post("/api/v1/projects", json={"name": "P2"}).json()
+    f1 = client.post(
+        f"/api/v1/projects/{p1['id']}/features", json={"name": "F1", "slug": "f1"}
+    ).json()
+    f2 = client.post(
+        f"/api/v1/projects/{p2['id']}/features", json={"name": "F2", "slug": "f2"}
+    ).json()
+    t1 = client.post(
+        f"/api/v1/features/{f1['id']}/tasks", json={"title": "Blocked 1", "status": "blocked"}
+    ).json()
+    t2 = client.post(
+        f"/api/v1/features/{f2['id']}/tasks", json={"title": "Blocked 2", "status": "blocked"}
+    ).json()
+
+    # Unscoped: both blocked tasks
+    resp = client.get("/api/v1/dashboard/attention")
+    assert resp.status_code == 200
+    unscoped = resp.json()
+    assert {i["task_id"] for i in unscoped["blocked_tasks"]} == {t1["id"], t2["id"]}
+
+    # Scoped to P1: only P1's blocked task, with project_id attached
+    resp = client.get(f"/api/v1/dashboard/attention?project_id={p1['id']}")
+    assert resp.status_code == 200
+    scoped = resp.json()
+    assert [i["task_id"] for i in scoped["blocked_tasks"]] == [t1["id"]]
+    assert scoped["blocked_tasks"][0]["project_id"] == p1["id"]
+
+
+def test_dashboard_attention_nonexistent_project() -> None:
+    """Test attention endpoint with nonexistent project_id returns empty sections."""
+    client = TestClient(_test_app())
+    resp = client.get("/api/v1/dashboard/attention?project_id=nonexistent-uuid")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["blocked_tasks"] == []
+    assert data["needs_review"] == []
+    assert data["open_questions"] == []
+    assert data["low_health_projects"] == []

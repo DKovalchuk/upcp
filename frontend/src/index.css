@@ -188,6 +188,9 @@
 
 body {
   margin: 0;
+  /* Clip horizontal overflow at the viewport level so `position: sticky`
+     descendants keep working (an overflow-x clipping ancestor would break them). */
+  overflow-x: hidden;
   font-family: var(--font-sans);
   background-color: var(--color-bg);
   color: var(--color-text);

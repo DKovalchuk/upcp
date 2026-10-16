@@ -8,6 +8,9 @@ vi.mock('@tanstack/react-router', async () => {
   return {
     ...actual,
     useLocation: () => ({ pathname: '/projects/proj-1/structure' }),
+    // useFilters needs search state — no router store in tests
+    useSearch: () => ({}),
+    useNavigate: () => vi.fn(),
   };
 });
 

@@ -9,7 +9,9 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('recharts', () => ({
   PieChart: ({ children }: any) => <svg data-testid="pie-chart">{children}</svg>,
-  Pie: () => <g data-testid="pie" />,
+  Pie: ({ onClick, data }: any) => (
+    <g data-testid="pie-sector" onClick={() => onClick?.(data?.[0])} />
+  ),
   Cell: () => <rect />,
   ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
   Tooltip: () => null,
@@ -55,10 +57,31 @@ describe('TaskDistributionDonut', () => {
     expect(screen.getByText('Done')).toBeInTheDocument();
   });
 
-  it('legend click navigates to delivery', () => {
+  it('legend click navigates to delivery with status filter', () => {
     render(<TaskDistributionDonut counts={{ backlog: 4, done: 30 }} deliveryBase="/projects/p1/delivery" />);
     fireEvent.click(screen.getByText('Backlog'));
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/projects/p1/delivery' });
+    expect(mockNavigate).toHaveBeenCalledWith({
+      to: '/projects/p1/delivery',
+      search: { status: 'backlog' },
+    });
+  });
+
+  it('legend click for done navigates with status=done', () => {
+    render(<TaskDistributionDonut counts={{ backlog: 4, done: 30 }} deliveryBase="/projects/p1/delivery" />);
+    fireEvent.click(screen.getByText('Done'));
+    expect(mockNavigate).toHaveBeenCalledWith({
+      to: '/projects/p1/delivery',
+      search: { status: 'done' },
+    });
+  });
+
+  it('sector click navigates to delivery with that sector status', () => {
+    render(<TaskDistributionDonut counts={{ backlog: 4, done: 30 }} deliveryBase="/projects/p1/delivery" />);
+    fireEvent.click(screen.getByTestId('pie-sector'));
+    expect(mockNavigate).toHaveBeenCalledWith({
+      to: '/projects/p1/delivery',
+      search: { status: 'backlog' },
+    });
   });
 
   it('legend click navigates to projects when no deliveryBase', () => {
