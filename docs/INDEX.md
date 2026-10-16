@@ -95,6 +95,7 @@ Read only what is needed for the current task.
 | Doc | Purpose |
 |---|---|
 | `ops/docker-compose.md` | Docker configuration |
+| `ops/ci-retention.md` | Registry/image retention rules + cleanup jobs |
 | `ops/observability-stack.md` | Observability setup |
 | `ops/grafana-dashboards.md` | Dashboard specifications |
 | `ops/backup-restore.md` | Backup/restore procedures |

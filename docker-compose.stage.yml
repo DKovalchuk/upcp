@@ -1,9 +1,8 @@
 # Stage (pre-prod) environment
-# Uses locally built images (no container registry).
-# CI build jobs create upcp-backend:dev and upcp-frontend:dev,
-# deploy job tags them as :stage and runs this compose file.
-#
-# For local development with hot-reload, use docker-compose.yml instead.
+# App/frontend images come from the container registry:
+# CI deploy jobs export UPCP_BACKEND_IMAGE / UPCP_FRONTEND_IMAGE to the image
+# the pipeline just built (:dev on develop deploys, :stage on main deploys);
+# outside CI the defaults below (registry :5050, :stage tag) are used.
 
 name: upcp-stage
 
@@ -40,7 +39,7 @@ services:
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
 
   app:
-    image: registry.gitlab.local/dmitry.kovalchuk/upcp/backend:stage
+    image: ${UPCP_BACKEND_IMAGE:-registry.gitlab.local:5050/dmitry.kovalchuk/upcp/backend:stage}
     restart: unless-stopped
     command: >
       sh -c "alembic upgrade head &&
@@ -67,7 +66,7 @@ services:
       start_period: 15s
 
   frontend:
-    image: registry.gitlab.local/dmitry.kovalchuk/upcp/frontend:stage
+    image: ${UPCP_FRONTEND_IMAGE:-registry.gitlab.local:5050/dmitry.kovalchuk/upcp/frontend:stage}
     restart: unless-stopped
     expose:
       - "35173"
