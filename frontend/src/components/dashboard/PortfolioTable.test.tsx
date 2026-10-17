@@ -104,4 +104,60 @@ describe('PortfolioTable — TASK-0124', () => {
     expect(screen.getByText('Portfolio')).toBeInTheDocument();
     expect(screen.queryByText('Project 1')).not.toBeInTheDocument();
   });
+
+  // ── B12: positive rows ──────────────────────────
+
+  it('renders all expected columns (B12.2)', () => {
+    render(<PortfolioTable projects={makeProjects(2)} projectStatuses={{ p1: 'active', p2: 'active' }} />);
+    const headers = screen.getAllByRole('columnheader').map((th) => th.textContent);
+    expect(headers).toEqual(['Project', 'Health', 'Tasks', 'Status', 'Top Issue']);
+  });
+
+  function findBarByWidth(container: HTMLElement, width: string): HTMLElement | undefined {
+    return Array.from(container.querySelectorAll<HTMLElement>('div')).find(
+      (el) => el.style.width === width,
+    );
+  }
+
+  it('renders health progress bar with score (B12.3)', () => {
+    const { container } = render(<PortfolioTable projects={makeProjects(2)} />);
+    const bar = findBarByWidth(container, '61%');
+    expect(bar).toBeTruthy();
+    expect(screen.getByText('61%')).toBeInTheDocument();
+  });
+
+  const HEALTH_COLORS: Array<[number, string]> = [
+    [85, 'bg-emerald-500'], // B12.4 ≥80 green
+    [60, 'bg-amber-500'], // B12.5 50-79 amber
+    [30, 'bg-red-500'], // B12.6 <50 red
+    [0, 'bg-red-500'], // B13.10 minimum
+  ];
+
+  it.each(HEALTH_COLORS)('health %i uses color %s (B12.4-B12.6, B13.10)', (score, colorClass) => {
+    const { container } = render(
+      <PortfolioTable
+        projects={[
+          { id: 'p1', name: 'Alpha', slug: 'alpha', task_count: 3, health_score: score, top_issue: '' },
+          { id: 'p2', name: 'Beta', slug: 'beta', task_count: 4, health_score: 70, top_issue: '' },
+        ]}
+      />,
+    );
+    const bar = findBarByWidth(container, `${score}%`);
+    expect(bar, `bar for score ${score}`).toBeTruthy();
+    expect(bar?.classList.contains(colorClass)).toBe(true);
+  });
+
+  it('shows all 5 projects when exactly 5 (B13.4)', () => {
+    render(<PortfolioTable projects={makeProjects(5)} />);
+    for (let i = 1; i <= 5; i++) {
+      expect(screen.getByText(`Project ${i}`)).toBeInTheDocument();
+    }
+  });
+
+  it('renders two projects → table visible (B13.3)', () => {
+    const { container } = render(<PortfolioTable projects={makeProjects(2)} />);
+    expect(container.querySelector('table')).toBeInTheDocument();
+    expect(screen.getByText('Project 1')).toBeInTheDocument();
+    expect(screen.getByText('Project 2')).toBeInTheDocument();
+  });
 });

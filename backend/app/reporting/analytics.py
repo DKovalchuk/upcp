@@ -123,8 +123,15 @@ class AnalyticsService:
             weekly[week_start.strftime("%Y-W%W")] = 0
 
         for t in tasks:
-            if t.updated_at and t.updated_at >= now - timedelta(weeks=weeks):
-                key = t.updated_at.strftime("%Y-W%W")
+            updated_at = t.updated_at
+            if updated_at is None:
+                continue
+            # SQLite (tests/dev) returns naive UTC datetimes; PostgreSQL returns
+            # tz-aware ones. Normalize to UTC so the comparison never raises.
+            if updated_at.tzinfo is None:
+                updated_at = updated_at.replace(tzinfo=UTC)
+            if updated_at >= now - timedelta(weeks=weeks):
+                key = updated_at.strftime("%Y-W%W")
                 if key in weekly:
                     weekly[key] += 1
 

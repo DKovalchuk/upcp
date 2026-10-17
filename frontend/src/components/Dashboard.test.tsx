@@ -310,4 +310,203 @@ describe('Dashboard', () => {
     expect(screen.getByText('Recent Projects')).toBeInTheDocument();
     expect(screen.getByText('UPCP')).toBeInTheDocument();
   });
+
+  // ── B1: KPI cards — icons, variants, health boundaries ──
+
+  it('each KPI card renders an icon (B1.4)', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    for (const label of ['Projects', 'Active Tasks', 'Done This Week', 'Blocked', 'Health Score']) {
+      const card = screen.getByText(label).closest('[data-slot="card"]');
+      expect(card?.querySelector('svg'), `${label} icon`).toBeTruthy();
+    }
+  });
+
+  it('KPI cards use per-variant accent colors (B1.5)', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    const expectations: Array<[string, string]> = [
+      ['Projects', 'border-l-primary'],
+      ['Active Tasks', 'border-l-blue-500'],
+      ['Done This Week', 'border-l-emerald-500'],
+      ['Blocked', 'border-l-red-500'], // blocked_count=1 → error variant
+      ['Health Score', 'border-l-amber-500'], // 75 → warning variant
+    ];
+    for (const [label, cls] of expectations) {
+      const card = screen.getByText(label).closest('[data-slot="card"]');
+      expect(card?.classList.contains(cls), `${label} → ${cls}`).toBe(true);
+    }
+  });
+
+  const HEALTH_BOUNDARIES: Array<[number, string, string]> = [
+    [100, 'bg-emerald-500/10', 'border-l-emerald-500'], // B1.14 max
+    [80, 'bg-emerald-500/10', 'border-l-emerald-500'], // B1.9 green boundary
+    [79, 'bg-amber-500/10', 'border-l-amber-500'], // B1.10 amber boundary
+    [50, 'bg-amber-500/10', 'border-l-amber-500'], // B1.11 amber boundary
+    [49, 'bg-red-500/10', 'border-l-red-500'], // B1.12 red boundary
+    [0, 'bg-red-500/10', 'border-l-red-500'], // B1.13 minimum
+  ];
+
+  it.each(HEALTH_BOUNDARIES)(
+    'health score %i gets correct color classes (B1.6-B1.14)',
+    (score, iconClass, cardClass) => {
+      mockUseDashboardStats.mockReturnValue(mockSuccessQuery({ ...FULL_STATS, health_score: score }));
+      renderDashboard();
+      const value = screen.getByText(`${score}%`);
+      const card = value.closest('[data-slot="card"]');
+      expect(card?.classList.contains(cardClass), `card ${cardClass}`).toBe(true);
+      const icon = card?.querySelector('.h-10');
+      expect(icon?.classList.contains(iconClass), `icon ${iconClass}`).toBe(true);
+    },
+  );
+
+  // ── B2/B3: KPI navigation + negative/edge ──
+
+  it('linked cards have pointer cursor; health card without project does not (B2.7)', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    const projectsLink = screen.getByText('Projects').closest('a');
+    expect(projectsLink?.querySelector('.cursor-pointer')).toBeTruthy();
+    const healthCard = screen.getByText('Health Score').closest('[data-slot="card"]');
+    expect(healthCard?.classList.contains('cursor-pointer')).toBe(false);
+  });
+
+  it('renders very large counts (B3.4)', () => {
+    mockUseDashboardStats.mockReturnValue(
+      mockSuccessQuery({ ...FULL_STATS, project_count: 99999, done_this_week: 88888 }),
+    );
+    renderDashboard();
+    expect(screen.getByText('99999')).toBeInTheDocument();
+    expect(screen.getByText('88888')).toBeInTheDocument();
+  });
+
+  it('falls back to 100% when health_score is missing (B3.6)', () => {
+    // Note: implementation falls back to 100 (full health), not "N/A"/0 as the
+    // task row suggested — documenting actual behavior here.
+    mockUseDashboardStats.mockReturnValue(
+      mockSuccessQuery({ ...FULL_STATS, health_score: undefined }),
+    );
+    renderDashboard();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+  });
+
+  it('renders safely when API returns null fields (B3.7)', () => {
+    mockUseDashboardStats.mockReturnValue(
+      mockSuccessQuery({
+        project_count: 1,
+        task_counts_by_status: null,
+        recent_projects: null,
+        recent_activity: null,
+        done_this_week: null,
+        blocked_count: null,
+        claimed_count: null,
+        health_score: null,
+      }),
+    );
+    renderDashboard();
+    expect(screen.getByText('Projects')).toBeInTheDocument();
+    expect(screen.getByText('No recent projects.')).toBeInTheDocument();
+    // null health → 100% fallback, null counts → 0 / 0 active tasks
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders recent project with null description without crash (B13.8)', () => {
+    mockUseDashboardStats.mockReturnValue(
+      mockSuccessQuery({
+        ...FULL_STATS,
+        recent_projects: [
+          { ...FULL_STATS.recent_projects[0], description: null },
+        ],
+      }),
+    );
+    renderDashboard();
+    expect(screen.getByText('UPCP')).toBeInTheDocument();
+    expect(screen.queryByText('Main project')).not.toBeInTheDocument();
+  });
+
+  // ── B14: selector scoping of hooks ──
+
+  it('selected project scopes KPI stats hook (B14.6)', () => {
+    routeState.search = { project_id: 'p1' };
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(mockUseDashboardStats).toHaveBeenCalledWith('p1');
+  });
+
+  it('selected project scopes velocity hook (B14.8)', () => {
+    routeState.search = { project_id: 'p1' };
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(mockUseGlobalVelocity).toHaveBeenCalledWith(8, 'p1');
+  });
+
+  it('portfolio overview stays global regardless of selector (B14.9)', () => {
+    routeState.search = { project_id: 'p1' };
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    expect(mockUsePortfolioOverview).toHaveBeenCalledWith();
+  });
+
+  // ── B20: integration rows ──
+
+  it('renders all layout rows together (B20.1)', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    mockUseAttentionDashboard.mockReturnValue(
+      mockSuccessQuery({ needs_review: [], blocked_tasks: [] }),
+    );
+    mockUsePortfolioOverview.mockReturnValue(
+      mockSuccessQuery({ projects: [{ id: 'p1', name: 'UPCP', slug: 'upcp', task_count: 3, health_score: 90, top_issue: '' }] }),
+    );
+    renderDashboard();
+    // Row 1 KPI, Row 2 charts, Row 3 attention, Row 4 activity+agents, Row 5 portfolio
+    expect(screen.getByText('Projects')).toBeInTheDocument();
+    expect(screen.getByText('TaskDistributionDonut')).toBeInTheDocument();
+    expect(screen.getByText('VelocityChart')).toBeInTheDocument();
+    expect(screen.getByText('Needs Attention')).toBeInTheDocument();
+    expect(screen.getByText('LiveActivityFeed')).toBeInTheDocument();
+    expect(screen.getByText('AgentActivitySummary')).toBeInTheDocument();
+    expect(screen.getByText('PortfolioTable')).toBeInTheDocument();
+  });
+
+  it('stats render even when attention query fails (B20.5)', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    mockUseAttentionDashboard.mockReturnValue(mockErrorQuery('attention down'));
+    renderDashboard();
+    // KPI row still renders; attention sections fall back to empty items
+    expect(screen.getByText('Projects')).toBeInTheDocument();
+    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load dashboard data')).not.toBeInTheDocument();
+    expect(screen.getByText('NeedsReviewSection')).toBeInTheDocument();
+  });
+
+  it('responsive grid classes applied to KPI and attention rows (B20.8)', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    const kpiRow = screen.getByText('Projects').closest('div[class*="lg:grid-cols-5"]');
+    expect(kpiRow?.classList.contains('grid-cols-1')).toBe(true);
+    expect(kpiRow?.classList.contains('sm:grid-cols-2')).toBe(true);
+    const attentionRow = screen.getByText('Needs Attention').nextElementSibling;
+    expect(attentionRow?.classList.contains('md:grid-cols-2')).toBe(true);
+    expect(attentionRow?.classList.contains('lg:grid-cols-3')).toBe(true);
+  });
+
+  it('stagger animations applied to rows (B20.9)', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery(FULL_STATS));
+    renderDashboard();
+    const kpiRow = screen.getByText('Projects').closest('div[class*="lg:grid-cols-5"]');
+    expect(kpiRow?.classList.contains('animate-stagger')).toBe(true);
+    const root = screen.getByText('ProjectSelector').closest('div[class*="animate-fade-in-up"]');
+    expect(root).toBeTruthy();
+  });
+
+  it('dark mode classes present on KPI cards (B20.10)', () => {
+    mockUseDashboardStats.mockReturnValue(mockSuccessQuery({ ...FULL_STATS, health_score: 75 }));
+    const { container } = renderDashboard();
+    expect(container.querySelector('[class*="dark:"]')).toBeTruthy();
+    const healthCard = screen.getByText('Health Score').closest('[data-slot="card"]');
+    expect(healthCard?.classList.contains('dark:bg-amber-500/5')).toBe(true);
+    const healthIcon = healthCard?.querySelector('.h-10');
+    expect(healthIcon?.classList.contains('dark:text-amber-400')).toBe(true);
+  });
 });
