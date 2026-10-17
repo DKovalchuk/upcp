@@ -3,7 +3,7 @@
 Updated: 2026-10-17
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: root `tests/e2e` re-run fixed (branch `fix/root-e2e-networkidle`, MR pending); next from Queued
+Current Task: TASK-0139 public-page 401-redirect fix DONE (branch `fix/public-page-401-redirect`, MR pending); next from Queued
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
@@ -59,7 +59,7 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
 **Queued:**
 - ~~TASK-0128 A/B matrix rows~~ — closed 2026-10-17 (see below, branch `feature/TASK-0128-parts-ab`).
 - ~~Pre-existing e2e debt~~ — closed 2026-10-17 (TASK-0138): full `frontend/e2e` suite **153 passed / 0 failed** (was 102 failed). Root causes: mock catch-all registered LIFO-shadowing specific mocks, stale route shapes/selectors vs dashboard redesign+filtering, `networkidle` never settles with SSE, live-backend rate limiter 429, non-idempotent create data. 5 deleted tests = removed UI feature (verdict accept/reject buttons) + 1 vacuous stub, justified in TASK-0138.
-- Product bug found via TASK-0138: public pages (`/setup`) get hard-redirected to `/login` by background notification polling — `notifications/unread-count` 401 on unauthenticated visit → `client.ts:83-90` `window.location.href='/login'`. Should skip polling (or tolerate 401) when unauthenticated; test-side workaround in `auth.spec.ts` (mocked endpoints).
+- ~~Product bug: public pages 401-redirect~~ — closed 2026-10-17 (TASK-0139): background notification infra gated on auth — `NotificationBell` unread-count query `enabled: isAuthenticated`, `useSSE` effect connects only when authenticated (aborts on logout). TDD red→green: root e2e `/setup` regression test, 2 vitest gating tests. Workaround mocks removed from frontend `auth.spec.ts` (heading guards kept). Evidence: root e2e 22/22, frontend e2e 153/153, vitest 433/433, lint/tsc clean. Note: live-stack runs require `docker compose --env-file .env.dev build frontend && up -d frontend` first — `upcp-frontend-1` serves a baked `dist/` (see project memory).
 - ~~Root `tests/e2e` suite re-run~~ — closed 2026-10-17: **21 passed / 0 failed** against the live dev stack (3 failures were `waitForLoadState('networkidle')` never settling with SSE open — same root cause fixed in `frontend/e2e/comprehensive-ui.spec.ts`; replaced with `'load'` in `tests/e2e/navigation.spec.ts`).
 - SPEC-0024 Phase 2-5 (performance → chaos → security → integration).
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).

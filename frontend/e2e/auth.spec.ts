@@ -1,21 +1,10 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('Authentication', () => {
-  // Background notification polling (unread-count via apiFetch, SSE stream)
-  // returns 401 when unauthenticated against a LIVE backend — client.ts
-  // treats any non-/auth/ 401 as fatal and does window.location.href =
-  // '/login', yanking /setup away mid-test (reproduced: input count 2 vs 3).
-  // With the backend down these requests fail as network errors (no 401),
-  // which is why the failure only appears with the dev stack running.
-  const mockNotifications = async (page: Page) => {
-    await page.route('**/api/v1/notifications/unread-count', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: '{"count":0}' })
-    );
-    await page.route('**/api/v1/notifications/stream*', (route) =>
-      route.fulfill({ status: 200, contentType: 'text/event-stream', body: '' })
-    );
-  };
-
+  // TASK-0139 fix (auth-gated notification polling) means the unauthenticated
+  // page never issues notifications requests, so no 401-redirect can occur —
+  // the previous route-mock workaround here is dead code and removed. The
+  // heading guards below stay: they fail loudly if a redirect ever returns.
   test('redirects to login when not authenticated', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
@@ -60,7 +49,6 @@ test.describe('Authentication', () => {
   });
 
   test('setup page has password visibility toggle', async ({ page }) => {
-    await mockNotifications(page);
     await page.goto('/setup');
     await page.waitForLoadState('domcontentloaded');
     // Assert the setup form itself — login also has a Password textbox +
@@ -76,11 +64,11 @@ test.describe('Authentication', () => {
   });
 
   test('setup page has required fields', async ({ page }) => {
-    await mockNotifications(page);
     await page.goto('/setup');
     await page.waitForLoadState('domcontentloaded');
     // Fail with a clear signal if the page got redirected to /login instead
-    // of rendering the setup form (see mockNotifications for the redirect cause).
+    // of rendering the setup form (auth-gated polling keeps this stable —
+    // see TASK-0139).
     await expect(page.getByText('Create your admin account')).toBeVisible({ timeout: 5000 });
     const inputs = page.locator('input');
     const count = await inputs.count();

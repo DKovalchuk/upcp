@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Bell, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,11 +63,16 @@ function NotificationItem({
 export function NotificationBell() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
 
   const { data: countData } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: fetchUnreadCount,
+    // Bell mounts on every route (AppShell is the root route): polling
+    // unauthenticated hit 401 → client.ts hard-redirected public pages
+    // (/setup) to /login (TASK-0139).
+    enabled: isAuthenticated,
     refetchInterval: 30000,
     staleTime: 15000,
   });
