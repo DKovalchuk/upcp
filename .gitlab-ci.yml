@@ -174,6 +174,33 @@ backend:test:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
 
+backend:migrations:
+  stage: test
+  extends:
+    - .python-base
+    - .retry-on-system-failure
+  needs:
+    - backend:lint
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_USER: upcp_mig
+    POSTGRES_PASSWORD: upcp_mig_ci
+    POSTGRES_DB: upcp_mig
+    DATABASE_URL: "postgresql+psycopg://upcp_mig:upcp_mig_ci@postgres:5432/upcp_mig"
+    UPCP_ENV: ci
+    UPCP_SECRET_KEY: ci-test-only-secure-key-for-testing-32b
+  script:
+    # Fresh empty DB: the whole migration chain must apply cleanly. Catches
+    # broken/non-idempotent migrations in CI instead of crash-looping a
+    # deployed container (incident 2026-10-17: 0019/0023).
+    - alembic upgrade head
+    - alembic current
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
 frontend:test:
   stage: test
   extends:
@@ -379,9 +406,20 @@ deploy:dev:
     - docker compose -f docker-compose.stage.yml build nginx
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
-    - for i in $(seq 1 30); do
-        wget -qO- http://localhost:38081/health && break || sleep 2;
+    # Must FAIL the job when the app never becomes healthy (crash-looping
+    # containers still "complete" a bare retry loop — that masked the
+    # broken-migration incident of 2026-10-17).
+    - |
+      healthy=0
+      for i in $(seq 1 30); do
+        if wget -qO- http://localhost:38081/health; then healthy=1; break; fi
+        sleep 2
       done
+      if [ "$healthy" -ne 1 ]; then
+        echo "ERROR: backend never became healthy — last logs:"
+        docker compose -f docker-compose.stage.yml logs --tail 50 app || true
+        exit 1
+      fi
     - echo "Dev deployment complete."
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -412,9 +450,19 @@ deploy:stage:
     - docker compose -f docker-compose.stage.yml build nginx
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
-    - for i in $(seq 1 30); do
-        wget -qO- http://localhost:38081/health && break || sleep 2;
+    # Same as deploy:dev — a health failure must fail the job, not fall
+    # through to "complete".
+    - |
+      healthy=0
+      for i in $(seq 1 30); do
+        if wget -qO- http://localhost:38081/health; then healthy=1; break; fi
+        sleep 2
       done
+      if [ "$healthy" -ne 1 ]; then
+        echo "ERROR: backend never became healthy — last logs:"
+        docker compose -f docker-compose.stage.yml logs --tail 50 app || true
+        exit 1
+      fi
     - echo "Stage deployment complete."
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
