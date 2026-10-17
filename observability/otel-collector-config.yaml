@@ -16,7 +16,10 @@ exporters:
       environment: test
 
   otlp/loki:
-    endpoint: loki:3100/otlp
+    # gRPC exporter (otlp/* default): bare host:port only — paths/schemes
+    # make the parser read "3100/otlp" as a port and refuse to start.
+    # Loki 3.x exposes the OTLP gRPC receiver on 4317 by default.
+    endpoint: loki:4317
     tls:
       insecure: true
 

@@ -33,5 +33,6 @@ metrics_generator:
         send_exemplars: true
   traces_storage:
     path: /var/tempo/generator/traces
-  service_graphs:
-    enabled: true
+# service_graphs removed: not a valid metrics_generator field in tempo
+# 2.7.x (crash-loop "field service_graphs not found"); service graphs are
+# a connector in this version — wire up separately if needed (TASK-0140).

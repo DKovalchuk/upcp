@@ -207,12 +207,17 @@ class Seeder:
         session.flush()
         self.stats["organizations"] = 1
 
-        # Create admin user
-        from passlib.hash import bcrypt
+        # Create admin user — pyca bcrypt, same as app.identity.service
+        # (passlib 1.7.4 crashes with bcrypt>=4.1: its internal wrap-bug
+        # self-test expects silent truncation, modern bcrypt raises).
+        import bcrypt
 
         admin = User(
-            email=f"admin-{_suffix()}@test.local",
-            password_hash=bcrypt.hash("TestAdmin123!"),
+            # Fixed identity for perf scenarios (common.py). Must pass
+            # pydantic EmailStr on login — reserved TLDs (.local/.test)
+            # are rejected as special-use addresses.
+            email="admin@example.com",
+            password_hash=bcrypt.hashpw(b"TestAdmin123!", bcrypt.gensalt(rounds=12)).decode(),
             display_name="Test Admin",
             is_active=True,
             is_superuser=True,
@@ -230,14 +235,17 @@ class Seeder:
         for _ai in range(p["agents"]):
             agent_user = User(
                 email=f"agent-{_suffix()}@test.local",
-                password_hash=bcrypt.hash("TestAgent123!"),
+                password_hash=bcrypt.hashpw(b"TestAgent123!", bcrypt.gensalt(rounds=12)).decode(),
                 display_name=f"Agent {_suffix(4)}",
                 is_active=True,
                 is_superuser=False,
                 email_verified=True,
             )
             session.add(agent_user)
-
+            # Flush so the client-side id default fires — otherwise
+            # agent_user.id is None and membership.user_id violates NOT NULL
+            # (same pattern as the admin block above).
+            session.flush()
             membership = Membership(user_id=agent_user.id, org_id=org.id, role="member")
             session.add(membership)
 

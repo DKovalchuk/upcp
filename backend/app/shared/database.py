@@ -11,8 +11,8 @@ settings = get_settings()
 engine = create_engine(
     settings.database_url,
     echo=settings.debug,
-    pool_size=20,
-    max_overflow=10,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
     pool_timeout=30,
     pool_recycle=1800,
     pool_pre_ping=True,

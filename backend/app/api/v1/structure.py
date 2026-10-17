@@ -65,6 +65,9 @@ def create_component(
         description=body.description,
         status=body.status,
     )
+    # Commit before responding: get_session's teardown commit runs after
+    # the 201, so chaining create → use(id) raced FK checks (TASK-0140).
+    session.commit()
     return _comp_resp(comp)
 
 
@@ -159,6 +162,8 @@ def create_module(
         description=body.description,
         status=body.status,
     )
+    # Commit before responding — same create→use(id) race as create_component.
+    session.commit()
     return _mod_resp(mod)
 
 

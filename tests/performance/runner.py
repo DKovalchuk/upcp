@@ -24,6 +24,10 @@ REPORTS_DIR = Path(__file__).parent / "reports"
 LOCUSTFILES_DIR = Path(__file__).parent / "locustfiles"
 PROFILES_FILE = Path(__file__).parent / "config" / "profiles.yaml"
 
+# make `from common import ...` (pre-test health check) work when the
+# runner is invoked from the repo root
+sys.path.insert(0, str(LOCUSTFILES_DIR))
+
 
 def load_profile(name: str) -> dict:
     """Load a test profile from profiles.yaml."""
@@ -167,44 +171,49 @@ def run_profile(
             exit_code = rc
             print(f"WARNING: {scenario} failed with exit code {rc}")
 
-    # Post-test analysis (best practice: always analyze)
-    if exit_code == 0:
-        try:
-            from analyzer import (
-                append_to_trend,
-                check_slo,
-                compare_with_baseline,
-                generate_report,
-                parse_locust_csv,
-            )
+    # Post-test analysis — run whenever CSVs exist, even on FAILED runs:
+    # a failing profile is exactly when the SLO verdict/report matters most
+    # (the old `exit_code == 0` gate silently dropped reports — TASK-0140).
+    try:
+        from analyzer import (
+            append_to_trend,
+            check_slo,
+            compare_with_baseline,
+            generate_report,
+            parse_locust_csv,
+            save_baseline as persist_baseline,
+        )
 
-            csv_files = sorted(RESULTS_DIR.glob(f"{profile_name}_*_stats.csv"))
-            if csv_files:
-                results = parse_locust_csv(str(csv_files[-1]))
-                slo_checks = check_slo(results)
-                regressions = compare_with_baseline(results)
-                append_to_trend(results)
+        csv_files = sorted(RESULTS_DIR.glob(f"{profile_name}_*_stats.csv"))
+        if csv_files:
+            results = parse_locust_csv(str(csv_files[-1]))
+            slo_checks = check_slo(results)
+            regressions = compare_with_baseline(results)
+            append_to_trend(results)
 
-                if report:
-                    report_text = generate_report(results, slo_checks, regressions)
-                    report_path = REPORTS_DIR / f"{profile_name}_{timestamp}.md"
-                    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-                    with open(report_path, "w") as f:
-                        f.write(report_text)
-                    print(f"\nReport saved to: {report_path}")
+            if report:
+                report_text = generate_report(results, slo_checks, regressions)
+                report_path = REPORTS_DIR / f"{profile_name}_{timestamp}.md"
+                REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+                with open(report_path, "w") as f:
+                    f.write(report_text)
+                print(f"\nReport saved to: {report_path}")
 
-                if save_baseline:
-                    save_baseline(results)
-                    print("Baseline saved.")
+            if save_baseline:
+                # NB: the boolean arg is `save_baseline`; the imported
+                # function is aliased `persist_baseline` to avoid shadowing
+                # (the old call hit "bool not callable" — TASK-0140).
+                persist_baseline(results)
+                print("Baseline saved.")
 
-                # Print summary
-                slo_passed = sum(1 for c in slo_checks if c.passed)
-                slo_total = len(slo_checks)
-                print(f"\nSLO: {slo_passed}/{slo_total} met")
-                if regressions:
-                    print(f"Regressions: {len(regressions)} detected — review report")
-        except Exception as e:
-            print(f"Post-test analysis failed: {e}")
+            # Print summary
+            slo_passed = sum(1 for c in slo_checks if c.passed)
+            slo_total = len(slo_checks)
+            print(f"\nSLO: {slo_passed}/{slo_total} met")
+            if regressions:
+                print(f"Regressions: {len(regressions)} detected — review report")
+    except Exception as e:
+        print(f"Post-test analysis failed: {e}")
 
     return exit_code
 
@@ -214,7 +223,10 @@ def main() -> None:
     parser.add_argument("--profile", "-p", help="Profile name from profiles.yaml")
     parser.add_argument("--scenario", "-s", help="Single scenario to run")
     parser.add_argument(
-        "--host", default=os.getenv("LOCUST_HOST", "http://app:8080"), help="Target host URL"
+        "--host",
+        default=os.getenv("LOCUST_HOST", "http://localhost:38082"),
+        help="Target host URL (host-run default: test app on localhost; "
+        "compose locust-master passes --host=http://app:8080 explicitly)",
     )
     parser.add_argument("--users", "-u", type=int, default=10, help="Number of concurrent users")
     parser.add_argument("--spawn-rate", "-r", type=int, default=5, help="Users spawned per second")

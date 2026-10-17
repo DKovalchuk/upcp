@@ -55,11 +55,11 @@ class DashboardUser(UPCPBaseUser):
 
     @task(8)
     def audit_events(self):
-        self.api_get(f"/api/v1/projects/{self.project_id}/audit")
+        self.api_get(f"/api/v1/projects/{self.project_id}/audit-events")
 
     @task(5)
     def audit_filtered(self):
-        self.api_get(f"/api/v1/projects/{self.project_id}/audit?limit=20&offset=0")
+        self.api_get(f"/api/v1/projects/{self.project_id}/audit-events?limit=20&offset=0")
 
     # ── Notifications (10%) ───────────────────────────────────
 
