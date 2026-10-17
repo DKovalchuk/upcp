@@ -406,14 +406,18 @@ deploy:dev:
     - docker compose -f docker-compose.stage.yml build nginx
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
-    # Must FAIL the job when the app never becomes healthy (crash-looping
-    # containers still "complete" a bare retry loop — that masked the
-    # broken-migration incident of 2026-10-17).
+    # Probe INSIDE the app container: the job runs on the gitlab-local
+    # docker network (runner network_mode), so the host's 127.0.0.1:38081
+    # is unreachable from here — a host wget never could succeed (the old
+    # loop silently fell through, masking the 2026-10-17 incident).
     - |
       healthy=0
-      for i in $(seq 1 30); do
-        if wget -qO- http://localhost:38081/health; then healthy=1; break; fi
-        sleep 2
+      for i in $(seq 1 40); do
+        if docker compose -f docker-compose.stage.yml exec -T app \
+            python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"; then
+          healthy=1; break
+        fi
+        sleep 3
       done
       if [ "$healthy" -ne 1 ]; then
         echo "ERROR: backend never became healthy — last logs:"
@@ -450,13 +454,16 @@ deploy:stage:
     - docker compose -f docker-compose.stage.yml build nginx
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
-    # Same as deploy:dev — a health failure must fail the job, not fall
-    # through to "complete".
+    # Same as deploy:dev — probe inside the app container (host loopback is
+    # unreachable from the job's docker network); health failure fails the job.
     - |
       healthy=0
-      for i in $(seq 1 30); do
-        if wget -qO- http://localhost:38081/health; then healthy=1; break; fi
-        sleep 2
+      for i in $(seq 1 40); do
+        if docker compose -f docker-compose.stage.yml exec -T app \
+            python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"; then
+          healthy=1; break
+        fi
+        sleep 3
       done
       if [ "$healthy" -ne 1 ]; then
         echo "ERROR: backend never became healthy — last logs:"
