@@ -3,7 +3,7 @@
 Updated: 2026-10-17
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: none in progress — docs-sync MR (TASK-0128 status) pending; next from Queued
+Current Task: TASK-0128 A/B rows closing (branch `feature/TASK-0128-parts-ab`, MR pending)
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
@@ -57,7 +57,7 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
 - ~~Дубль файла TASK-0116~~ — resolved: помечен DUPLICATE (канонический `...-evidence.md`, DONE).
 
 **Queued:**
-- TASK-0128 A/B matrix rows (A5, A8/A9, part of B) — finish before DONE.
+- ~~TASK-0128 A/B matrix rows~~ — closed 2026-10-17 (see below, branch `feature/TASK-0128-parts-ab`).
 - Pre-existing e2e debt: ~102 failures in old mock specs (`comprehensive-ui`, `agent-workflow`, `evidence-review`, `delivery`, `navigation`…) — identical on baseline, rot vs current UI; separate fix task.
 - Root `tests/e2e` suite (21 tests) re-run — needs dev stack on `:3072`.
 - SPEC-0024 Phase 2-5 (performance → chaos → security → integration).
@@ -138,7 +138,7 @@ Follow-up: `bootstrap_upcp.py` scaffold templates still use legacy names
 
 **Queued:**
 - ~~Version bump~~ — done 2026-10-17: **0.22.0** (M20 ✅).
-- TASK-0128 Parts C/D/E (e2e/a11y/security matrix) — follow-up задача.
+- Component-gap follow-ups from B-matrix blocked rows (6): negative-count clamp in Dashboard health fallback (`?? 100` masks missing score), donut decimal rounding, `PortfolioProject` lacks `tasks_done/tasks_total` (needs type+backend), agent rows not navigable (`/agents/:id`), `progress_percent` not capped at 100, ProjectSelector `project_id` no client-side validation. Low/Medium severity — see TASK-0128 AC notes.
 - SPEC-0024 Phase 2-5 (performance → chaos → security → integration).
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 
