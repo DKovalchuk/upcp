@@ -41,7 +41,13 @@ export const MOCK_DASHBOARD_STATS = {
     in_progress: 3,
     review: 2,
     done: 12,
+    blocked: 1,
   },
+  // KPI fields read by the redesigned dashboard (SPEC-0025)
+  done_this_week: 7,
+  blocked_count: 1,
+  claimed_count: 1,
+  health_score: 87,
   recent_projects: MOCK_PROJECTS,
   recent_activity: [
     {
@@ -221,7 +227,9 @@ export const MOCK_CLAIMS = [
     id: 'claim-1',
     task_id: 'task-2',
     agent_id: 'backend-developer',
-    state: 'active',
+    // The Execution tab gates the Release-claim button and the "Working"
+    // badge on state === 'claimed' (UI vocabulary for an active claim).
+    state: 'claimed',
     claimed_at: new Date(Date.now() - 300000).toISOString(),
     released_at: null,
     last_heartbeat_at: new Date(Date.now() - 60000).toISOString(),
@@ -428,14 +436,21 @@ export const MOCK_AGENT_ACTIVITY_EMPTY: never[] = [];
 // --- Attention Dashboard ---
 
 export const MOCK_ATTENTION = {
+  // Item fields match what AttentionCards renders (task_id, project_id,
+  // requested_by / question / author / title) — see types/dashboard AttentionItem.
   needs_review: [
-    { task_id: 'task-4', task_title: 'Write auth unit tests', count: 1 },
+    { task_id: 'task-4', project_id: 'proj-1', requested_by: 'qa-engineer' },
   ],
   open_questions: [
-    { task_id: 'task-3', task_title: 'Add RBAC models', count: 1 },
+    {
+      task_id: 'task-3',
+      project_id: 'proj-1',
+      question: 'Should JWT tokens expire after 15 minutes or 1 hour?',
+      author: 'database-architect',
+    },
   ],
   blocked_tasks: [
-    { task_id: 'task-3', task_title: 'Add RBAC models' },
+    { task_id: 'task-3', project_id: 'proj-1', title: 'Add RBAC models' },
   ],
   stale_claims: [],
   failed_dod: [],

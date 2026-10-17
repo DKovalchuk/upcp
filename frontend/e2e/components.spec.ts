@@ -45,7 +45,8 @@ test.describe('Component Interactions', () => {
   test('cards have proper structure', async ({ page }) => {
     await gotoPage(page, '/');
     const cards = page.locator('[data-slot="card"]');
-    const count = await cards.count();
-    expect(count).toBeGreaterThan(0);
+    // Dashboard loads async — wait for content instead of counting a still-empty main
+    await expect(cards.first()).toBeVisible({ timeout: 10000 });
+    expect(await cards.count()).toBeGreaterThan(0);
   });
 });
