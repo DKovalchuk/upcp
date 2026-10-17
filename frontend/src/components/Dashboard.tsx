@@ -96,7 +96,7 @@ function StatCard({
 
   if (to) {
     return (
-      <Link to={to} search={search} className="group block">
+      <Link to={to} search={search} className="group block" aria-label={`${label}: ${value}, click to view`}>
         {content}
       </Link>
     );
