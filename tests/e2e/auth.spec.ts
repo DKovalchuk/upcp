@@ -32,6 +32,20 @@ test.describe('Authentication flow', () => {
     await page.waitForURL('**/login', { timeout: 10_000 });
     expect(page.url()).toContain('/login');
   });
+
+  // Regression (TASK-0139): background notification polling used to 401 on
+  // public pages and client.ts hard-redirected /setup to /login mid-load.
+  test('unauthenticated /setup stays on the setup form', async ({ page }) => {
+    await page.goto('/setup');
+    await expect(page.getByText(/create your admin account/i)).toBeVisible({
+      timeout: 10_000,
+    });
+    // Give the on-mount unread-count poll time to fire and (before the fix)
+    // yank the page away; the form must still be there afterwards.
+    await page.waitForTimeout(3000);
+    expect(page.url()).toContain('/setup');
+    await expect(page.getByText(/create your admin account/i)).toBeVisible();
+  });
 });
 
 test.describe('API auth', () => {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { showToast } from '@/lib/toast';
 import { safeStorage } from '@/lib/storage';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SSENotification {
   event_type: string;
@@ -28,6 +29,7 @@ function parseSSELine(line: string): { event?: string; data?: string } | null {
 
 export function useSSE(userId: string = 'default') {
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
   const abortRef = useRef<AbortController | null>(null);
   const reconnectDelay = useRef(RECONNECT_DELAY);
   const [isConnected, setIsConnected] = useState(false);
@@ -102,11 +104,14 @@ export function useSSE(userId: string = 'default') {
   }, [userId, queryClient]);
 
   useEffect(() => {
+    // SSEProvider mounts at the root route (all pages incl. public /setup):
+    // connecting unauthenticated → 401 → endless reconnect backoff (TASK-0139).
+    if (!isAuthenticated) return;
     connect();
     return () => {
       abortRef.current?.abort();
     };
-  }, [connect]);
+  }, [connect, isAuthenticated]);
 
   return { isConnected };
 }
