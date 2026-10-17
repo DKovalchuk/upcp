@@ -71,6 +71,14 @@ services:
       UPCP_LOG_LEVEL: INFO
       UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-test_secret_for_quality_gate_only}
       UPCP_DEBUG: "false"
+      # Quality-gate load env: per-IP rate limits would dominate any load
+      # test (all traffic from one host IP). Storm scenarios that need the
+      # limiter must run against an env without this flag (TASK-0140).
+      UPCP_DISABLE_RATE_LIMIT: "true"
+      # 50-user load profile needs >50 concurrent connections; historical
+      # 20+10 pool produced sqlalchemy TimeoutErrors (TASK-0140).
+      UPCP_DB_POOL_SIZE: "40"
+      UPCP_DB_MAX_OVERFLOW: "20"
     ports:
       - "127.0.0.1:${UPCP_PORT_BACKEND:-38082}:8080"
     depends_on:
@@ -119,6 +127,10 @@ services:
       context: .
       dockerfile: Dockerfile
     command: ["python", "-m", "tests.infrastructure.seeder"]
+    # tests/ is not COPY'd into the app image (by design — keeps the prod
+    # image clean); mount it so -m tests.infrastructure.seeder resolves.
+    volumes:
+      - ./tests:/app/tests:ro
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-upcp}:${POSTGRES_PASSWORD:-upcp_local_change_me}@db:5432/${POSTGRES_DB:-upcp}
       REDIS_URL: redis://redis:6379/0

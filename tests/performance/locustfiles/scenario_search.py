@@ -105,4 +105,4 @@ class SearchUser(UPCPBaseUser):
 
     @task(3)
     def audit_count(self):
-        self.api_get(f"/api/v1/projects/{self.project_id}/audit?limit=1")
+        self.api_get(f"/api/v1/projects/{self.project_id}/audit-events?limit=1")

@@ -34,6 +34,12 @@ class Settings(BaseSettings):
         alias="REDIS_URL",
     )
 
+    # DB connection pool — defaults match the historical hardcoded values
+    # in shared/database.py; overridable per env (a 50-user load profile
+    # exhausted the fixed 20+10 pool with TimeoutErrors, TASK-0140)
+    db_pool_size: int = Field(default=20, alias="UPCP_DB_POOL_SIZE")
+    db_max_overflow: int = Field(default=10, alias="UPCP_DB_MAX_OVERFLOW")
+
     # CORS — env vars: UPCP_CORS_ORIGINS, UPCP_CORS_ALLOW_HEADERS (comma-separated strings)
     cors_origins: str = Field(default="", alias="CORS_ORIGINS")
     cors_allow_headers: str = Field(default=_DEFAULT_CORS_HEADERS, alias="CORS_ALLOW_HEADERS")

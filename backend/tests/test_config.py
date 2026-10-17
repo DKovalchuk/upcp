@@ -116,3 +116,29 @@ def test_cors_allow_headers_defaults(monkeypatch: object) -> None:
     assert "Authorization" in settings.cors_allow_headers_list
     assert "Content-Type" in settings.cors_allow_headers_list
     assert "X-Request-ID" in settings.cors_allow_headers_list
+
+
+# ── DB connection pool tests (TASK-0140) ──────────────────────
+
+
+def test_db_pool_defaults_match_historical(monkeypatch: object) -> None:
+    from pytest import MonkeyPatch
+
+    assert isinstance(monkeypatch, MonkeyPatch)
+    monkeypatch.delenv("UPCP_DB_POOL_SIZE", raising=False)
+    monkeypatch.delenv("UPCP_DB_MAX_OVERFLOW", raising=False)
+    settings = Settings()
+    # values historically hardcoded in shared/database.py
+    assert settings.db_pool_size == 20
+    assert settings.db_max_overflow == 10
+
+
+def test_db_pool_reads_from_env(monkeypatch: object) -> None:
+    from pytest import MonkeyPatch
+
+    assert isinstance(monkeypatch, MonkeyPatch)
+    monkeypatch.setenv("UPCP_DB_POOL_SIZE", "40")
+    monkeypatch.setenv("UPCP_DB_MAX_OVERFLOW", "20")
+    settings = Settings()
+    assert settings.db_pool_size == 40
+    assert settings.db_max_overflow == 20

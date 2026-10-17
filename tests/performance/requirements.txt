@@ -1,0 +1,4 @@
+# Performance suite dependencies (SPEC-0024 Phase 2, TASK-0140)
+# Install: pip install -r tests/performance/requirements.txt
+locust>=2.32
+PyYAML>=6.0

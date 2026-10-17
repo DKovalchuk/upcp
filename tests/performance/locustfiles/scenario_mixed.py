@@ -194,7 +194,7 @@ class MixedWorkloadUser(UPCPBaseUser):
     @task(2)
     def audit_events(self):
         if self.project_id:
-            self.api_get(f"/api/v1/projects/{self.project_id}/audit")
+            self.api_get(f"/api/v1/projects/{self.project_id}/audit-events")
 
     # ── Agent Self-Service (10%) ──────────────────────────────
 

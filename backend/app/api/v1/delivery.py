@@ -81,16 +81,20 @@ def create_feature(
     project_id: str, body: FeatureCreate, session: Session = Depends(get_session)
 ) -> FeatureResponse:  # noqa: B008
     svc = FeatureService(session)
-    return _feat_resp(
-        svc.create(
-            project_id=project_id,
-            name=body.name,
-            slug=body.slug,
-            description=body.description,
-            status=body.status,
-            component_id=body.component_id,
-        )
+    feature = svc.create(
+        project_id=project_id,
+        name=body.name,
+        slug=body.slug,
+        description=body.description,
+        status=body.status,
+        component_id=body.component_id,
     )
+    # Commit BEFORE responding: get_session's teardown commit runs after
+    # the 201 is sent, so a client chaining create → use(id) races the
+    # commit and gets FK 500s (TASK-0140 probe: 37/40 rows not visible
+    # to another connection at response time).
+    session.commit()
+    return _feat_resp(feature)
 
 
 @router.get(
@@ -180,19 +184,20 @@ def create_task(
     feature_id: str, body: TaskCreate, session: Session = Depends(get_session)
 ) -> TaskResponse:  # noqa: B008
     svc = TaskService(session)
-    return _task_resp(
-        svc.create(
-            feature_id=feature_id,
-            title=body.title,
-            description=body.description,
-            status=body.status,
-            priority=body.priority,
-            assignee_type=body.assignee_type,
-            assignee_id=body.assignee_id,
-            component_id=body.component_id,
-            module_id=body.module_id,
-        )
+    task = svc.create(
+        feature_id=feature_id,
+        title=body.title,
+        description=body.description,
+        status=body.status,
+        priority=body.priority,
+        assignee_type=body.assignee_type,
+        assignee_id=body.assignee_id,
+        component_id=body.component_id,
+        module_id=body.module_id,
     )
+    # Commit before responding — same create→use(id) race as create_feature.
+    session.commit()
+    return _task_resp(task)
 
 
 @router.patch(
