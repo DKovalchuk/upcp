@@ -102,6 +102,7 @@ export function TaskDistributionDonut({ counts, deliveryBase }: { counts?: Statu
                       key={d.status}
                       fill={STATUS_COLORS[d.status] ?? '#6b7280'}
                       stroke="transparent"
+                      aria-label={`${d.name}: ${d.value} tasks, click to filter`}
                     />
                   ))}
                 </Pie>
