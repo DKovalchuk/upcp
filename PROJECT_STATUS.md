@@ -3,12 +3,65 @@
 Updated: 2026-10-17
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: version bump 0.22.0 (branch `chore/version-0.22.0`, MR pending); next from Queued
+Current Task: none in progress — docs-sync MR (TASK-0128 status) pending; next from Queued
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
 
-## Current Work (2026-10-16)
+## Current Work (2026-10-17)
+
+**Incident 2026-10-17 — dev/stage backend crash-loop (~10h) — RESOLVED:**
+`alembic upgrade head` on container start failed on `DuplicateTable:
+ix_task_feature_id`. Root causes: migration **0019** recreated 17 indexes
+already created by 0008 (could never pass on any real DB — stage/test stuck
+at `0017`); migration **0023** re-added columns from 0021 (would fail next).
+Latent since August, exposed by the TASK-0136 deploy fix (MR !56) which made
+compose run the freshly built image. Masked twice: the old deploy health loop
+fell through to "complete", and jobs run on `network_mode=gitlab-local_default`
+so host-loopback `wget localhost:38081` was never reachable from a job.
+**Fixed via MR !60 (hotfix):** 0019/0023 made idempotent (red→green: empty-DB
+full chain 24 upgrades → `0023 (head)`), deploy health checks now fail the job
+(`exit 1` + compose logs), new `backend:migrations` CI job runs
+`alembic upgrade head` on a fresh postgres:16 in the test stage.
+**Fixed via MR !62:** health probe moved inside the app container
+(`docker compose exec app`, 40×3s budget). **MR !61** added TASK-0128 Parts
+C/D/E. Post-merge: stage healthy (`alembic 0023`, `RestartCount=0`, host 200).
+
+**Merged 2026-10-17:** MR **!60** `hotfix/migrations-idempotent`
+(`4a0e647`), MR **!61** `feature/TASK-0128-parts-cde` (`fd5a709`),
+MR **!62** `fix/deploy-health-probe` (`ee3c45e`) — all pipelines green.
+
+**Closed 2026-10-17 — TASK-0128 Parts C/D/E:** Part C e2e
+(`dashboard-redesign.spec.ts`, 15 tests: 5-row visual+console-errors, KPI
+drill-down, donut, attention/View-all, selector URL scoping, responsive
+1440/768/375, mocked SSE critical event, dark mode, load <3s), Part D a11y
+(+8 D1-D8 tests, aria-labels on KPI/donut), Part E security
+(`test_dashboard_security.py`, 32 tests: 401s, SQLi, XSS JSON boundary,
+rate-limit 429, CORS — no production gaps). Evidence: new specs 30/30 green;
+full e2e vs baseline identical per-file failures (104→102, all pre-existing
+mock rot) — no regressions; backend 944 passed; frontend 336/336.
+TASK-0128 status → **PARTIAL**: A/B matrix rows (A5 velocity negative/boundary,
+A8/A9 portfolio, part of B) remain untested.
+
+### Prior session (2026-10-16) — see task files for detail
+
+**Merged:** MR **!56** `feature/sprint7-polish` (sprint stack + dashboard AC
+closure TASK-0120-0127 + CI tag mismatch fix + retention TASK-0136 + SPEC-0024
+Phase 1 + npm lock fix; `develop` had been deleted server-side and was
+restored first at `d73868e`). MR **!57** TASK-0119 port externalization
+(`f79ca77`). MR **!58** docs sync (`126f37f`). MR **!59** version bump 0.22.0
+(`3fcae74`, M20 ✅ — S22.1-S22.5 all closed).
+
+**Known discrepancies (to sync):**
+- SPEC-0024 Phase 2-5 pending (Phase 1 в develop).
+- ~~Дубль файла TASK-0116~~ — resolved: помечен DUPLICATE (канонический `...-evidence.md`, DONE).
+
+**Queued:**
+- TASK-0128 A/B matrix rows (A5, A8/A9, part of B) — finish before DONE.
+- Pre-existing e2e debt: ~102 failures in old mock specs (`comprehensive-ui`, `agent-workflow`, `evidence-review`, `delivery`, `navigation`…) — identical on baseline, rot vs current UI; separate fix task.
+- Root `tests/e2e` suite (21 tests) re-run — needs dev stack on `:3072`.
+- SPEC-0024 Phase 2-5 (performance → chaos → security → integration).
+- `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 
 **Merged:** MR **!56** `feature/sprint7-polish` → `develop` merged 2026-10-16
 (merge commit `96b80ae`, pipeline green). Note: `develop` branch had been
