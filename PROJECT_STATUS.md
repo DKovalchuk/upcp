@@ -3,7 +3,7 @@
 Updated: 2026-10-17
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: TASK-0128 A/B rows closing (branch `feature/TASK-0128-parts-ab`, MR pending)
+Current Task: TASK-0138 e2e mock-rot fix DONE (branch `feature/e2e-mock-rot-fix`, MR pending); next from Queued
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
@@ -58,8 +58,9 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
 
 **Queued:**
 - ~~TASK-0128 A/B matrix rows~~ — closed 2026-10-17 (see below, branch `feature/TASK-0128-parts-ab`).
-- Pre-existing e2e debt: ~102 failures in old mock specs (`comprehensive-ui`, `agent-workflow`, `evidence-review`, `delivery`, `navigation`…) — identical on baseline, rot vs current UI; separate fix task.
-- Root `tests/e2e` suite (21 tests) re-run — needs dev stack on `:3072`.
+- ~~Pre-existing e2e debt~~ — closed 2026-10-17 (TASK-0138): full `frontend/e2e` suite **153 passed / 0 failed** (was 102 failed). Root causes: mock catch-all registered LIFO-shadowing specific mocks, stale route shapes/selectors vs dashboard redesign+filtering, `networkidle` never settles with SSE, live-backend rate limiter 429, non-idempotent create data. 5 deleted tests = removed UI feature (verdict accept/reject buttons) + 1 vacuous stub, justified in TASK-0138.
+- Product bug found via TASK-0138: public pages (`/setup`) get hard-redirected to `/login` by background notification polling — `notifications/unread-count` 401 on unauthenticated visit → `client.ts:83-90` `window.location.href='/login'`. Should skip polling (or tolerate 401) when unauthenticated; test-side workaround in `auth.spec.ts` (mocked endpoints).
+- Root `tests/e2e` suite (21 tests) re-run — needs dev stack on `:3072` (stack currently RUNNING, started for TASK-0138).
 - SPEC-0024 Phase 2-5 (performance → chaos → security → integration).
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 

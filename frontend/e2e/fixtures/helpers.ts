@@ -23,8 +23,19 @@ import {
 
 /**
  * Intercept all API calls and return mock data.
+ *
+ * Playwright matches routes LIFO (last registered wins), so the catch-all
+ * MUST be registered FIRST: a catch-all registered last shadows every
+ * specific mock AND intercepts frontend module URLs like
+ * /src/lib/api/index.ts (fulfilled with JSON instead of JS → blank page).
+ * Scoped to /api/v1/ so it can never touch frontend module URLs.
  */
 export async function mockAllApis(page: Page) {
+  // Catch-all — registered FIRST (lowest LIFO priority), backend API only.
+  await page.route('**/api/v1/**', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], total: 0, offset: 0, limit: 20 }) })
+  );
+
   // Auth endpoints
   await page.route('**/auth/me', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_USER) })
@@ -39,8 +50,8 @@ export async function mockAllApis(page: Page) {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_TOKENS) })
   );
 
-  // Dashboard
-  await page.route('**/api/v1/dashboard/stats', (route: Route) =>
+  // Dashboard — '*' so query params (e.g. ?project_id=) still match
+  await page.route('**/api/v1/dashboard/stats*', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_DASHBOARD_STATS) })
   );
 
@@ -129,10 +140,24 @@ export async function mockAllApis(page: Page) {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], total: 0, offset: 0, limit: 20 }) })
   );
 
-  // Catch-all for unmocked API calls
-  await page.route('**/api/**', (route: Route) => {
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], total: 0, offset: 0, limit: 20 }) });
-  });
+  // Project-wide tasks (board view fetches /projects/{id}/tasks)
+  await page.route('**/api/v1/projects/proj-1/tasks**', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_TASKS, total: MOCK_TASKS.length, offset: 0, limit: 20 }) })
+  );
+
+  // Notifications — broad list FIRST, then more specific routes (LIFO: the
+  // last registered pattern wins for URLs both patterns match). Registered
+  // here so the unread badge is correct on initial page load.
+  await page.route('**/api/v1/notifications**', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_NOTIFICATIONS, total: MOCK_NOTIFICATIONS.length }) })
+  );
+  await page.route('**/api/v1/notifications/unread-count', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ count: 2 }) })
+  );
+  // Benign SSE stream so EventSource doesn't error-loop on a JSON response
+  await page.route('**/api/v1/notifications/stream*', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': keepalive\n\n' })
+  );
 }
 
 /**
@@ -158,23 +183,34 @@ export async function mockWorkflowApis(page: Page) {
   await page.route('**/api/v1/review-rounds/*/findings', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_REVIEW_FINDINGS, total: MOCK_REVIEW_FINDINGS.length }) })
   );
-  await page.route('**/api/v1/dashboard/attention', (route: Route) =>
+  await page.route('**/api/v1/dashboard/attention*', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_ATTENTION) })
   );
   await page.route('**/api/v1/dashboard/agent-activity', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_AGENT_ACTIVITY, total: MOCK_AGENT_ACTIVITY.length }) })
   );
-  await page.route('**/api/v1/notifications**', (route: Route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: MOCK_NOTIFICATIONS, total: MOCK_NOTIFICATIONS.length }) })
-  );
+  // Notifications (list/unread-count/stream) live in mockAllApis — they must
+  // be active on initial page load for the unread badge to be correct.
 }
 
 /**
  * Navigate to a page with auth set up via addInitScript.
  * This avoids the localStorage SecurityError by injecting tokens
  * before the page JavaScript runs.
+ *
+ * Options:
+ * - `workflow`: register mockWorkflowApis BEFORE navigation so queries that
+ *   fire on mount (agent activity, attention) see workflow data instead of
+ *   the catch-all (react-query staleTime/refetchInterval would otherwise
+ *   keep the empty catch-all response for 30s+).
+ * - `beforeGoto`: register additional routes after all base mocks (LIFO →
+ *   they win) but before navigation.
  */
-export async function gotoPage(page: Page, path: string) {
+export async function gotoPage(
+  page: Page,
+  path: string,
+  options?: { workflow?: boolean; beforeGoto?: (page: Page) => Promise<void> }
+) {
   // Use addInitScript to set localStorage before the app loads
   await page.context().addInitScript((tokens: typeof MOCK_TOKENS) => {
     window.localStorage.setItem('upcp_access_token', tokens.access_token);
@@ -182,8 +218,21 @@ export async function gotoPage(page: Page, path: string) {
   }, MOCK_TOKENS);
 
   await mockAllApis(page);
+  if (options?.workflow) await mockWorkflowApis(page);
+  if (options?.beforeGoto) await options.beforeGoto(page);
   await page.goto(path);
   await page.waitForLoadState('domcontentloaded');
   // Small wait for React to hydrate and API calls to complete
   await page.waitForTimeout(500);
+}
+
+/**
+ * Open the task detail sheet on the Delivery page.
+ * Feature rows are collapsed by default (universal-filtering redesign) —
+ * expand the feature first, then click the task row.
+ */
+export async function openTaskSheet(page: Page, taskTitle = 'Implement auth middleware') {
+  await page.getByRole('button', { name: 'Authentication' }).click();
+  await page.getByText(taskTitle).click();
+  await page.waitForTimeout(400);
 }
