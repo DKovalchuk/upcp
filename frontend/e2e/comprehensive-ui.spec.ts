@@ -69,7 +69,7 @@ async function setupAndGetTokens(page: Page): Promise<{ accessToken: string; ref
 
   // Try setup if login fails
   const setupResp = await page.request.post(`${BASE_URL}/auth/setup`, {
-    data: { email: 'admin@example.com', password: 'admin123', display_name: 'Admin' },
+    data: { email: 'admin@example.com', password: adminPassword, display_name: 'Admin' },
   });
 
   if (setupResp.ok()) {
@@ -356,11 +356,14 @@ test.describe('Agent Workflow UI', () => {
     await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
-    // Should show "Agents" heading
-    await expect(page.getByRole('heading', { name: /agents/i })).toBeVisible();
+    // Should show "Agents" heading (exact: the empty state renders an
+    // h3 "No agents" which /agents/i would also match → strict violation)
+    await expect(
+      page.getByRole('heading', { name: 'Agents', exact: true })
+    ).toBeVisible();
 
-    // Should show "New Agent" button
-    await expect(page.getByRole('button', { name: /new agent/i })).toBeVisible();
+    // Should show a "New Agent" button (empty state renders a second CTA)
+    await expect(page.getByRole('button', { name: /new agent/i }).first()).toBeVisible();
 
     // Should show search input
     const searchVisible = await page.locator('input[placeholder*="Search"]').first().isVisible().catch(() => false);
@@ -406,8 +409,8 @@ test.describe('Agent Workflow UI', () => {
     await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
-    // Click "New Agent" button
-    await page.getByRole('button', { name: /new agent/i }).click();
+    // Click "New Agent" button (first match — toolbar vs empty-state CTA)
+    await page.getByRole('button', { name: /new agent/i }).first().click();
     await page.waitForTimeout(500);
 
     // Dialog should open
