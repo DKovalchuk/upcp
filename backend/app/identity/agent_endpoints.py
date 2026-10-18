@@ -60,6 +60,10 @@ def create_agent(
     )
     db.add(agent)
     db.flush()
+    # commit before respond — teardown runs after the response, and the
+    # client chains create→POST .../tokens immediately (404 "Agent not
+    # found" in gate 3296; same class as TASK-0140 create→use races)
+    db.commit()
 
     return {
         "id": agent.id,
@@ -243,6 +247,9 @@ def create_agent_token(
     )
     db.add(record)
     db.flush()
+    # commit before respond — the client uses the fresh token immediately;
+    # middleware looks the row up in a different session (TASK-0143)
+    db.commit()
 
     return {
         "id": record.id,
@@ -270,6 +277,9 @@ def revoke_agent_token(
 
     record.revoked_at = datetime.now(UTC)
     db.flush()
+    # commit before respond — a reused token must be rejected on the very
+    # next request, not after the teardown (TASK-0143)
+    db.commit()
 
     return {"ok": True}
 
