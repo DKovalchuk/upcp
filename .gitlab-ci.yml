@@ -387,12 +387,32 @@ quality:gate:
         exit 1
       fi
     # ── 3. job joins the gate network — suites resolve http://app:8080 / http://nginx
-    #       (job container sits on gitlab-local_default; host loopback is unreachable) ──
-    - docker network connect upcp-test-ci_default "$(cat /etc/hostname)"
+    #       (job container sits on gitlab-local_default; host loopback is unreachable).
+    #       The runner sets the job hostname to runner-<hash>-project-<id>-concurrent-<n>,
+    #       which is NOT the daemon-side container name — resolve the own container id
+    #       by matching .Config.Hostname instead of trusting $(cat /etc/hostname)
+    #       as a docker reference (failed in pipeline 449, TASK-0143) ──
+    - |
+      MY_HOST=$(cat /etc/hostname)
+      CID=""
+      for c in $(docker ps -q); do
+        h=$(docker inspect -f '{{.Config.Hostname}}' "$c" 2>/dev/null || true)
+        if [ "$h" = "$MY_HOST" ]; then CID="$c"; break; fi
+      done
+      if [ -z "$CID" ]; then
+        echo "ERROR: cannot resolve own container id for hostname=$MY_HOST"
+        docker ps
+        exit 1
+      fi
+      echo "resolved own container: hostname=$MY_HOST id=$CID"
+      docker network connect upcp-test-ci_default "$CID"
     - python -c "import httpx,sys; sys.exit(0 if httpx.get('http://app:8080/health',timeout=5).status_code==200 else 1)"
     - docker compose --env-file .env.ci --profile tools run --rm seeder
     # ── 4. suites — profiles chosen by QUALITY_PROFILE; RCs collected, report always runs ──
-    - chown 1000:1000 . frontend || true
+    # checkout files are root-owned; e2e (uid 1000) writes node_modules,
+    # tests/e2e/.auth storageState and root test-results — chown every dir
+    # it writes into (TASK-0143)
+    - chown 1000:1000 . frontend tests || true
     - RC_E2E=0 RC_E2E_FE=0 RC_CHAOS=0 RC_SEC=0 RC_PERF=0
     - |
       if [ "$QUALITY_PROFILE" = "full" ]; then
