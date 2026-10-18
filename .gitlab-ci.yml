@@ -314,10 +314,15 @@ container:scan:backend:
 #
 # Ephemeral hermetic test stack (upcp-test-ci via .env.ci); suites run
 # INSIDE its network — job containers cannot reach host loopback (the
-# deploy-probe incident). Two-phase policy: allow_failure: true until
-# >=2 green develop + >=1 green schedule runs are observed, then flipped
-# to a hard gate in a follow-up commit. Nightly `perf load` never gates
-# (honest red SLO — TASK-0140 findings).
+# deploy-probe incident).
+#
+# Phase B ACTIVE (since 2026-10-18): HARD GATE — allow_failure: false,
+# a red gate fails the pipeline and blocks build/deploy. Policy
+# prerequisites were met first: >=2 green develop gate runs (jobs 3330 /
+# 3371, pipelines 460 / 463) + >=1 green schedule run (job 3345,
+# pipeline 461, full profile); the Phase A history (red->green rounds
+# !71-!75) is recorded in tasks/TASK-0143-spec0024-phase5-integration.md.
+# Nightly `perf load` never gates (honest red SLO — TASK-0140 findings).
 
 quality:gate:
   stage: quality
@@ -326,7 +331,8 @@ quality:gate:
     - .retry-on-system-failure
   timeout: 1 hour 30 minutes
   resource_group: quality-gate
-  allow_failure: true
+  # Phase B hard gate (TASK-0143): red gate = red pipeline = no deploy
+  allow_failure: false
   needs:
     - job: backend:test
     - job: backend:migrations
@@ -358,16 +364,31 @@ quality:gate:
     - if: $CI_COMMIT_BRANCH == "develop"
   before_script:
     # docker CLI + compose plugin: job image is python-slim, the runner only
-    # injects the daemon socket (same approach as .docker-build-base)
-    - apt-get update -qq
-    - apt-get install -y -qq ca-certificates curl gnupg >/dev/null
-    - install -m0755 -d /etc/apt/keyrings
-    - curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
-    - chmod a+r /etc/apt/keyrings/docker.asc
-    - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
-    - apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin >/dev/null
-    - pip install --quiet -r tests/security/requirements.txt -r tests/chaos/requirements.txt -r tests/performance/requirements.txt locust
-    - docker compose version
+    # injects the daemon socket (same approach as .docker-build-base).
+    # Bounded retry wraps ONLY dependency installation: external fetches
+    # (download.docker.com / PyPI) blipped once in pipeline 463 and killed
+    # a healthy gate before it even started — suite verdicts are never
+    # retried here (Phase B hard gate, TASK-0143).
+    - |
+      install_deps() {
+        apt-get update -qq &&
+        apt-get install -y -qq ca-certificates curl gnupg >/dev/null &&
+        install -m0755 -d /etc/apt/keyrings &&
+        curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc &&
+        chmod a+r /etc/apt/keyrings/docker.asc &&
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list &&
+        apt-get update -qq &&
+        apt-get install -y -qq docker-ce-cli docker-compose-plugin >/dev/null &&
+        pip install --quiet -r tests/security/requirements.txt -r tests/chaos/requirements.txt -r tests/performance/requirements.txt locust
+      }
+      for i in 1 2 3; do
+        if install_deps; then echo "dependencies installed (attempt $i)"; break; fi
+        if [ "$i" = 3 ]; then echo "ERROR: dependency install failed after 3 attempts"; exit 1; fi
+        echo "attempt $i failed — retrying in 15s"; sleep 15
+      done
+      command -v docker >/dev/null || { echo "ERROR: docker CLI missing"; exit 1; }
+      docker compose version
+      python -c "import httpx, pytest, yaml, locust"
   script:
     # ── 1. reporter unit tests (TDD'd in-repo) + compose config sanity ──
     - python -m pytest tests/quality_gate -o addopts= -o pythonpath= -q
