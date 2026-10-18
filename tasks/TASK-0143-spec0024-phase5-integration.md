@@ -6,10 +6,11 @@
 triggers; reports Markdown + JSON; regression comparison without strict
 thresholds; results versioning). Grafana dashboard ingestion explicitly
 deferred (recorded in TASK-0142 deviations).
-**Status:** IN PROGRESS (started 2026-10-18; implemented, rehearsed
-locally, merged through 4 CI-fix rounds; observations: develop ✅ ×1,
-schedule ✅ ×1; remaining: 2nd green develop observation (this MR's
-pipeline), then phase-B flip MR → DONE)
+**Status:** DONE (closed 2026-10-18 — all AC verified; phase-B flip
+landed in this branch: `allow_failure: false` after 2 green develop gate
+runs (jobs 3330/3371, pipelines 460/463) + 1 green schedule run (job
+3345, pipeline 461 full); the flip MR's own pipeline is the first
+hard-gate validation)
 
 ## Mini-spec (design decisions — agreed with Dmitry 2026-10-18)
 
@@ -75,16 +76,19 @@ sees job-workspace bind sources (backup `config.toml.bak-20261018`).
       stage → `upcp-stage` 38081/35433/3070/36382 unchanged)
 - [x] e2e baseURL + credential parameterization — dev 22/22 + 153/153;
       gate container 22/22 + 153/153 (verified in job 3330)
-- [ ] Two-phase flip to hard gate — **1/2 green develop observed
-      (gate 3330), 1/1 green schedule (gate 3345)**; 2nd develop
-      observation = this MR's pipeline; flip lands in the final MR
-      (perf load stays allow_failure)
+- [x] Two-phase flip to hard gate — **2/2 green develop observed (gate
+      3330 pipeline 460 + gate 3371 pipeline 463) + 1/1 green schedule
+      (gate 3345, pipeline 461 full)**; flip landed in this branch:
+      `allow_failure: false` + bounded before_script install retry (the
+      p463 download.docker.com flap killed a healthy gate pre-start);
+      perf load stays non-gating
 - [x] Docs written + INDEX updated (`docs/ops/environments.md`,
       `docs/ops/ci-quality-gates.md`) — §6/§7 kept in sync through the
       rounds (env-source gotcha, collision warning, schedule exists)
-- [ ] Spec exit criteria end-to-end: green develop gate ✅ + green
-      schedule gate ✅ + report artifact present (artifacts uploaded in
-      3330/3345) — **closes together with the flip AC**
+- [x] Spec exit criteria end-to-end (CI/CD triggers tests on schedule
+      and events): green develop gate ✅ (jobs 3330, 3371) + green
+      schedule gate ✅ (job 3345, full profile via schedule id 1) +
+      report artifacts uploaded by every gate run (30-day CI artifacts)
 
 ## Evidence
 
@@ -151,6 +155,10 @@ docs (`e89c810` `b94c7e7` `c70ecb0` `54917d0`) · **!75** agent commit
 
 ## Follow-ups
 
-- This MR's merge pipeline = develop observation #2 → phase-B flip MR
-  (`allow_failure: false` + docs §2 + task DONE + PROJECT_STATUS) —
-  its own pipeline then validates the hard gate.
+- Resolved: all observation prerequisites met (2 develop + 1 schedule
+  green) and the flip landed in this branch. **Post-merge watch:** the
+  flip MR's own pipeline is the first run of the hard gate — if it goes
+  red the gate is doing its job (investigate the suite, not the flag).
+- From TASK-0142/0140 findings queues remain in PROJECT_STATUS (RBAC
+  spec decisions, dashboard/stats perf, throughput) — unrelated to this
+  task.

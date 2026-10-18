@@ -23,15 +23,22 @@ backend:migrations`, `timeout: 1h30`, `resource_group: quality-gate`.
 
 ## 2. Failure policy (two phases)
 
-- **Phase A (current):** `quality:gate` runs with `allow_failure: true` —
-  first observations in CI; a red gate does not fail the pipeline yet.
-- **Phase B (follow-up commit, TASK-0143):** after **≥2 green develop +
-  ≥1 green schedule** runs are observed, verified-green jobs flip to a
-  hard gate. Not implemented yet — until then Phase A stands.
+- **Phase A (2026-10-18, MR !71–!76):** `quality:gate` ran with
+  `allow_failure: true` while the first CI runs were observed — red
+  gates did not fail the pipeline. Four red→green fix rounds are
+  chronicled in `tasks/TASK-0143-spec0024-phase5-integration.md`.
+- **Phase B (ACTIVE since 2026-10-18):** prerequisites met — **2 green
+  develop gate runs** (jobs 3330/3371, pipelines 460/463) + **1 green
+  schedule run** (job 3345, pipeline 461, full profile) — so
+  `allow_failure: false`: a red gate fails the pipeline and blocks
+  build/deploy. `before_script` wraps dependency installation in a
+  bounded retry (network flaps must not kill a healthy gate, as
+  download.docker.com blipped in pipeline 463); **suite verdicts are
+  never retried**.
 - **`perf load` never gates**, permanently: the nightly 50-user load
   profile is a known honest-red SLO (TASK-0140 throughput findings) — it
   is report-only by construction (see exit logic below), and stays
-  `allow_failure` even after the Phase B flip.
+  non-gating even in Phase B.
 
 What counts toward the gate exit (the script's RC logic):
 
