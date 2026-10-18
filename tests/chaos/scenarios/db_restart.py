@@ -27,6 +27,7 @@ from tests.chaos.assertions import (
     assert_http_available,
     assert_mttr,
     assert_resource_recovery,
+    extract_count,
 )
 from tests.chaos.engine import ChaosEngine
 
@@ -60,13 +61,14 @@ def run(
         baseline_mem = 0.0
 
     try:
-        resp = httpx.get(api_url, timeout=5)
-        initial_count = len(resp.json()) if resp.status_code == 200 else 0
+        resp = httpx.get(api_url, timeout=5, headers=engine.get_auth_headers())
+        initial_count = extract_count(resp.json()) if resp.status_code == 200 else 0
     except Exception:
         initial_count = 0
 
     # 3. Restart DB (graceful, not kill)
     logger.info("Step 3: Restart PostgreSQL")
+    t_restart = time.monotonic()
     engine.restart("db", timeout=10)
 
     # 4. Monitor error rate during restart
@@ -74,12 +76,15 @@ def run(
     total_requests = 0
     failed_requests = 0
 
+    first_ok: float | None = None
     for _ in range(15):
         total_requests += 1
         try:
             resp = httpx.get(health_url, timeout=3)
             if resp.status_code >= 500:
                 failed_requests += 1
+            elif first_ok is None:
+                first_ok = time.monotonic() - t_restart
         except Exception:
             failed_requests += 1
         time.sleep(1)
@@ -88,19 +93,23 @@ def run(
         assert_error_rate(total_requests, failed_requests, max_error_pct=50.0)
     )
 
-    # 5. Wait for full recovery
+    # 5. Wait for full recovery (readiness before integrity checks)
     logger.info("Step 5: Wait for full recovery")
     try:
-        mttr = engine.wait_for_healthy("app", timeout=max_mttr_s)
+        engine.wait_for_healthy("app", timeout=max_mttr_s)
     except TimeoutError:
-        mttr = max_mttr_s
+        logger.warning("app not confirmed healthy within %ss before integrity checks", max_mttr_s)
 
-    verdict.mttr_seconds = mttr
-    verdict.assertions.append(assert_mttr(mttr, max_mttr_s, "db_restart"))
+    # MTTR = disruption start → first healthy response. The old flow
+    # measured from AFTER the 15s monitor loop, so it always reported ~0.0s.
+    verdict.mttr_seconds = first_ok if first_ok is not None else time.monotonic() - t_restart
+    verdict.assertions.append(assert_mttr(verdict.mttr_seconds, max_mttr_s, "db_restart"))
 
     # 6. Verify data integrity
     logger.info("Step 6: Verify data integrity")
-    verdict.assertions.append(assert_data_integrity(api_url, initial_count))
+    verdict.assertions.append(
+        assert_data_integrity(api_url, initial_count, headers=engine.get_auth_headers())
+    )
 
     # 7. Resource comparison
     logger.info("Step 7: Resource comparison")

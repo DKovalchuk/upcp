@@ -26,6 +26,7 @@ from tests.chaos.assertions import (
     assert_error_rate,
     assert_http_available,
     assert_mttr,
+    extract_count,
 )
 from tests.chaos.engine import ChaosEngine
 
@@ -65,8 +66,8 @@ def run(
         return verdict
 
     try:
-        resp = httpx.get(api_url, timeout=5)
-        initial_count = len(resp.json()) if resp.status_code == 200 else 0
+        resp = httpx.get(api_url, timeout=5, headers=engine.get_auth_headers())
+        initial_count = extract_count(resp.json()) if resp.status_code == 200 else 0
     except Exception:
         initial_count = 0
 
@@ -115,7 +116,9 @@ def run(
 
     # 7. Verify data integrity
     logger.info("Step 7: Verify data integrity")
-    verdict.assertions.append(assert_data_integrity(api_url, initial_count))
+    verdict.assertions.append(
+        assert_data_integrity(api_url, initial_count, headers=engine.get_auth_headers())
+    )
 
     verdict.duration_seconds = time.monotonic() - start_time
     verdict.passed = all(a.passed for a in verdict.assertions)

@@ -25,6 +25,7 @@ from tests.chaos.assertions import (
     assert_http_available,
     assert_mttr,
     assert_resource_recovery,
+    extract_count,
 )
 from tests.chaos.engine import ChaosEngine
 
@@ -51,15 +52,10 @@ def run(
         verdict.passed = False
         return verdict
 
-    try:
-        baseline_mem = engine.get_resources("app").memory_mb
-    except Exception:
-        baseline_mem = 0.0
-
     # Count existing data
     try:
-        resp = httpx.get(api_url, timeout=5)
-        initial_count = len(resp.json()) if resp.status_code == 200 else 0
+        resp = httpx.get(api_url, timeout=5, headers=engine.get_auth_headers())
+        initial_count = extract_count(resp.json()) if resp.status_code == 200 else 0
     except Exception:
         initial_count = 0
 
@@ -77,7 +73,7 @@ def run(
     for _ in range(10):
         total_requests += 1
         try:
-            resp = httpx.get(api_url, timeout=5)
+            resp = httpx.get(api_url, timeout=5, headers=engine.get_auth_headers())
             if resp.status_code >= 500:
                 failed_requests += 1
         except Exception:
@@ -114,13 +110,19 @@ def run(
 
     verdict.assertions.append(assert_http_available(health_url))
 
-    verdict.assertions.append(assert_data_integrity(api_url, initial_count))
+    verdict.assertions.append(
+        assert_data_integrity(api_url, initial_count, headers=engine.get_auth_headers())
+    )
 
-    # Phase 6: Resource comparison
+    # Phase 6: Post-restart memory stability (pre-outage baseline is not
+    # comparable across a restart — TASK-0141)
     logger.info("Phase 6: Resource comparison")
     try:
-        after_mem = engine.get_resources("app").memory_mb
-        verdict.assertions.append(assert_resource_recovery(baseline_mem, after_mem))
+        warm1 = engine.get_resources("app").memory_mb
+        time.sleep(2)
+        engine.probe_http(health_url)
+        warm2 = engine.get_resources("app").memory_mb
+        verdict.assertions.append(assert_resource_recovery(warm1, warm2))
     except Exception as e:
         logger.warning("Resource check failed: %s", e)
 

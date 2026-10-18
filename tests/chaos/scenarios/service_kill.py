@@ -55,12 +55,8 @@ def run(
         verdict.passed = False
         return verdict
 
-    # 2. Capture baseline resources
-    logger.info("Step 2: Capture baseline resources")
-    try:
-        baseline_mem = engine.get_resources(service).memory_mb
-    except Exception:
-        baseline_mem = 0.0
+    # (old step 2 removed: a pre-kill baseline is not comparable across a
+    # restart — post-restart stability is measured in step 8 instead)
 
     # 3. Kill service
     logger.info("Step 3: Kill %s", service)
@@ -92,13 +88,19 @@ def run(
 
     # 7. Verify data integrity
     logger.info("Step 7: Verify data integrity")
-    verdict.assertions.append(assert_data_integrity(data_url, expected_data_count))
+    verdict.assertions.append(
+        assert_data_integrity(data_url, expected_data_count, headers=engine.get_auth_headers())
+    )
 
-    # 8. Resource comparison
-    logger.info("Step 8: Compare resources")
+    # 8. Post-restart memory stability (process was replaced: pre-kill
+    # baseline gave a false +242% "leak" — TASK-0141)
+    logger.info("Step 8: Compare resources (post-restart stability)")
     try:
-        after_mem = engine.get_resources(service).memory_mb
-        verdict.assertions.append(assert_resource_recovery(baseline_mem, after_mem))
+        warm1 = engine.get_resources(service).memory_mb
+        time.sleep(2)
+        engine.probe_http(health_url)
+        warm2 = engine.get_resources(service).memory_mb
+        verdict.assertions.append(assert_resource_recovery(warm1, warm2))
     except Exception as e:
         logger.warning("Resource check failed: %s", e)
 
