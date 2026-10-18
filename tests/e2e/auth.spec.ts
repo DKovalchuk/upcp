@@ -2,7 +2,10 @@ import { test, expect } from '@playwright/test';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-const API = 'http://127.0.0.1:38080';
+const API = process.env.E2E_API_BASE || 'http://127.0.0.1:38080';
+// Default = dev-stack admin password; the CI gate passes the seeded test-stack
+// credential via E2E_ADMIN_PASSWORD (TASK-0143)
+const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'admin123';
 
 test.describe('Authentication flow', () => {
   test('login page renders', async ({ page }) => {
@@ -13,7 +16,7 @@ test.describe('Authentication flow', () => {
   test('login with valid credentials redirects', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel(/email/i).fill('admin@example.com');
-    await page.getByRole('textbox', { name: 'Password' }).fill('admin123');
+    await page.getByRole('textbox', { name: 'Password' }).fill(adminPassword);
     await page.getByRole('button', { name: /sign in|log in|enter/i }).click();
     await page.waitForURL('**/', { timeout: 10_000 });
     expect(page.url()).not.toContain('/login');
@@ -51,7 +54,7 @@ test.describe('Authentication flow', () => {
 test.describe('API auth', () => {
   test('POST /auth/login returns access_token', async ({ request }) => {
     const resp = await request.post(`${API}/auth/login`, {
-      data: { email: 'admin@example.com', password: 'admin123' },
+      data: { email: 'admin@example.com', password: adminPassword },
     });
     expect(resp.ok()).toBeTruthy();
     const body = await resp.json();
@@ -60,7 +63,7 @@ test.describe('API auth', () => {
 
   test('GET /auth/me with token returns user', async ({ request }) => {
     const login = await request.post(`${API}/auth/login`, {
-      data: { email: 'admin@example.com', password: 'admin123' },
+      data: { email: 'admin@example.com', password: adminPassword },
     });
     const { access_token } = await login.json();
 
