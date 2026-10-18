@@ -165,6 +165,16 @@ Env sets — CI suites run **inside** the gate network (the job joined it,
 
 Notes for local runs:
 
+- **Precedence gotcha:** compose lets OS environment beat `--env-file` —
+  if your shell inherited root-`.env` vars (`UPCP_PORT_POSTGRES=35432`
+  etc.), `--env-file .env.ci` silently resolves to dev ports and the
+  stack collides with the dev environment. Prefix local commands with
+  `set -a; . ./.env.ci; set +a` — sourcing puts the correct values into
+  OS env so they win (this recovered a broken half-stack on 2026-10-18).
+- **Don't overlap a CI gate:** CI gate teardown removes the whole
+  `upcp-test-ci` project on the shared daemon — a local rehearsal stack
+  of the same name is torn down with it. Run the local gate only while
+  no CI `quality:gate` job is in flight.
 - The frontend vite dev server is `localhost:5173` in **both** columns: in
   CI it starts inside the e2e container (Playwright `webServer`), locally
   on your host.
