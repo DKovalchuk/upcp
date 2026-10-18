@@ -1,0 +1,14 @@
+# Security test results (generated)
+results/*.json
+results/*.xml
+!results/.gitkeep
+
+# Machine-generated report artifacts (generated)
+reports/*.html
+reports/*.json
+reports/*.log
+reports/*.yaml
+!reports/.gitkeep
+
+# Markdown reports are tracked
+!reports/*.md

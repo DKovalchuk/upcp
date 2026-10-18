@@ -1,0 +1,33 @@
+# Kali pentest agent — SPEC-0024 Phase 4 (TASK-0142)
+# Minimal curated toolset for tests/security/kali/run.sh; started by
+# `docker compose -f docker-compose.test.yml --profile security run kali`.
+# Keep the image lean: no metapackages, no recommends, clean apt lists.
+
+FROM kalilinux/kali-rolling:latest
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        nmap \
+        nikto \
+        sqlmap \
+        curl \
+        ca-certificates \
+        python3 \
+        procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root operator. uid/gid 1000 match the host user that owns
+# ./tests/security/reports, so findings written to the bind mount stay
+# owned by the invoking user.
+RUN useradd -m -u 1000 -s /bin/bash kali \
+    && mkdir -p /reports \
+    && chown kali:kali /reports
+
+USER kali
+WORKDIR /home/kali
+
+CMD ["/bin/bash", "/kali-agent/run.sh"]
