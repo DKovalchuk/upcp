@@ -3,7 +3,7 @@
 Updated: 2026-10-18
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: TASK-0141 SPEC-0024 Phase 3 chaos DONE (branch `feature/TASK-0141-phase3-chaos`, MR pending); next from Queued
+Current Task: TASK-0142 SPEC-0024 Phase 4 security DONE (branch `feature/TASK-0142-phase4-security`, MR pending); next from Queued
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
@@ -53,7 +53,7 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
 (`3fcae74`, M20 ✅ — S22.1-S22.5 all closed).
 
 **Known discrepancies (to sync):**
-- SPEC-0024 Phase 2 ✅ DONE (2026-10-18, TASK-0140 — suite first-ever run, reports/baselines); Phase 3-5 pending (TASK-0141/0142/0143).
+- SPEC-0024 Phase 2 ✅ DONE (2026-10-18, TASK-0140 — suite first-ever run, reports/baselines); Phase 3 ✅ (TASK-0141), Phase 4 ✅ (TASK-0142); Phase 5 pending (TASK-0143).
 - ~~Дубль файла TASK-0116~~ — resolved: помечен DUPLICATE (канонический `...-evidence.md`, DONE).
 
 **Queued:**
@@ -61,7 +61,8 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
 - ~~Pre-existing e2e debt~~ — closed 2026-10-17 (TASK-0138): full `frontend/e2e` suite **153 passed / 0 failed** (was 102 failed). Root causes: mock catch-all registered LIFO-shadowing specific mocks, stale route shapes/selectors vs dashboard redesign+filtering, `networkidle` never settles with SSE, live-backend rate limiter 429, non-idempotent create data. 5 deleted tests = removed UI feature (verdict accept/reject buttons) + 1 vacuous stub, justified in TASK-0138.
 - ~~Product bug: public pages 401-redirect~~ — closed 2026-10-17 (TASK-0139): background notification infra gated on auth — `NotificationBell` unread-count query `enabled: isAuthenticated`, `useSSE` effect connects only when authenticated (aborts on logout). TDD red→green: root e2e `/setup` regression test, 2 vitest gating tests. Workaround mocks removed from frontend `auth.spec.ts` (heading guards kept). Evidence: root e2e 22/22, frontend e2e 153/153, vitest 433/433, lint/tsc clean. Note: live-stack runs require `docker compose --env-file .env.dev build frontend && up -d frontend` first — `upcp-frontend-1` serves a baked `dist/` (see project memory).
 - ~~Root `tests/e2e` suite re-run~~ — closed 2026-10-17: **21 passed / 0 failed** against the live dev stack (3 failures were `waitForLoadState('networkidle')` never settling with SSE open — same root cause fixed in `frontend/e2e/comprehensive-ui.spec.ts`; replaced with `'load'` in `tests/e2e/navigation.spec.ts`).
-- SPEC-0024 Phase 4-5: security (TASK-0142) → integration/CI (TASK-0143) — Phases 2 ✅ (TASK-0140) и 3 ✅ (TASK-0141, chaos 7/7 PASS, MTTR-доказательства) закрыты; chaos suite готов к CI-интеграции в TASK-0143.
+- SPEC-0024 Phase 5: integration/CI (TASK-0143) — Phases 2 ✅ (TASK-0140), 3 ✅ (TASK-0141, chaos 7/7 PASS, MTTR-доказательства) и 4 ✅ (TASK-0142, security baseline/full exit 0) закрыты; все три сьюта готовы к CI-интеграции в TASK-0143 (важно: compose-команды тест-стека требуют `--env-file .env.test`).
+- From TASK-0142 findings: RBAC-обслуживание не enforced + deleted-user JWT + logout denylist — нужен спека-решение; `docs/security/auth-rbac.md` doc-code mismatch (путь logout, отзыв токенов при смене пароля); dead path `/mcp/health` в PUBLIC_PATHS; ZAP authenticated baseline (скрипты image без `-H`); security results → Grafana (Phase 5).
 - From TASK-0140 findings: `dashboard/stats` perf task (standalone 1.06–1.33s @394 projects, 117/119 load timeouts, per-project aggregation suspect); 50-user throughput investigation (5.1 req/s, p50 1.1s — anyio threadpool saturation suspect); loki OTLP receiver for 3.4.2 (collector→loki:4317 refused; top-level `otlp:` invalid — reverted); grafana `dashboards/production` missing-dir walk + admin password doc mismatch (`admin_change_me` volume-init vs `.env.test` `admin_test`); Lighthouse frontend perf absent from scaffold.
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 
@@ -84,7 +85,7 @@ deleted server-side and was restored first at its last known SHA `d73868e`.
 **In progress:** none — next: pick from Queued.
 
 **Known discrepancies (to sync):**
-- SPEC-0024 Phase 2 ✅ (TASK-0140); Phase 3-5 pending (TASK-0141/0142/0143) — Phase 1 files в develop после MR !56.
+- SPEC-0024 Phase 2 ✅ (TASK-0140), Phase 3 ✅ (TASK-0141), Phase 4 ✅ (TASK-0142); Phase 5 pending (TASK-0143) — Phase 1 files в develop после MR !56.
 - ~~Дубль файла TASK-0116~~ — resolved 2026-10-16: `TASK-0116-m20-s22-2-file-uploads.md` помечен DUPLICATE (канонический файл — `...-evidence.md`, DONE).
 
 **Closed 2026-10-16 — dashboard tasks TASK-0120…0127 (SPEC-0025):** all 8
@@ -141,7 +142,7 @@ Follow-up: `bootstrap_upcp.py` scaffold templates still use legacy names
 **Queued:**
 - ~~Version bump~~ — done 2026-10-17: **0.22.0** (M20 ✅).
 - Component-gap follow-ups from B-matrix blocked rows (6): negative-count clamp in Dashboard health fallback (`?? 100` masks missing score), donut decimal rounding, `PortfolioProject` lacks `tasks_done/tasks_total` (needs type+backend), agent rows not navigable (`/agents/:id`), `progress_percent` not capped at 100, ProjectSelector `project_id` no client-side validation. Low/Medium severity — see TASK-0128 AC notes.
-- SPEC-0024 Phase 3-5 (chaos → security → integration) — TASK-0141/0142/0143; Phase 2 ✅ closed via TASK-0140. TASK-0140 finding follow-ups: `dashboard/stats` perf, 50-user throughput investigation, loki OTLP receiver (3.4.2), grafana production-folder + password docs, Lighthouse scaffold gap.
+- SPEC-0024 Phase 5 (integration → CI) — TASK-0143; Phases 2 ✅ (TASK-0140), 3 ✅ (TASK-0141), 4 ✅ (TASK-0142) закрыты. TASK-0140 finding follow-ups: `dashboard/stats` perf, 50-user throughput investigation, loki OTLP receiver (3.4.2), grafana production-folder + password docs, Lighthouse scaffold gap.
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 
 ## M17 Summary — Security & Stability
@@ -204,9 +205,9 @@ Three pillars: **Performance**, **Chaos Engineering**, **Security Testing**.
 | Phase | Scope | Status |
 |-------|-------|--------|
 | Phase 1: Foundation | docker-compose, metrics, seeder, basic Locust | ✅ Done |
-| Phase 2: Performance | All Locust scenarios, concurrency, SLI/SLO, analyzer | Pending |
-| Phase 3: Chaos | Docker chaos scripts, assertions, cascade failures | Pending |
-| Phase 4: Security | SAST, DAST, API fuzzing, auth tests, Kali pentest agent | Pending |
+| Phase 2: Performance | All Locust scenarios, concurrency, SLI/SLO, analyzer | ✅ Done (TASK-0140) |
+| Phase 3: Chaos | Docker chaos scripts, assertions, cascade failures | ✅ Done (TASK-0141) |
+| Phase 4: Security | SAST, DAST, API fuzzing, auth tests, Kali pentest agent | ✅ Done (TASK-0142) |
 | Phase 5: Integration | Aggregate reporter, CI/CD, Makefile targets, docs | Pending |
 
 ## UPCP v2 Project (Stage)

@@ -1,4 +1,10 @@
-"""Auth service — business logic for authentication flows."""
+"""Auth service — business logic for authentication flows.
+
+Commit invariant: every state-mutating success path commits explicitly
+before returning. `get_session`'s teardown commit runs AFTER the response
+is sent, so flush-only mutations race with the client's next request
+(immediate /auth/refresh after login → 401 — TASK-0142).
+"""
 
 from datetime import UTC, datetime
 
@@ -66,6 +72,8 @@ class AuthService:
         refresh = self._tokens.create_refresh_token(user.id, self._db)
 
         self._log_audit(user.id, email, "login_success")
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
 
         return {
             "user": {"id": user.id, "email": user.email, "display_name": user.display_name},
@@ -122,6 +130,8 @@ class AuthService:
         refresh = self._tokens.create_refresh_token(user.id, self._db)
 
         self._log_audit(user.id, email, "login_success", ip_address)
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
 
         return {
             "access_token": access,
@@ -135,6 +145,8 @@ class AuthService:
         """Revoke refresh token."""
         self._tokens.revoke_refresh_token(refresh_token, self._db)
         self._log_audit(user_id, "", "logout")
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
 
     # ── Refresh ────────────────────────────────────────────────────
 
@@ -143,6 +155,8 @@ class AuthService:
         record = self._tokens.verify_refresh_token(refresh_token, self._db)
         new_refresh = self._tokens.rotate_refresh_token(refresh_token, self._db)
         access = self._tokens.create_access_token(record.user_id)
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
 
         return {
             "access_token": access,
@@ -199,7 +213,8 @@ class AuthService:
             new_password.encode(), bcrypt.gensalt(rounds=12)
         ).decode()
         user.password_changed_at = datetime.now(UTC)
-        self._db.flush()
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
 
         self._log_audit(user_id, user.email, "password_change")
 
