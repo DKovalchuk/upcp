@@ -9,6 +9,7 @@ Requires: docker Python SDK (pip install docker)
 from __future__ import annotations
 
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -16,6 +17,9 @@ from enum import Enum
 import httpx
 
 logger = logging.getLogger("chaos.engine")
+
+# process-wide JWT cache for authenticated integrity probes
+_AUTH_CACHE: dict[str, str] | None = None
 
 try:
     import docker
@@ -87,6 +91,34 @@ class ChaosEngine:
         container = containers[0]
         self._containers[service_name] = container
         return container
+
+    def get_auth_headers(self) -> dict[str, str]:
+        """Cached JWT headers for authenticated data checks (TASK-0141).
+
+        Integrity probes hit GET /api/v1/projects, which requires a bearer
+        token — bare requests got 401 and failed every data check.
+        """
+        global _AUTH_CACHE
+        if _AUTH_CACHE is None:
+            email = os.getenv("PERF_EMAIL", "admin@example.com")
+            password = os.getenv("PERF_PASSWORD", "TestAdmin123!")
+            base = os.getenv("CHAOS_BASE_URL", "http://localhost:38082")
+            try:
+                resp = httpx.post(
+                    f"{base}/auth/login",
+                    json={"email": email, "password": password},
+                    timeout=10,
+                )
+                token = resp.json().get("access_token")
+                if resp.status_code == 200 and token:
+                    _AUTH_CACHE = {"Authorization": f"Bearer {token}"}
+                else:
+                    logger.warning("integrity login failed: HTTP %s", resp.status_code)
+            except Exception as e:
+                logger.warning("integrity login error: %s", e)
+            if _AUTH_CACHE is None:
+                _AUTH_CACHE = {}
+        return _AUTH_CACHE
 
     def get_status(self, service_name: str) -> ContainerInfo:
         """Get container status and health."""

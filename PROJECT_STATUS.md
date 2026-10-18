@@ -3,7 +3,7 @@
 Updated: 2026-10-18
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: TASK-0140 SPEC-0024 Phase 2 performance DONE (branch `feature/TASK-0140-phase2-performance`, MR pending); next from Queued
+Current Task: TASK-0141 SPEC-0024 Phase 3 chaos DONE (branch `feature/TASK-0141-phase3-chaos`, MR pending); next from Queued
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
@@ -61,7 +61,7 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
 - ~~Pre-existing e2e debt~~ — closed 2026-10-17 (TASK-0138): full `frontend/e2e` suite **153 passed / 0 failed** (was 102 failed). Root causes: mock catch-all registered LIFO-shadowing specific mocks, stale route shapes/selectors vs dashboard redesign+filtering, `networkidle` never settles with SSE, live-backend rate limiter 429, non-idempotent create data. 5 deleted tests = removed UI feature (verdict accept/reject buttons) + 1 vacuous stub, justified in TASK-0138.
 - ~~Product bug: public pages 401-redirect~~ — closed 2026-10-17 (TASK-0139): background notification infra gated on auth — `NotificationBell` unread-count query `enabled: isAuthenticated`, `useSSE` effect connects only when authenticated (aborts on logout). TDD red→green: root e2e `/setup` regression test, 2 vitest gating tests. Workaround mocks removed from frontend `auth.spec.ts` (heading guards kept). Evidence: root e2e 22/22, frontend e2e 153/153, vitest 433/433, lint/tsc clean. Note: live-stack runs require `docker compose --env-file .env.dev build frontend && up -d frontend` first — `upcp-frontend-1` serves a baked `dist/` (see project memory).
 - ~~Root `tests/e2e` suite re-run~~ — closed 2026-10-17: **21 passed / 0 failed** against the live dev stack (3 failures were `waitForLoadState('networkidle')` never settling with SSE open — same root cause fixed in `frontend/e2e/comprehensive-ui.spec.ts`; replaced with `'load'` in `tests/e2e/navigation.spec.ts`).
-- SPEC-0024 Phase 3-5: chaos (TASK-0141) → security (TASK-0142) → integration/CI (TASK-0143) — Phase 2 closed via TASK-0140 (suite first-ever run, reports + baselines).
+- SPEC-0024 Phase 4-5: security (TASK-0142) → integration/CI (TASK-0143) — Phases 2 ✅ (TASK-0140) и 3 ✅ (TASK-0141, chaos 7/7 PASS, MTTR-доказательства) закрыты; chaos suite готов к CI-интеграции в TASK-0143.
 - From TASK-0140 findings: `dashboard/stats` perf task (standalone 1.06–1.33s @394 projects, 117/119 load timeouts, per-project aggregation suspect); 50-user throughput investigation (5.1 req/s, p50 1.1s — anyio threadpool saturation suspect); loki OTLP receiver for 3.4.2 (collector→loki:4317 refused; top-level `otlp:` invalid — reverted); grafana `dashboards/production` missing-dir walk + admin password doc mismatch (`admin_change_me` volume-init vs `.env.test` `admin_test`); Lighthouse frontend perf absent from scaffold.
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 

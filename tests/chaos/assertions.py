@@ -25,7 +25,10 @@ class AssertionResult:
 @dataclass
 class ChaosVerdict:
     experiment: str
-    passed: bool
+    # default False: every scenario constructs ChaosVerdict(experiment=...)
+    # first and assigns .passed after assertions run (missing default broke
+    # all 6 scenarios on first execution — TASK-0141)
+    passed: bool = False
     assertions: list[AssertionResult] = field(default_factory=list)
     mttr_seconds: float = 0.0
     detection_seconds: float = 0.0
@@ -130,12 +133,29 @@ def assert_error_rate(
     )
 
 
+def extract_count(payload: object) -> int:
+    """Entity count from list or paginated-dict payloads.
+
+    Shared by initial captures and the integrity assertion: `len()` of a
+    paginated dict counts KEYS (items/total/limit/offset = 4), not
+    entities — that mismatch failed data checks (TASK-0141).
+    """
+    if isinstance(payload, list):
+        return len(payload)
+    if isinstance(payload, dict) and "total" in payload:
+        return int(payload["total"])
+    return -1
+
+
 def assert_data_integrity(
-    check_url: str, expected_count: int, timeout: float = 5.0
+    check_url: str,
+    expected_count: int,
+    timeout: float = 5.0,
+    headers: dict[str, str] | None = None,
 ) -> AssertionResult:
     """Assert data survived chaos (entity count unchanged)."""
     try:
-        resp = httpx.get(check_url, timeout=timeout)
+        resp = httpx.get(check_url, timeout=timeout, headers=headers)
         if resp.status_code != 200:
             return AssertionResult(
                 name="data_integrity",
@@ -145,13 +165,7 @@ def assert_data_integrity(
                 message=f"Data check failed: HTTP {resp.status_code}",
             )
         data = resp.json()
-        # Handle both list and paginated responses
-        if isinstance(data, list):
-            actual_count = len(data)
-        elif isinstance(data, dict) and "total" in data:
-            actual_count = data["total"]
-        else:
-            actual_count = -1  # Unknown format
+        actual_count = extract_count(data)
 
         passed = actual_count >= expected_count
         return AssertionResult(

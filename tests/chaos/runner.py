@@ -19,6 +19,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# repo root on sys.path so absolute `tests.chaos.*` imports resolve
+# when the runner is invoked as `python tests/chaos/runner.py`
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
