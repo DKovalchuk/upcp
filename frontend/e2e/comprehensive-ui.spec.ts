@@ -4,7 +4,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const PORT = process.env.UPCP_PORT_FRONTEND || '3072';
-const BASE_URL = `http://localhost:${PORT}`;
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${PORT}`;
 
 // Unique suffix per run so created entities (project/feature slugs, agent
 // names — all globally unique in the API) never collide with data from
@@ -45,6 +45,10 @@ test.afterEach(async () => {
   }
 });
 
+// Default = dev-stack admin password; the CI gate passes the seeded test-stack
+// credential via E2E_ADMIN_PASSWORD (TASK-0143)
+const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'admin123';
+
 // Cached tokens for all tests
 let cachedTokens: { accessToken: string; refreshToken: string } | null = null;
 
@@ -54,7 +58,7 @@ async function setupAndGetTokens(page: Page): Promise<{ accessToken: string; ref
 
   // Try login first
   const loginResp = await page.request.post(`${BASE_URL}/auth/login`, {
-    data: { email: 'admin@example.com', password: 'admin123' },
+    data: { email: 'admin@example.com', password: adminPassword },
   });
 
   if (loginResp.ok()) {

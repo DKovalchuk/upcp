@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -107,7 +108,9 @@ def run_experiment(name: str, **override_params) -> dict:
 
     from tests.chaos.engine import ChaosEngine
 
-    engine = ChaosEngine(compose_project="upcp-test")
+    # CI gate runs the ephemeral upcp-test-ci project — container lookup by
+    # compose label must follow it (TASK-0143)
+    engine = ChaosEngine(compose_project=os.getenv("CHAOS_COMPOSE_PROJECT", "upcp-test"))
 
     params = {**exp.get("params", {}), **override_params}
     verdict = module.run(engine, **params)

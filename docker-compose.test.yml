@@ -27,7 +27,9 @@ services:
     ports:
       - "127.0.0.1:${UPCP_PORT_POSTGRES:-35434}:5432"
     volumes:
-      - ./data/postgres-test:/var/lib/postgresql/data
+      # env-driven so the ephemeral CI gate stack (upcp-test-ci) never
+      # shares postgres data with the local test stack (TASK-0143)
+      - ${UPCP_DATA_POSTGRES:-./data/postgres-test}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U upcp -d upcp"]
       interval: 5s
@@ -44,7 +46,7 @@ services:
     ports:
       - "127.0.0.1:${UPCP_PORT_REDIS:-36383}:6379"
     volumes:
-      - ./data/redis-test:/data
+      - ${UPCP_DATA_REDIS:-./data/redis-test}:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -141,6 +143,28 @@ services:
         condition: service_healthy
     profiles:
       - tools
+
+  # ════════════════════════════════════════════════════════════
+  # CI quality-gate e2e (profile ci) — Playwright + bundled browsers
+  # ════════════════════════════════════════════════════════════
+  # Root suite:   docker compose --profile ci run --rm e2e \
+  #                 sh -c "npm ci --no-audit --no-fund && npx playwright test"
+  # Frontend:     docker compose --profile ci run --rm e2e \
+  #                 sh -c "cd frontend && npm ci --no-audit --no-fund && npx playwright test"
+  # uid 1000 = the dev-host user (so npm ci inside the mount never leaves
+  # root-owned node_modules); it is NOT pwuser (uid 1001) and /home/pwuser
+  # is 750 — npm's cache/logs go to world-writable /tmp (TASK-0143).
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.62.1
+    user: "1000:1000"
+    working_dir: /e2e
+    volumes:
+      - .:/e2e
+    environment:
+      HOME: /tmp
+      PLAYWRIGHT_BASE_URL: ${E2E_BASE_URL:-http://nginx}
+    profiles:
+      - ci
 
   # ════════════════════════════════════════════════════════════
   # Load Testing (Locust)

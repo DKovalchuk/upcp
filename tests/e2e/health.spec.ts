@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const API = 'http://127.0.0.1:38080';
+const API = process.env.E2E_API_BASE || 'http://127.0.0.1:38080';
 
 test.describe('Health checks', () => {
   test('backend /health returns ok', async ({ request }) => {

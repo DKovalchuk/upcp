@@ -181,6 +181,8 @@ def run_profile(
             compare_with_baseline,
             generate_report,
             parse_locust_csv,
+        )
+        from analyzer import (
             save_baseline as persist_baseline,
         )
 

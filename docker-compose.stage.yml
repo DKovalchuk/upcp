@@ -17,7 +17,9 @@ services:
     ports:
       - "127.0.0.1:${UPCP_PORT_POSTGRES:-35433}:5432"
     volumes:
-      - ./data/postgres-stage:/var/lib/postgresql/data
+      # env-driven: deploy:dev runs this file under its own project
+      # (upcp-dev) with separate data dirs (TASK-0143)
+      - ${UPCP_DATA_POSTGRES:-./data/postgres-stage}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U upcp -d upcp"]
       interval: 5s
@@ -30,7 +32,7 @@ services:
     ports:
       - "127.0.0.1:${UPCP_PORT_REDIS:-36382}:6379"
     volumes:
-      - ./data/redis-stage:/data
+      - ${UPCP_DATA_REDIS:-./data/redis-stage}:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

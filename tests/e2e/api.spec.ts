@@ -1,12 +1,15 @@
 import { test, expect } from '@playwright/test';
 
-const API = 'http://127.0.0.1:38080';
+const API = process.env.E2E_API_BASE || 'http://127.0.0.1:38080';
+// Default = dev-stack admin password; the CI gate passes the seeded test-stack
+// credential via E2E_ADMIN_PASSWORD (TASK-0143)
+const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'admin123';
 
 let token: string;
 
 test.beforeAll(async ({ request }) => {
   const resp = await request.post(`${API}/auth/login`, {
-    data: { email: 'admin@example.com', password: 'admin123' },
+    data: { email: 'admin@example.com', password: adminPassword },
   });
   token = (await resp.json()).access_token;
 });

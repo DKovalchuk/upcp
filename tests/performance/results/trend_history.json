@@ -5249,5 +5249,857 @@
         "total_requests": 1
       }
     }
+  },
+  {
+    "timestamp": "2026-10-18T16:33:12.311822",
+    "results": {
+      "/api/v1/agents [POST]": {
+        "p95_ms": 26.0,
+        "p99_ms": 26.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.13756894378889872,
+        "total_requests": 4
+      },
+      "/api/v1/agents/{id}/tokens [POST]": {
+        "p95_ms": 39.0,
+        "p99_ms": 39.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.13756894378889872,
+        "total_requests": 4
+      },
+      "/api/v1/projects [POST]": {
+        "p95_ms": 38.0,
+        "p99_ms": 38.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.3439223594722468,
+        "total_requests": 10
+      },
+      "/auth/login": {
+        "p95_ms": 370.0,
+        "p99_ms": 370.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.3439223594722468,
+        "total_requests": 10
+      },
+      "GET /api/v1/agent/inbox": {
+        "p95_ms": 54.0,
+        "p99_ms": 54.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.2407456516305728,
+        "total_requests": 7
+      },
+      "GET /api/v1/agent/me": {
+        "p95_ms": 30.0,
+        "p99_ms": 30.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.37831459541947154,
+        "total_requests": 11
+      },
+      "GET /api/v1/agent/playbook": {
+        "p95_ms": 28.0,
+        "p99_ms": 28.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.27513788757779745,
+        "total_requests": 8
+      },
+      "GET /api/v1/components/1127c72a-311c-4d2d-a6a8-6e325ff87dcb/modules": {
+        "p95_ms": 10.0,
+        "p99_ms": 10.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/components/4e753841-867d-4bfa-b91a-2ee3844994c1/modules": {
+        "p95_ms": 14.0,
+        "p99_ms": 14.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/components/67b931b7-18e1-44dc-a1af-fcc495843c12/modules": {
+        "p95_ms": 10.0,
+        "p99_ms": 10.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/components/88d7df43-ee22-4b34-93a5-656f01ffbc98/modules": {
+        "p95_ms": 23.0,
+        "p99_ms": 23.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.13756894378889872,
+        "total_requests": 4
+      },
+      "GET /api/v1/components/a77062b8-3049-4b96-9dac-e65da87f940d/modules": {
+        "p95_ms": 8.0,
+        "p99_ms": 8.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/components/f2eee464-07cc-4dd0-9f77-a74c91bcc7d9/modules": {
+        "p95_ms": 8.0,
+        "p99_ms": 8.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/dashboard/attention": {
+        "p95_ms": 110.0,
+        "p99_ms": 110.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.5846680111028196,
+        "total_requests": 17
+      },
+      "GET /api/v1/dashboard/stats": {
+        "p95_ms": 170.0,
+        "p99_ms": 170.0,
+        "error_rate_pct": 0.0,
+        "rps": 1.0661593143639652,
+        "total_requests": 31
+      },
+      "GET /api/v1/portfolio/overview": {
+        "p95_ms": 57.0,
+        "p99_ms": 57.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.2407456516305728,
+        "total_requests": 7
+      },
+      "GET /api/v1/projects": {
+        "p95_ms": 26.0,
+        "p99_ms": 52.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.9973748424695158,
+        "total_requests": 29
+      },
+      "GET /api/v1/projects/05f10143-dbe1-463a-8c82-99008ab1c721": {
+        "p95_ms": 12.0,
+        "p99_ms": 12.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/projects/05f10143-dbe1-463a-8c82-99008ab1c721/audit-events": {
+        "p95_ms": 9.0,
+        "p99_ms": 9.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/05f10143-dbe1-463a-8c82-99008ab1c721/components": {
+        "p95_ms": 15.0,
+        "p99_ms": 15.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/05f10143-dbe1-463a-8c82-99008ab1c721/features": {
+        "p95_ms": 47.0,
+        "p99_ms": 47.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/05f10143-dbe1-463a-8c82-99008ab1c721/tasks": {
+        "p95_ms": 12.0,
+        "p99_ms": 12.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/363a8ce6-a5e7-4996-8560-7eede8dcdede": {
+        "p95_ms": 9.0,
+        "p99_ms": 9.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/363a8ce6-a5e7-4996-8560-7eede8dcdede/audit-events": {
+        "p95_ms": 17.0,
+        "p99_ms": 17.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/363a8ce6-a5e7-4996-8560-7eede8dcdede/components": {
+        "p95_ms": 14.0,
+        "p99_ms": 14.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/363a8ce6-a5e7-4996-8560-7eede8dcdede/features": {
+        "p95_ms": 27.0,
+        "p99_ms": 27.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/projects/363a8ce6-a5e7-4996-8560-7eede8dcdede/health": {
+        "p95_ms": 23.0,
+        "p99_ms": 23.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/5a4f7664-e7f2-4da9-a6ea-5ea0bc61e2b0": {
+        "p95_ms": 12.0,
+        "p99_ms": 12.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/5a4f7664-e7f2-4da9-a6ea-5ea0bc61e2b0/audit-events": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/5a4f7664-e7f2-4da9-a6ea-5ea0bc61e2b0/components": {
+        "p95_ms": 12.0,
+        "p99_ms": 12.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/projects/5a4f7664-e7f2-4da9-a6ea-5ea0bc61e2b0/features": {
+        "p95_ms": 21.0,
+        "p99_ms": 21.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/projects/5a4f7664-e7f2-4da9-a6ea-5ea0bc61e2b0/health": {
+        "p95_ms": 17.0,
+        "p99_ms": 17.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/5a4f7664-e7f2-4da9-a6ea-5ea0bc61e2b0/tasks": {
+        "p95_ms": 20.0,
+        "p99_ms": 20.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/projects/5addbd4a-caa2-4b33-8543-9a6f335f89bb": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/5addbd4a-caa2-4b33-8543-9a6f335f89bb/audit-events": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/5addbd4a-caa2-4b33-8543-9a6f335f89bb/components": {
+        "p95_ms": 7.0,
+        "p99_ms": 7.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/5addbd4a-caa2-4b33-8543-9a6f335f89bb/features": {
+        "p95_ms": 11.0,
+        "p99_ms": 11.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/5addbd4a-caa2-4b33-8543-9a6f335f89bb/health": {
+        "p95_ms": 19.0,
+        "p99_ms": 19.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/5addbd4a-caa2-4b33-8543-9a6f335f89bb/tasks": {
+        "p95_ms": 17.0,
+        "p99_ms": 17.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/94183ac6-a350-4525-b0fd-6b0056baa40a": {
+        "p95_ms": 11.0,
+        "p99_ms": 11.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/94183ac6-a350-4525-b0fd-6b0056baa40a/audit-events": {
+        "p95_ms": 8.0,
+        "p99_ms": 8.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/94183ac6-a350-4525-b0fd-6b0056baa40a/components": {
+        "p95_ms": 15.0,
+        "p99_ms": 15.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/94183ac6-a350-4525-b0fd-6b0056baa40a/features": {
+        "p95_ms": 50.0,
+        "p99_ms": 50.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.13756894378889872,
+        "total_requests": 4
+      },
+      "GET /api/v1/projects/94183ac6-a350-4525-b0fd-6b0056baa40a/tasks": {
+        "p95_ms": 11.0,
+        "p99_ms": 11.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/95d9cdf5-8696-4587-9f9d-46971270b48e": {
+        "p95_ms": 16.0,
+        "p99_ms": 16.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/95d9cdf5-8696-4587-9f9d-46971270b48e/components": {
+        "p95_ms": 19.0,
+        "p99_ms": 19.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/95d9cdf5-8696-4587-9f9d-46971270b48e/features": {
+        "p95_ms": 41.0,
+        "p99_ms": 41.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.13756894378889872,
+        "total_requests": 4
+      },
+      "GET /api/v1/projects/95d9cdf5-8696-4587-9f9d-46971270b48e/tasks": {
+        "p95_ms": 18.0,
+        "p99_ms": 18.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/ba6bf04b-2d67-4efb-a8a6-53e2fa4a201a/audit-events": {
+        "p95_ms": 12.0,
+        "p99_ms": 12.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/ba6bf04b-2d67-4efb-a8a6-53e2fa4a201a/components": {
+        "p95_ms": 14.0,
+        "p99_ms": 14.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/projects/ba6bf04b-2d67-4efb-a8a6-53e2fa4a201a/features": {
+        "p95_ms": 23.0,
+        "p99_ms": 23.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.2063534156833481,
+        "total_requests": 6
+      },
+      "GET /api/v1/projects/e0edc409-e86c-4051-a959-76264d148271": {
+        "p95_ms": 15.0,
+        "p99_ms": 15.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/e0edc409-e86c-4051-a959-76264d148271/features": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/e0edc409-e86c-4051-a959-76264d148271/tasks": {
+        "p95_ms": 14.0,
+        "p99_ms": 14.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/e4aca91b-31ba-4c59-87f4-c279e7202f24": {
+        "p95_ms": 16.0,
+        "p99_ms": 16.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/projects/e4aca91b-31ba-4c59-87f4-c279e7202f24/components": {
+        "p95_ms": 16.0,
+        "p99_ms": 16.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/e4aca91b-31ba-4c59-87f4-c279e7202f24/features": {
+        "p95_ms": 19.0,
+        "p99_ms": 19.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.1719611797361234,
+        "total_requests": 5
+      },
+      "GET /api/v1/projects/e4aca91b-31ba-4c59-87f4-c279e7202f24/tasks": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/projects/e80d2551-0f1b-4c67-9964-1abc5e8a93b3/audit-events": {
+        "p95_ms": 15.0,
+        "p99_ms": 15.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/projects/e80d2551-0f1b-4c67-9964-1abc5e8a93b3/components": {
+        "p95_ms": 20.0,
+        "p99_ms": 20.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/projects/e80d2551-0f1b-4c67-9964-1abc5e8a93b3/features": {
+        "p95_ms": 12.0,
+        "p99_ms": 12.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/projects/e80d2551-0f1b-4c67-9964-1abc5e8a93b3/tasks": {
+        "p95_ms": 7.0,
+        "p99_ms": 7.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/search?q=component": {
+        "p95_ms": 35.0,
+        "p99_ms": 35.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/search?q=feature": {
+        "p95_ms": 27.0,
+        "p99_ms": 27.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.2407456516305728,
+        "total_requests": 7
+      },
+      "GET /api/v1/search?q=project": {
+        "p95_ms": 27.0,
+        "p99_ms": 27.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/search?q=task": {
+        "p95_ms": 17.0,
+        "p99_ms": 17.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/search?q=test": {
+        "p95_ms": 18.0,
+        "p99_ms": 18.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.13756894378889872,
+        "total_requests": 4
+      },
+      "GET /api/v1/tasks/11780b37-5c0f-4092-a298-53164efd8b65": {
+        "p95_ms": 6.0,
+        "p99_ms": 6.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/tasks/11780b37-5c0f-4092-a298-53164efd8b65/acceptance-criteria": {
+        "p95_ms": 16.0,
+        "p99_ms": 16.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/tasks/1564c10c-f96c-4bfd-a0bd-5dcd892c37bd": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/tasks/1564c10c-f96c-4bfd-a0bd-5dcd892c37bd/acceptance-criteria": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.13756894378889872,
+        "total_requests": 4
+      },
+      "GET /api/v1/tasks/1564c10c-f96c-4bfd-a0bd-5dcd892c37bd/dod-items": {
+        "p95_ms": 15.0,
+        "p99_ms": 15.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.13756894378889872,
+        "total_requests": 4
+      },
+      "GET /api/v1/tasks/436cba71-9ba6-44b2-8662-02b71a5601fb": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/tasks/436cba71-9ba6-44b2-8662-02b71a5601fb/dod-items": {
+        "p95_ms": 12.0,
+        "p99_ms": 12.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/tasks/5836bdbd-ce9e-4aa8-92e9-1e685ced50b2": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/tasks/5836bdbd-ce9e-4aa8-92e9-1e685ced50b2/acceptance-criteria": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /api/v1/tasks/8e28e824-cb92-4fc9-8e68-dbb1bedd5d90": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/tasks/8e28e824-cb92-4fc9-8e68-dbb1bedd5d90/dod-items": {
+        "p95_ms": 18.0,
+        "p99_ms": 18.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/tasks/a8b2edf1-c4c5-4157-ba39-733a198306c4/acceptance-criteria": {
+        "p95_ms": 29.0,
+        "p99_ms": 29.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.1719611797361234,
+        "total_requests": 5
+      },
+      "GET /api/v1/tasks/a8b2edf1-c4c5-4157-ba39-733a198306c4/dod-items": {
+        "p95_ms": 8.0,
+        "p99_ms": 8.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/tasks/cabc8908-71d9-45be-9848-c57b9f98e53d/acceptance-criteria": {
+        "p95_ms": 7.0,
+        "p99_ms": 7.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/tasks/cabc8908-71d9-45be-9848-c57b9f98e53d/dod-items": {
+        "p95_ms": 13.0,
+        "p99_ms": 13.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/tasks/cc5f1032-b724-4ce8-ae58-465c92b49e9a": {
+        "p95_ms": 18.0,
+        "p99_ms": 18.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/tasks/cc5f1032-b724-4ce8-ae58-465c92b49e9a/acceptance-criteria": {
+        "p95_ms": 22.0,
+        "p99_ms": 22.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/tasks/cc5f1032-b724-4ce8-ae58-465c92b49e9a/dod-items": {
+        "p95_ms": 10.0,
+        "p99_ms": 10.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/tasks/da9ae036-4a98-4137-bc82-c241b0cb0197/acceptance-criteria": {
+        "p95_ms": 12.0,
+        "p99_ms": 12.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/tasks/f027ccff-3d18-4efa-8368-d7d50ce09977": {
+        "p95_ms": 10.0,
+        "p99_ms": 10.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "GET /api/v1/tasks/f027ccff-3d18-4efa-8368-d7d50ce09977/acceptance-criteria": {
+        "p95_ms": 15.0,
+        "p99_ms": 15.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "GET /api/v1/tasks/f027ccff-3d18-4efa-8368-d7d50ce09977/dod-items": {
+        "p95_ms": 23.0,
+        "p99_ms": 23.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "GET /health": {
+        "p95_ms": 57.0,
+        "p99_ms": 57.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.5158835392083703,
+        "total_requests": 15
+      },
+      "PATCH /api/v1/tasks/1564c10c-f96c-4bfd-a0bd-5dcd892c37bd": {
+        "p95_ms": 14.0,
+        "p99_ms": 14.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "PATCH /api/v1/tasks/5836bdbd-ce9e-4aa8-92e9-1e685ced50b2": {
+        "p95_ms": 7.0,
+        "p99_ms": 7.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "PATCH /api/v1/tasks/8e28e824-cb92-4fc9-8e68-dbb1bedd5d90": {
+        "p95_ms": 12.0,
+        "p99_ms": 12.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "PATCH /api/v1/tasks/f027ccff-3d18-4efa-8368-d7d50ce09977": {
+        "p95_ms": 11.0,
+        "p99_ms": 11.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "POST /api/v1/features/15187393-2338-483c-9ff6-7238dd6cec7c/tasks": {
+        "p95_ms": 7.0,
+        "p99_ms": 7.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/features/2bb81d5e-865c-4c35-a767-f6225419f510/tasks": {
+        "p95_ms": 52.0,
+        "p99_ms": 52.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "POST /api/v1/features/494338ee-2293-4731-8659-bfdb910c3fe0/tasks": {
+        "p95_ms": 19.0,
+        "p99_ms": 19.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "POST /api/v1/features/5a74aa2d-b128-4988-bb6b-499b81434611/tasks": {
+        "p95_ms": 18.0,
+        "p99_ms": 18.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/features/5b596c8f-7617-4542-a07b-67673700491f/tasks": {
+        "p95_ms": 14.0,
+        "p99_ms": 14.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/features/5c1d970f-9a5d-4c51-987c-63c7f2dba6cd/tasks": {
+        "p95_ms": 10.0,
+        "p99_ms": 10.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/features/90b48a6a-c4cf-415a-9311-d909b0497784/tasks": {
+        "p95_ms": 16.0,
+        "p99_ms": 16.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.10317670784167406,
+        "total_requests": 3
+      },
+      "POST /api/v1/features/c875ec4c-30bc-48fe-9404-45893f3d44b7/tasks": {
+        "p95_ms": 16.0,
+        "p99_ms": 16.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.06878447189444936,
+        "total_requests": 2
+      },
+      "POST /api/v1/features/dd789c4b-9a28-45ad-af78-d7e6bce2c14d/tasks": {
+        "p95_ms": 8.0,
+        "p99_ms": 8.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/features/e3cf9db7-876d-41e3-8f08-2f13f319ccd4/tasks": {
+        "p95_ms": 16.0,
+        "p99_ms": 16.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects": {
+        "p95_ms": 22.0,
+        "p99_ms": 22.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.2063534156833481,
+        "total_requests": 6
+      },
+      "POST /api/v1/projects/05f10143-dbe1-463a-8c82-99008ab1c721/components": {
+        "p95_ms": 17.0,
+        "p99_ms": 17.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/05f10143-dbe1-463a-8c82-99008ab1c721/features": {
+        "p95_ms": 14.0,
+        "p99_ms": 14.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/363a8ce6-a5e7-4996-8560-7eede8dcdede/features": {
+        "p95_ms": 25.0,
+        "p99_ms": 25.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/5a4f7664-e7f2-4da9-a6ea-5ea0bc61e2b0/features": {
+        "p95_ms": 23.0,
+        "p99_ms": 23.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/5addbd4a-caa2-4b33-8543-9a6f335f89bb/components": {
+        "p95_ms": 22.0,
+        "p99_ms": 22.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/5addbd4a-caa2-4b33-8543-9a6f335f89bb/features": {
+        "p95_ms": 95.0,
+        "p99_ms": 95.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/94183ac6-a350-4525-b0fd-6b0056baa40a/components": {
+        "p95_ms": 24.0,
+        "p99_ms": 24.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/94183ac6-a350-4525-b0fd-6b0056baa40a/features": {
+        "p95_ms": 11.0,
+        "p99_ms": 11.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/95d9cdf5-8696-4587-9f9d-46971270b48e/components": {
+        "p95_ms": 18.0,
+        "p99_ms": 18.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/95d9cdf5-8696-4587-9f9d-46971270b48e/features": {
+        "p95_ms": 10.0,
+        "p99_ms": 10.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/ba6bf04b-2d67-4efb-a8a6-53e2fa4a201a/features": {
+        "p95_ms": 14.0,
+        "p99_ms": 14.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/e0edc409-e86c-4051-a959-76264d148271/components": {
+        "p95_ms": 15.0,
+        "p99_ms": 15.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/e0edc409-e86c-4051-a959-76264d148271/features": {
+        "p95_ms": 25.0,
+        "p99_ms": 25.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/e4aca91b-31ba-4c59-87f4-c279e7202f24/components": {
+        "p95_ms": 15.0,
+        "p99_ms": 15.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/e4aca91b-31ba-4c59-87f4-c279e7202f24/features": {
+        "p95_ms": 29.0,
+        "p99_ms": 29.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      },
+      "POST /api/v1/projects/e80d2551-0f1b-4c67-9964-1abc5e8a93b3/features": {
+        "p95_ms": 11.0,
+        "p99_ms": 11.0,
+        "error_rate_pct": 0.0,
+        "rps": 0.03439223594722468,
+        "total_requests": 1
+      }
+    }
   }
 ]

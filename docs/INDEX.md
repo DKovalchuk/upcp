@@ -95,6 +95,8 @@ Read only what is needed for the current task.
 | Doc | Purpose |
 |---|---|
 | `ops/docker-compose.md` | Docker configuration |
+| `ops/environments.md` | Environment model: dev/test/stage/prod, ports, who deploys what |
+| `ops/ci-quality-gates.md` | CI quality gate: tiers, failure policy, reports, local runs |
 | `ops/ci-retention.md` | Registry/image retention rules + cleanup jobs |
 | `ops/observability-stack.md` | Observability setup |
 | `ops/grafana-dashboards.md` | Dashboard specifications |
