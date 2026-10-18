@@ -17,6 +17,7 @@
 stages:
   - lint
   - test
+  - quality
   - build
   - deploy
 
@@ -27,6 +28,8 @@ workflow:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
+    # nightly quality-gate runs (pipeline schedule on develop, TASK-0143)
+    - if: $CI_PIPELINE_SOURCE == "schedule"
 
 default:
   tags:
@@ -306,7 +309,134 @@ container:scan:backend:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ══════════════════════════════════════════════════════════════
-# CD: BUILD — stage 3 (only on develop push and main push)
+# CI: QUALITY GATE — stage 3 (SPEC-0024 Phase 5, TASK-0143)
+# ══════════════════════════════════════════════════════════════
+#
+# Ephemeral hermetic test stack (upcp-test-ci via .env.ci); suites run
+# INSIDE its network — job containers cannot reach host loopback (the
+# deploy-probe incident). Two-phase policy: allow_failure: true until
+# >=2 green develop + >=1 green schedule runs are observed, then flipped
+# to a hard gate in a follow-up commit. Nightly `perf load` never gates
+# (honest red SLO — TASK-0140 findings).
+
+quality:gate:
+  stage: quality
+  image: python:3.12-slim
+  extends:
+    - .retry-on-system-failure
+  timeout: 1 hour 30 minutes
+  resource_group: quality-gate
+  allow_failure: true
+  needs:
+    - job: backend:test
+    - job: backend:migrations
+  variables:
+    # COMPOSE_FILE pins every compose invocation (incl. nested ones inside
+    # suite wrappers) to the test stack — without it compose would pick
+    # docker-compose.yml (the dev stack) from the repo root
+    COMPOSE_FILE: docker-compose.test.yml
+    COMPOSE_PROJECT_NAME: upcp-test-ci
+    DOCKER_HOST: unix:///var/run/docker.sock
+    DOCKER_TLS_CERTDIR: ""
+    QUALITY_PROFILE: "quick"
+    E2E_BASE_URL: "http://nginx"
+    CHAOS_BASE_URL: "http://app:8080"
+    CHAOS_COMPOSE_PROJECT: "upcp-test-ci"
+    SECURITY_BASE_URL: "http://app:8080"
+    # authz RBAC fixtures discover the second user via a direct DB lookup —
+    # must point at the gate stack's postgres (from .env.ci), not the local
+    # test stack's 35434 (wrong-DB member ids failed 3 checks in rehearsal)
+    SECURITY_DB_PORT: "35436"
+    LOCUST_HOST: "http://app:8080"
+  rules:
+    # nightly schedule → full profiles (chaos full, security full, perf load)
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      variables:
+        QUALITY_PROFILE: "full"
+    - if: $CI_COMMIT_BRANCH == "develop"
+  before_script:
+    # docker CLI + compose plugin: job image is python-slim, the runner only
+    # injects the daemon socket (same approach as .docker-build-base)
+    - apt-get update -qq
+    - apt-get install -y -qq ca-certificates curl gnupg >/dev/null
+    - install -m0755 -d /etc/apt/keyrings
+    - curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+    - chmod a+r /etc/apt/keyrings/docker.asc
+    - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+    - apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin >/dev/null
+    - pip install --quiet -r tests/security/requirements.txt -r tests/chaos/requirements.txt -r tests/performance/requirements.txt locust
+    - docker compose version
+  script:
+    # ── 1. reporter unit tests (TDD'd in-repo) + compose config sanity ──
+    - python -m pytest tests/quality_gate -o addopts= -o pythonpath= -q
+    - docker compose --env-file .env.ci config --quiet
+    # ── 2. ephemeral stack from THIS commit (images rebuilt; layer cache on the shared daemon) ──
+    - docker compose --env-file .env.ci build app frontend nginx
+    - docker compose --env-file .env.ci up -d db redis app frontend nginx
+    - |
+      healthy=0
+      for i in $(seq 1 40); do
+        if docker compose --env-file .env.ci exec -T app python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)" 2>/dev/null; then
+          healthy=1; break
+        fi
+        sleep 3
+      done
+      if [ "$healthy" -ne 1 ]; then
+        echo "ERROR: gate stack never became healthy — logs:"
+        docker compose --env-file .env.ci logs --tail 100 app db || true
+        exit 1
+      fi
+    # ── 3. job joins the gate network — suites resolve http://app:8080 / http://nginx
+    #       (job container sits on gitlab-local_default; host loopback is unreachable) ──
+    - docker network connect upcp-test-ci_default "$(cat /etc/hostname)"
+    - python -c "import httpx,sys; sys.exit(0 if httpx.get('http://app:8080/health',timeout=5).status_code==200 else 1)"
+    - docker compose --env-file .env.ci --profile tools run --rm seeder
+    # ── 4. suites — profiles chosen by QUALITY_PROFILE; RCs collected, report always runs ──
+    - chown 1000:1000 . frontend || true
+    - RC_E2E=0 RC_E2E_FE=0 RC_CHAOS=0 RC_SEC=0 RC_PERF=0
+    - |
+      if [ "$QUALITY_PROFILE" = "full" ]; then
+        CHAOS_P=full; SEC_P=full; PERF_P=load
+      else
+        CHAOS_P=quick; SEC_P=baseline; PERF_P=smoke
+      fi
+    # Root suite: 3 specs call the API directly (nginx.test.conf does not
+    # proxy /openapi.json, /metrics) → E2E_API_BASE; SPA login goes same-origin
+    # via the new /auth location in nginx.test.conf.
+    # Frontend suite: vite proxy target VITE_API_URL; its own vite origin.
+    - docker compose --env-file .env.ci --profile ci run --rm -e E2E_API_BASE=http://app:8080 -e E2E_ADMIN_PASSWORD=TestAdmin123! e2e sh -c "npm ci --no-audit --no-fund && npx playwright test" || RC_E2E=$?
+    - docker compose --env-file .env.ci --profile ci run --rm -e PLAYWRIGHT_BASE_URL=http://localhost:5173 -e VITE_API_URL=http://app:8080 -e E2E_ADMIN_PASSWORD=TestAdmin123! e2e sh -c "cd frontend && npm ci --no-audit --no-fund && npx playwright test" || RC_E2E_FE=$?
+    - python tests/chaos/runner.py --profile "$CHAOS_P" --report || RC_CHAOS=$?
+    - python tests/security/runner.py --profile "$SEC_P" --report || RC_SEC=$?
+    - python tests/performance/runner.py --profile "$PERF_P" --report || RC_PERF=$?
+    # ── 5. aggregate report (artifact) + gate verdict ──
+    - python tests/quality_gate/aggregate.py --results-root tests --out-dir . --profile "$QUALITY_PROFILE"
+    - |
+      echo "RCs: e2e=$RC_E2E e2e_fe=$RC_E2E_FE chaos=$RC_CHAOS security=$RC_SEC perf=$RC_PERF"
+      GATE=$RC_E2E
+      for rc in $RC_E2E_FE $RC_CHAOS $RC_SEC; do [ "$rc" -gt "$GATE" ] && GATE=$rc; done
+      # perf gates only on quick (smoke must pass); the nightly load profile is
+      # the known-honest-red SLO run (TASK-0140) → report-only, never gates
+      if [ "$QUALITY_PROFILE" = "quick" ] && [ "$RC_PERF" -gt "$GATE" ]; then GATE=$RC_PERF; fi
+      echo "quality gate exit: $GATE"
+      exit $GATE
+  after_script:
+    - docker compose --env-file .env.ci --profile tools --profile ci --profile security down -v --remove-orphans || true
+  artifacts:
+    when: always
+    paths:
+      - quality-report.md
+      - quality-report.json
+      - tests/chaos/results/
+      - tests/security/results/
+      - tests/performance/results/
+      - tests/chaos/reports/*.md
+      - tests/security/reports/*.md
+      - tests/performance/reports/*.md
+    expire_in: 30 days
+
+# ══════════════════════════════════════════════════════════════
+# CD: BUILD — stage 4 (only on develop push and main push)
 # ══════════════════════════════════════════════════════════════
 
 build:backend:
@@ -388,9 +518,19 @@ deploy:dev:
     DOCKER_TLS_CERTDIR: ""
     REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
     GIT_STRATEGY: clone
+    # Dev environment owns its compose project/ports/data — it used to share
+    # the upcp-stage project with deploy:stage (whoever ran last won).
+    # Split + honest URL per TASK-0143 (stage stays 3070/38081/35433/36382).
+    COMPOSE_PROJECT_NAME: upcp-dev
+    UPCP_PORT_FRONTEND: "3073"
+    UPCP_PORT_BACKEND: "38083"
+    UPCP_PORT_POSTGRES: "35435"
+    UPCP_PORT_REDIS: "36384"
+    UPCP_DATA_POSTGRES: ./data/postgres-dev
+    UPCP_DATA_REDIS: ./data/redis-dev
   environment:
     name: dev
-    url: http://localhost:3080
+    url: http://localhost:3073
   resource_group: dev
   needs:
     - build:backend
@@ -438,7 +578,7 @@ deploy:stage:
     GIT_STRATEGY: clone
   environment:
     name: stage
-    url: http://localhost:3080
+    url: http://localhost:3070
   resource_group: stage
   needs:
     - build:backend
