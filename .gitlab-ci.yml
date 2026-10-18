@@ -343,10 +343,12 @@ quality:gate:
     CHAOS_BASE_URL: "http://app:8080"
     CHAOS_COMPOSE_PROJECT: "upcp-test-ci"
     SECURITY_BASE_URL: "http://app:8080"
-    # authz RBAC fixtures discover the second user via a direct DB lookup —
-    # must point at the gate stack's postgres (from .env.ci), not the local
-    # test stack's 35434 (wrong-DB member ids failed 3 checks in rehearsal)
-    SECURITY_DB_PORT: "35436"
+    # authz RBAC fixtures discover the second user via a direct DB lookup:
+    # in-network the gate db is `db:5432` — localhost:35436 is a HOST port
+    # unreachable from the job container, so the localhost default made
+    # 4 RBAC tests skip (instead of executing) in the first CI gate runs
+    SECURITY_DB_HOST: "db"
+    SECURITY_DB_PORT: "5432"
     LOCUST_HOST: "http://app:8080"
   rules:
     # nightly schedule → full profiles (chaos full, security full, perf load)
@@ -428,7 +430,11 @@ quality:gate:
     - docker compose --env-file .env.ci --profile ci run --rm -e PLAYWRIGHT_BASE_URL=http://localhost:5173 -e VITE_API_URL=http://app:8080 -e E2E_ADMIN_PASSWORD=TestAdmin123! e2e sh -c "cd frontend && npm ci --no-audit --no-fund && npx playwright test" || RC_E2E_FE=$?
     - python tests/chaos/runner.py --profile "$CHAOS_P" --report || RC_CHAOS=$?
     - python tests/security/runner.py --profile "$SEC_P" --report || RC_SEC=$?
-    - python tests/performance/runner.py --profile "$PERF_P" --report || RC_PERF=$?
+    # locust's periodic stats flooded the 4MB job-log cap on the nightly
+    # full profile (output was cut before the verdict) — capture to a file
+    # and tail it; CSV/markdown results still land in the artifact paths
+    - python tests/performance/runner.py --profile "$PERF_P" --report > /tmp/perf_run.log 2>&1 || RC_PERF=$?
+    - tail -n 40 /tmp/perf_run.log
     # ── 5. aggregate report (artifact) + gate verdict ──
     - python tests/quality_gate/aggregate.py --results-root tests --out-dir . --profile "$QUALITY_PROFILE"
     - |
