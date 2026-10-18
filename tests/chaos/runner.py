@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import logging
 import os
@@ -113,15 +114,26 @@ def run_experiment(name: str, **override_params) -> dict:
     engine = ChaosEngine(compose_project=os.getenv("CHAOS_COMPOSE_PROJECT", "upcp-test"))
 
     params = {**exp.get("params", {}), **override_params}
-    # Scenarios default health_url to the LOCAL test stack (:38082) — pass it
-    # from CHAOS_BASE_URL so probes hit the stack the experiment actually
-    # targets. The hardcoded default looked green in local rehearsals only
-    # because a local test stack happened to occupy :38082; in CI nothing
-    # listened there and every experiment failed at "Step 1" (TASK-0143).
-    params.setdefault(
-        "health_url",
-        os.getenv("CHAOS_BASE_URL", "http://localhost:38082").rstrip("/") + "/health",
-    )
+    # Scenarios default ALL probe URLs (health/api/data) to the LOCAL test
+    # stack (:38082) — derive them from CHAOS_BASE_URL so every probe hits
+    # the stack the experiment actually targets. Only keys the scenario
+    # signature accepts are filled (run() takes health_url + api_url or
+    # data_url). The hardcoded defaults looked green in local rehearsals
+    # only because a local test stack occupies :38082 — the pre-fix
+    # identity run showed integrity probing :38082 while CHAOS_BASE_URL
+    # pointed at :38084 (experiment still PASSed = masked); in CI nothing
+    # listened there and integrity/degradation/traffic assertions failed
+    # (0/7 in pipelines 451/455) (TASK-0143).
+    base = os.getenv("CHAOS_BASE_URL", "http://localhost:38082").rstrip("/")
+    url_defaults = {
+        "health_url": f"{base}/health",
+        "api_url": f"{base}/api/v1/projects",
+        "data_url": f"{base}/api/v1/projects",
+    }
+    accepted = inspect.signature(module.run).parameters
+    for key, value in url_defaults.items():
+        if key in accepted:
+            params.setdefault(key, value)
     verdict = module.run(engine, **params)
 
     return {
