@@ -161,7 +161,7 @@ Env sets — CI suites run **inside** the gate network (the job joined it,
 | Frontend e2e vite origin (`PLAYWRIGHT_BASE_URL`) | `http://localhost:5173` | `http://localhost:5173` |
 | Frontend e2e proxy target (`VITE_API_URL`) | `http://app:8080` | `http://localhost:38084` |
 | `CHAOS_COMPOSE_PROJECT` | `upcp-test-ci` | `upcp-test-ci` |
-| `SECURITY_DB_PORT` (authz DB fixture) | `35436` | `35436` |
+| `SECURITY_DB_HOST` / `SECURITY_DB_PORT` (authz DB fixture) | `db:5432` | `127.0.0.1:35436` |
 
 Notes for local runs:
 
@@ -182,9 +182,10 @@ Notes for local runs:
 
 `workflow.rules` accepts `$CI_PIPELINE_SOURCE == "schedule"` and the
 `quality:gate` rule maps schedule → `QUALITY_PROFILE=full`. The schedule
-itself is a project setting, **not part of `.gitlab-ci.yml`** — create it
-once in the GitLab UI (Settings → CI/CD → Schedules): branch `develop`,
-daily ~03:00. As of 2026-10-18 it is **not yet created** (TASK-0143 AC
-pending; verified empty via the pipeline-schedules API), so the full
-profile has no automated trigger until then. Triggering an existing
-schedule manually from the UI is also the "manual tier" of §1.
+is a project setting, not part of `.gitlab-ci.yml` — it exists as
+pipeline schedule **id 1** (branch `develop`, daily **03:00
+Europe/Moscow**, `QUALITY_PROFILE=full`), created 2026-10-18 via the
+pipeline-schedules API. Trigger it on demand with
+`POST /api/v4/projects/:id/pipeline_schedules/1/play` (or the ▶ button
+in Settings → CI/CD → Schedules) — that manual trigger doubles as the
+"manual tier" of §1.
