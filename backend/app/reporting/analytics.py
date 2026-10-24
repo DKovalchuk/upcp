@@ -172,6 +172,10 @@ class AnalyticsService:
             for k, v in sorted(daily.items())
         ]
 
-    def get_agents_overview(self) -> list[dict[str, Any]]:
-        """All agents summary."""
-        return self.get_agent_performance()
+    def get_agents_overview(
+        self, limit: int = 20, offset: int = 0
+    ) -> tuple[list[dict[str, Any]], int]:
+        """All agents summary, paginated. Returns (items, total)."""
+        items = self.get_agent_performance()
+        total = len(items)
+        return items[offset : offset + limit], total

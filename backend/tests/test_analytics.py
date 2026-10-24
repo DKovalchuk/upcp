@@ -56,8 +56,44 @@ class TestAnalyticsService:
 
     def test_agents_overview_empty(self, db_session):
         svc = AnalyticsService(db_session)
-        overview = svc.get_agents_overview()
-        assert overview == []
+        items, total = svc.get_agents_overview()
+        assert items == []
+        assert total == 0
+
+    def test_agents_overview_pagination(self, db_session):
+        pid, fid = _setup_project(db_session)
+        now = datetime.now(UTC)
+        for aid in ("agent-1", "agent-2", "agent-3"):
+            tid = new_id()
+            db_session.add(
+                Task(
+                    id=tid,
+                    feature_id=fid,
+                    title=f"T-{aid}",
+                    status="done",
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            db_session.add(
+                TaskClaim(
+                    id=new_id(),
+                    task_id=tid,
+                    agent_id=aid,
+                    claimed_at=now,
+                )
+            )
+        db_session.commit()
+
+        svc = AnalyticsService(db_session)
+        items, total = svc.get_agents_overview(limit=2, offset=0)
+        assert total == 3
+        assert len(items) == 2
+        assert [i["agent_id"] for i in items] == ["agent-1", "agent-2"]
+
+        items2, total2 = svc.get_agents_overview(limit=2, offset=1)
+        assert total2 == 3
+        assert [i["agent_id"] for i in items2] == ["agent-2", "agent-3"]
 
     def test_agent_performance_with_claims(self, db_session):
         pid, fid = _setup_project(db_session)
