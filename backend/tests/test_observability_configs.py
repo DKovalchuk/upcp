@@ -53,3 +53,28 @@ def test_loki_config_has_no_invalid_top_level_otlp_block() -> None:
         "top-level otlp: fails -verify-config on grafana/loki:3.4.2 "
         "('field otlp not found in type loki.ConfigWrapper') — TASK-0151"
     )
+
+
+def test_grafana_provisioning_dashboard_paths_exist() -> None:
+    """Every provisioned dashboard folder must exist on disk (TASK-0152).
+
+    Grafana walks each provider's `options.path`; a missing host dir
+    (`observability/grafana/dashboards/<name>`) means the bind-mounted
+    container path is missing too → provisioning walk error on startup
+    (finding: `dashboards/production` never existed).
+    """
+    import re
+
+    providers_dir = _ROOT / "observability" / "grafana" / "provisioning" / "dashboards"
+    providers_yaml = "\n".join(
+        p.read_text(encoding="utf-8") for p in sorted(providers_dir.glob("*.yaml"))
+    )
+    names = re.findall(r"path:\s*/etc/grafana/dashboards/([A-Za-z0-9_-]+)", providers_yaml)
+    assert names, "no provisioned dashboard paths found — provisioning yml changed shape?"
+
+    dashboards_root = _ROOT / "observability" / "grafana" / "dashboards"
+    missing = [n for n in names if not (dashboards_root / n).is_dir()]
+    assert not missing, (
+        f"provisioned dashboard folder(s) missing on disk: {missing} — "
+        "Grafana's file provider walk-errors on startup (TASK-0152)"
+    )
