@@ -127,6 +127,12 @@ class EvidenceService:
         dod_item_id: str | None = None,
     ) -> Evidence:
         """Upload a file and create an evidence record with file metadata."""
+        # Validate the parent before any file I/O: the FK-off test engines
+        # used to accept orphan task_ids (POST would 201 with a dangling
+        # row); under FK enforcement it surfaced as an unhandled 500.
+        if self._session.get(Task, task_id) is None:
+            raise NotFound(f"task '{task_id}' not found")
+
         content_type = getattr(file, "content_type", None) or "application/octet-stream"
         file_name = getattr(file, "filename", None) or "unnamed"
 
