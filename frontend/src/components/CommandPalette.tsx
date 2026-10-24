@@ -24,6 +24,7 @@ import {
   FileText,
   Search,
   BarChart3,
+  TrendingUp,
   Clock,
   Plus,
   Zap,
@@ -94,6 +95,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, shortcut: 'G D', category: 'Navigation', action: () => go('/') },
     { id: 'projects', label: 'Projects', icon: FolderKanban, shortcut: 'G P', category: 'Navigation', action: () => go('/projects') },
     { id: 'reports', label: 'Reports', icon: BarChart3, shortcut: 'G R', category: 'Navigation', action: () => go('/reports') },
+    { id: 'analytics', label: 'Analytics', icon: TrendingUp, category: 'Navigation', action: () => go('/analytics') },
     { id: 'health', label: 'Health', icon: Activity, shortcut: 'G H', category: 'Navigation', action: () => go('/health') },
     { id: 'settings', label: 'Settings', icon: Settings, shortcut: 'G S', category: 'Navigation', action: () => go('/settings') },
   ];

@@ -3,20 +3,21 @@
 Updated: 2026-10-25
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 3 — TASK-0102 DONE 2026-10-25 (M16 S18.3 Analytics
-service)**: gap «pagination on list endpoints» закрыт — единственный
-неограниченный list-эндпоинт `/analytics/agents/overview` получил
-`limit/offset/total` через общий `pagination_dependency` (S15.2-контракт);
-временные ряды ограничены `weeks`/`days`-капами (решение зафиксировано в
-задаче). Gap «API-слой тестов» закрыт: новый `test_analytics_api.py` —
-6 тестов (по одному на эндпоинт, overview с offset/limit/total); сервисных
-тестов стало 6 (AC 6+5 превышен: 6+6). Service-контракт
-`get_agents_overview` → `(items, total)` (единственный потребитель —
-эндпоинт, фронт аддитивен). TDD: red 3/9 → green 12/12; полные гейты:
-backend **1021 passed**, frontend **446/446**, ruff/format/mypy чисто.
-Ветка `feature/TASK-0102-m16-s3-analytics-pagination` → MR.
-Дальше: **Этап 3 — TASK-0103 (nav-item /analytics + 10 frontend-тестов)**,
-затем Этап 4 (production hardening + хвосты).
+Current Task: **Этап 3 ЗАКРЫТ — TASK-0103 DONE 2026-10-25 (M16 S18.4
+Analytics frontend)**: nav-gap закрыт — `NAV_GROUPS` (System → Analytics,
+`/analytics`, icon `TrendingUp`) + команда Analytics в CommandPalette
+(без выдуманного shortcut: `G A` занята agents, в HOTKEYS привязки нет);
+AppSidebar рендер-тест через SidebarProvider (matchMedia-полифилл в setup).
+Тест-gap закрыт: **11 новых тестов** (AC 10) — AppSidebar 2, CommandPalette
++2 (red 3/19 → green 22/22), новая AnalyticsPage 7 (skeleton, секции,
+bars, agent-строки с null-avg boundary, пустые состояния). Полные гейты:
+vitest **457/457 (55 файлов)**, oxlint 0, `tsc -b` 0. Ветка
+`feature/TASK-0103-m16-s4-analytics-nav-tests` → MR.
+**Итог Этапа 3 (M16-gaps): TASK-0102 ✅ + TASK-0103 ✅ — все gaps
+аудита 2026-10-24 по M16 закрыты.**
+Дальше: **Этап 4 — production hardening + хвосты (TASK-0128 B-matrix,
+engine dedup 0112, `as any` 0097, bootstrap port-var)**,
+затем backlog §8 (ZAP baseline, security → Grafana).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
@@ -33,7 +34,7 @@ Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (D
 | TASK-0100 (M16 trigger) | ✅ DONE | 8 event types, event bus, 10 тестов |
 | TASK-0101 (M16 channels) | ✅ DONE | откл.: миграция 0020 вместо AC «0019» |
 | TASK-0102 (M16 analytics svc) | ✅ DONE | закрыт 2026-10-25: пагинация `/analytics/agents/overview` (limit/offset/total) + API-слой 6 тестов (AC 6+5 → 6+6) |
-| TASK-0103 (M16 analytics UI) | ⚠️ PARTIAL | **нет nav-item /analytics** (страница только по URL); нет выделенных тестов |
+| TASK-0103 (M16 analytics UI) | ✅ DONE | закрыт 2026-10-25: nav-item `/analytics` (NAV_GROUPS + палитра) + 11 frontend-тестов (red 3/19 → green 22/22, сьют 457/457) |
 | TASK-0108 (M18 a11y) | ✅ DONE | закрыт 2026-10-25: name-resolution (useProject, red→green), keyboard/ARIA-тесты +8, nested-button fix; AC SavedViews → removed |
 | TASK-0109 (M18 settings) | ✅ DONE | закрыт 2026-10-25: PATCH channel endpoint (200/404/422) + edit-диалог, evidence-чеклист заполнен (1014 backend / 446 frontend); follow-up: create() 500 на invalid config |
 | TASK-0110 (M18 notification UX) | ✅ DONE | все AC: фильтры, mark-all, empty state, navigate, 8 тестов |
@@ -46,8 +47,8 @@ Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (D
 коде значительно глубже, чем отражал roadmap (он обновлён). Реально
 закрыто: M16 2/4 + 2 частично, M18 2/4 + 2 частично, M19 2/3 + 1 частично.
 
-**Новые gaps → в очереди:** analytics nav-item + тесты (0103; пагинация +
-API-тесты TASK-0102 **закрыты 2026-10-25**);
+**Новые gaps → в очереди:** ~~analytics nav-item + тесты (0103)~~ —
+закрыты TASK-0103 (2026-10-25, все M16-gaps аудита закрыты);
 ~~channel edit API + evidence (0109)~~ — закрыты TASK-0109 (2026-10-25);
 ~~breadcrumb name-resolution + keyboard
 тесты + судьба SavedViews AC (0108)~~ — закрыты TASK-0108 (2026-10-25);
