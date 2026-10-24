@@ -3,18 +3,19 @@
 Updated: 2026-10-24
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 1 perf — TASK-0150 DONE 2026-10-24**:
-50-user throughput-расследование (находка TASK-0140 #2) закрыто —
-коллапс (5.1 rps, 7.82% ошибок, p90 34s) доминирован находкой #1
-(dashboard/stats N+1): после фикса в пересобранном образе замер
-**14003 запросов / 0 ошибок / 46.7 rps / p50 120ms / p95 550ms /
-SLO 2154/2154** (было 1114/1491). Гипотеза anyio-threadpool не
-подтвердилась — прод-изменений не требуется. Уловка: test-compose
-запекает образ (нет bind-mount) — замер требует `up -d --build` +
-проверки фикса в контейнере (run1 на устаревшем образе сохранён как
-evidence). Baseline обновлён (post-fix, run2).
-Ветка `feature/TASK-0150-throughput-reinvestigation` → MR.
-Дальше: loki OTLP receiver, grafana password-docs, Lighthouse →
+Current Task: **Этап 1 perf — TASK-0151 DONE 2026-10-24**:
+loki OTLP receiver (находка TASK-0140) закрыт — grafana/loki:3.4.2 не
+слушает 4317/4318 (порты закрыты) и отвергает top-level `otlp:`
+(`-verify-config`: field not found); нативный приёмник = OTLP HTTP на
+главном порту `/otlp/v1/logs` (доказано ingest-ошибкой на протухший
+timestamp). Коллектор переведён на `otlphttp/loki` →
+`http://loki:3100/otlp`; live: probe прошёл collector→loki (query
+вернул 1 stream / 1 entry), 0 refused после рестарта. RED→GREEN: 2
+контрактных теста конфигов (директивы ≠ исторические комментарии).
+Backend **996 passed** (3 pre-existing env-failures), ruff/format/mypy,
+YAML ✓. Stек остановлен.
+Ветка `feature/TASK-0151-loki-otlp-receiver` → MR.
+Дальше: grafana password-docs, Lighthouse scaffold →
 Этап 2 (M18-gaps 0108/0109).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
