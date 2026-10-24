@@ -10,28 +10,9 @@ from app.shared.errors import register_error_handlers
 from app.shared.text import new_id
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-_test_engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestSessionLocal = sessionmaker(bind=_test_engine)
-
-
-def _override_session():
-    session = TestSessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+from tests.conftest import _override_session, _test_engine
+from tests.conftest import _TestSession as TestSessionLocal
 
 
 def _test_app() -> FastAPI:
@@ -51,6 +32,10 @@ def _seed_project_with_claims(agents: list[str]) -> tuple[str, list[str]]:
         now = datetime.now(UTC)
         pid, fid = new_id(), new_id()
         session.add(Project(id=pid, name="Analytics", slug="analytics", status="active"))
+        # Shared conftest engine enforces PRAGMA foreign_keys, and without a
+        # relationship() SQLAlchemy does not order parent/child inserts — the
+        # project row must be flushed before the feature that references it.
+        session.flush()
         session.add(Feature(id=fid, project_id=pid, name="F1", slug="f1", status="active"))
         session.commit()
         task_ids: list[str] = []

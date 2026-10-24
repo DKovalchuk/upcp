@@ -3,20 +3,21 @@
 Updated: 2026-10-25
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 4 — TASK-0154 DONE 2026-10-25 (B-matrix follow-ups,
-6 blocked rows parent: TASK-0128)**: все6 строк закрыты — B3.5 health-clamp
-[0..100] (missing→100 сохранён по принятым B3.6/B3.7), B6.4 donut-округление
-(Math.round до фильтра), B12.7/B13.7 portfolio `tasks_done/tasks_total`
-(per-project счётчики из batch-запроса, `task_count` аддитивно сохранён) +
-рендер `done/total`, B18.10 строка агента → `Link /agents/$agentId`,
-B19.7 `clampPercent` [0..100], B15.3/B15.4 ProjectSelector membership-
-fallback → «All». TDD: red **9 FE + 2 BE** → green; фиксы по ходу: router-mock
-в тесте (Link-зависимость), typed-route tsc (`to+params`), ruff format.
-Полные гейты: vitest **464/464 (55 файлов)**, oxlint 0, `tsc -b` 0,
-backend **1022 passed**, ruff check/format/mypy чисто. Ветка
-`feature/TASK-0154-bmatrix-followups` → MR.
-Дальше в Этапе 4: **engine dedup (TASK-0112), `as any` hygiene (TASK-0097),
-bootstrap port-var**, затем backlog §8 (ZAP baseline, security → Grafana).
+Current Task: **Этап 4 — TASK-0112 DONE 2026-10-25 (M19 S21.1 Test
+Infrastructure, engine dedup)**: AC «all test files use shared engine»
+закрыт с enforcement-тестом (`test_engine_dedup.py`, AST-скан): red
+**17 violators** (совпало с аудитом) → миграция **17 файлов** тремя
+рецептами (D: conftest-импорты; B: алиасы `_engine/_Session`; A: локальные
+in-memory-фикстуры → conftest `db_session`) → green. conftest `db_session`
+ужесточён (drop+create per test — свежесть заменённых фикстур). FK-on
+fallout: сиды с `flush()` родителя (analytics×2), pre-seed proj-0/proj-1
+(reporting), **fix(quality)**: `upload_file` валидирует задачу → **404**
+(раньше201-сирота на FK-off, unhandled 500 на FK-on; `create()` — latent
+follow-up). Исключения документированы:2 двухдвижковых сценария + live-сьюты.
+Полные гейты: backend **1023 passed**, ruff clean, mypy clean (114 файлов).
+Ветка `feature/TASK-0112-engine-dedup` → MR.
+Дальше в Этапе 4: **`as any` hygiene (TASK-0097), bootstrap port-var**,
+затем backlog §8 (ZAP baseline, security → Grafana).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
@@ -38,7 +39,7 @@ Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (D
 | TASK-0109 (M18 settings) | ✅ DONE | закрыт 2026-10-25: PATCH channel endpoint (200/404/422) + edit-диалог, evidence-чеклист заполнен (1014 backend / 446 frontend); follow-up: create() 500 на invalid config |
 | TASK-0110 (M18 notification UX) | ✅ DONE | все AC: фильтры, mark-all, empty state, navigate, 8 тестов |
 | TASK-0111 (M18 project dashboard) | ✅ DONE | все компоненты + 9 тестов |
-| TASK-0112 (M19 test infra) | ⚠️ PARTIAL | markers/coverage/models ✅; **engine dedup не соблюдён** (17/89 файлов со своим `create_engine`) |
+| TASK-0112 (M19 test infra) | ✅ DONE | закрыт 2026-10-25: enforcement-тест (red 17 → green), 17 файлов мигрировано, conftest `db_session` drop+create, fix(quality) upload→404; сьют 1023 |
 | TASK-0113 (M19 service tests) | ✅ DONE | 95 тестов 4 файлов; minor-откл. по фикстуре (общий engine) |
 | TASK-0114 (M19 event bus) | ✅ DONE | 8 publish-точек, подписки, тесты |
 
@@ -51,7 +52,8 @@ Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (D
 ~~channel edit API + evidence (0109)~~ — закрыты TASK-0109 (2026-10-25);
 ~~breadcrumb name-resolution + keyboard
 тесты + судьба SavedViews AC (0108)~~ — закрыты TASK-0108 (2026-10-25);
-engine dedup разбор (0112); `as any` hygiene (0097).
+~~engine dedup разбор (0112)~~ — закрыт TASK-0112 (2026-10-25, все
+PARTIAL-задачи аудита по M16/M18 закрыты); `as any` hygiene (0097).
 
 ## Current Work (2026-10-17)
 

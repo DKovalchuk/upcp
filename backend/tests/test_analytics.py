@@ -2,25 +2,10 @@
 
 from datetime import UTC, datetime
 
-import pytest
 from app.delivery.models import Feature, Task, TaskClaim
 from app.projects.models import Project
 from app.reporting.analytics import AnalyticsService
-from app.shared.database import Base
 from app.shared.text import new_id
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-
-@pytest.fixture()
-def db_session():
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(bind=engine)
-    TestSession = sessionmaker(bind=engine)
-    session = TestSession()
-    yield session
-    session.close()
-    engine.dispose()
 
 
 def _setup_project(session) -> tuple[str, str]:
@@ -28,6 +13,8 @@ def _setup_project(session) -> tuple[str, str]:
     pid = new_id()
     fid = new_id()
     session.add(Project(id=pid, name="Test", slug="test", status="active"))
+    # Shared engine enforces FKs (TASK-0112): flush parent before child.
+    session.flush()
     session.add(Feature(id=fid, project_id=pid, name="F1", slug="f1", status="active"))
     session.commit()
     return pid, fid
