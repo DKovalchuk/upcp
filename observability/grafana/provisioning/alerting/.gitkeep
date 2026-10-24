@@ -1,0 +1,2 @@
+# placeholder — grafana reads this provisioning dir (TASK-0152)
+# Without it every startup logs: "can't read alerting provisioning files".

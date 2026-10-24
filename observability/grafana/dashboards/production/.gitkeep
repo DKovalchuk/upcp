@@ -1,0 +1,3 @@
+# placeholder — provisioned dashboard folder (TASK-0152)
+# The "UPCUP Production" provider in ../provisioning/dashboards/*.yaml
+# walks this path; without the directory Grafana logs a walk error.
