@@ -1,5 +1,5 @@
-"""RBAC checks — agent-token ownership (superuser/owner gate) and the
-documented role-enforcement gap (strict=False xfail).
+"""RBAC checks — agent-token ownership (superuser/owner gate) and
+role-enforcement on project mutations (strict since TASK-0145).
 
 Second identity: the stack seeds non-superuser users (seeder.py) and
 POST /auth/setup is single-use (409), so member checks reuse a seeded
@@ -132,13 +132,10 @@ def test_member_can_read_agent_list(member_headers: dict[str, str]) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason="finding: seeded RBAC roles (Member lacks update:project) are never enforced — "
-    "PATCH goes straight to resource lookup, answering 404 instead of 403; no authorization "
-    "layer runs for domain routes",
-)
 def test_member_update_project_enforces_role(member_headers: dict[str, str]) -> None:
+    """Finding 1 closed (TASK-0145): require_permission gate answers 403
+    before resource lookup — was strict=False xfail while no authorization
+    layer ran for domain routes."""
     resp = httpx.patch(
         f"{BASE}/api/v1/projects/{_FAKE_UUID}",
         headers=member_headers,
