@@ -3,20 +3,10 @@
 Updated: 2026-10-24
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 1 perf — TASK-0151 DONE 2026-10-24**:
-loki OTLP receiver (находка TASK-0140) закрыт — grafana/loki:3.4.2 не
-слушает 4317/4318 (порты закрыты) и отвергает top-level `otlp:`
-(`-verify-config`: field not found); нативный приёмник = OTLP HTTP на
-главном порту `/otlp/v1/logs` (доказано ingest-ошибкой на протухший
-timestamp). Коллектор переведён на `otlphttp/loki` →
-`http://loki:3100/otlp`; live: probe прошёл collector→loki (query
-вернул 1 stream / 1 entry), 0 refused после рестарта. RED→GREEN: 2
-контрактных теста конфигов (директивы ≠ исторические комментарии).
-Backend **996 passed** (3 pre-existing env-failures), ruff/format/mypy,
-YAML ✓. Stек остановлен.
-Ветка `feature/TASK-0151-loki-otlp-receiver` → MR.
-Дальше: grafana password-docs, Lighthouse scaffold →
-Этап 2 (M18-gaps 0108/0109).
+Current Task: **Этап 1 perf — TASK-0152 DONE 2026-10-25**:
+grafana-находки TASK-0140 закрыты: (1) `dashboards/production` (+`provisioning/plugins`,`alerting`) — `.gitkeep`-директории, live walk-error каждые 30s → **0 ошибок** после фикса (red→green контракт-тест путей); (2) «mismatch» пароля — корень = **compose-precedence**: shell `GRAFANA_ADMIN_PASSWORD=admin_change_me` (root `.env` в shell) перебивает `--env-file .env.test` → доказано оба пути (leak→`admin_change_me` 200, `env -u` + reset → `admin_test` 200). Docs синхронизированы: docker-compose.md §2.7/§4 (неверный var `GRAFANA_PASSWORD` → `GRAFANA_ADMIN_PASSWORD` + precedence-note), observability-stack.md §2.1 (collector-sync TASK-0151) + §4.2/§4.3, `.env.test`-комментарий. ruff/format чисто, тесты 3 passed. Stек остановлен, volume удалён (fresh state).
+Ветка `feature/TASK-0152-grafana-password-docs` → MR.
+Дальше: Lighthouse scaffold (конец perf-блока) → Этап 2 (M18-gaps 0108/0109).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
