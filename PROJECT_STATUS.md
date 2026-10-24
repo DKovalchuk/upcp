@@ -3,21 +3,20 @@
 Updated: 2026-10-25
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 3 ЗАКРЫТ — TASK-0103 DONE 2026-10-25 (M16 S18.4
-Analytics frontend)**: nav-gap закрыт — `NAV_GROUPS` (System → Analytics,
-`/analytics`, icon `TrendingUp`) + команда Analytics в CommandPalette
-(без выдуманного shortcut: `G A` занята agents, в HOTKEYS привязки нет);
-AppSidebar рендер-тест через SidebarProvider (matchMedia-полифилл в setup).
-Тест-gap закрыт: **11 новых тестов** (AC 10) — AppSidebar 2, CommandPalette
-+2 (red 3/19 → green 22/22), новая AnalyticsPage 7 (skeleton, секции,
-bars, agent-строки с null-avg boundary, пустые состояния). Полные гейты:
-vitest **457/457 (55 файлов)**, oxlint 0, `tsc -b` 0. Ветка
-`feature/TASK-0103-m16-s4-analytics-nav-tests` → MR.
-**Итог Этапа 3 (M16-gaps): TASK-0102 ✅ + TASK-0103 ✅ — все gaps
-аудита 2026-10-24 по M16 закрыты.**
-Дальше: **Этап 4 — production hardening + хвосты (TASK-0128 B-matrix,
-engine dedup 0112, `as any` 0097, bootstrap port-var)**,
-затем backlog §8 (ZAP baseline, security → Grafana).
+Current Task: **Этап 4 — TASK-0154 DONE 2026-10-25 (B-matrix follow-ups,
+6 blocked rows parent: TASK-0128)**: все6 строк закрыты — B3.5 health-clamp
+[0..100] (missing→100 сохранён по принятым B3.6/B3.7), B6.4 donut-округление
+(Math.round до фильтра), B12.7/B13.7 portfolio `tasks_done/tasks_total`
+(per-project счётчики из batch-запроса, `task_count` аддитивно сохранён) +
+рендер `done/total`, B18.10 строка агента → `Link /agents/$agentId`,
+B19.7 `clampPercent` [0..100], B15.3/B15.4 ProjectSelector membership-
+fallback → «All». TDD: red **9 FE + 2 BE** → green; фиксы по ходу: router-mock
+в тесте (Link-зависимость), typed-route tsc (`to+params`), ruff format.
+Полные гейты: vitest **464/464 (55 файлов)**, oxlint 0, `tsc -b` 0,
+backend **1022 passed**, ruff check/format/mypy чисто. Ветка
+`feature/TASK-0154-bmatrix-followups` → MR.
+Дальше в Этапе 4: **engine dedup (TASK-0112), `as any` hygiene (TASK-0097),
+bootstrap port-var**, затем backlog §8 (ZAP baseline, security → Grafana).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
@@ -195,7 +194,12 @@ Follow-up: `bootstrap_upcp.py` scaffold templates still use legacy names
 
 **Queued:**
 - ~~Version bump~~ — done 2026-10-17: **0.22.0** (M20 ✅).
-- Component-gap follow-ups from B-matrix blocked rows (6): negative-count clamp in Dashboard health fallback (`?? 100` masks missing score), donut decimal rounding, `PortfolioProject` lacks `tasks_done/tasks_total` (needs type+backend), agent rows not navigable (`/agents/:id`), `progress_percent` not capped at 100, ProjectSelector `project_id` no client-side validation. Low/Medium severity — see TASK-0128 AC notes.
+- ~~Component-gap follow-ups from B-matrix blocked rows (6)~~ — **закрыты
+  TASK-0154 (2026-10-25)**: B3.5 health clamp, B6.4 donut rounding,
+  B12.7/B13.7 `tasks_done/tasks_total` (type+backend+render),
+  B18.10 agent nav, B19.7 progress cap, B15.3/B15.4 ProjectSelector
+  fallback-to-All; evidence в TASK-0154 (red 9FE+2BE → green,
+  сьюты 464/464 + 1022).
 - SPEC-0024 Phase 5 (integration → CI) — TASK-0143; Phases 2 ✅ (TASK-0140), 3 ✅ (TASK-0141), 4 ✅ (TASK-0142) закрыты. TASK-0140 finding follow-ups (stats perf, throughput, loki OTLP, grafana docs, Lighthouse) — **все закрыты TASK-0149…0153 (2026-10-24/25)**.
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 
