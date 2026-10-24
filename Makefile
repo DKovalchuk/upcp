@@ -2,7 +2,7 @@ VENV := .venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 
-.PHONY: help install test lint typecheck coverage format up down logs clean
+.PHONY: help install test lint typecheck coverage format up down logs clean lighthouse
 
 help:
 	@echo 'Available commands:'
@@ -15,6 +15,7 @@ help:
 	@echo '  make up         - docker compose up'
 	@echo '  make down       - docker compose down'
 	@echo '  make logs       - docker compose logs'
+	@echo '  make lighthouse - frontend perf audit (Lighthouse; stack up on :3071)'
 
 $(VENV)/bin/activate:
 	python3 -m venv $(VENV)
@@ -46,6 +47,9 @@ down:
 
 logs:
 	docker compose logs -f app db
+
+lighthouse:
+	cd tests/performance/lighthouse && npx --yes @lhci/cli@0.14.0 --config=lighthouserc.json autorun
 
 clean:
 	rm -rf .venv

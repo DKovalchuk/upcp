@@ -3,10 +3,19 @@
 Updated: 2026-10-24
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 1 perf — TASK-0152 DONE 2026-10-25**:
-grafana-находки TASK-0140 закрыты: (1) `dashboards/production` (+`provisioning/plugins`,`alerting`) — `.gitkeep`-директории, live walk-error каждые 30s → **0 ошибок** после фикса (red→green контракт-тест путей); (2) «mismatch» пароля — корень = **compose-precedence**: shell `GRAFANA_ADMIN_PASSWORD=admin_change_me` (root `.env` в shell) перебивает `--env-file .env.test` → доказано оба пути (leak→`admin_change_me` 200, `env -u` + reset → `admin_test` 200). Docs синхронизированы: docker-compose.md §2.7/§4 (неверный var `GRAFANA_PASSWORD` → `GRAFANA_ADMIN_PASSWORD` + precedence-note), observability-stack.md §2.1 (collector-sync TASK-0151) + §4.2/§4.3, `.env.test`-комментарий. ruff/format чисто, тесты 3 passed. Stек остановлен, volume удалён (fresh state).
-Ветка `feature/TASK-0152-grafana-password-docs` → MR.
-Дальше: Lighthouse scaffold (конец perf-блока) → Этап 2 (M18-gaps 0108/0109).
+Current Task: **Этап 1 perf — TASK-0153 DONE 2026-10-25 (perf-блок завершён)**:
+Lighthouse-scaffold спецификации SPEC-0024 закрыт: red-of-absence
+(ENOENT→1) → замер (median performance **0.88**) → **budget 0.8** →
+`autorun` **GREEN** (3 прогона, healthcheck/assert/upload, артефакты
+gitignored) + `make lighthouse` (help/dry-run) + README-секция. Node/Chrome
+уже на хосте — без правок package.json/lock (npx pin `@lhci/cli@0.14.0`).
+Отклонение: CI-wiring в `quality:gate` отложен (python-slim без Node +
+калибровка budget на железе раннера) — записано в README и задаче.
+Попутно: README-строка Grafana `admin/admin_test` исправлена по
+TASK-0152-правде. **Все5 находок TASK-0140 закрыты (TASK-0149…0153).**
+Ветка `feature/TASK-0153-lighthouse-scaffold` → MR.
+Дальше: **Этап 2 — M18-gaps (TASK-0108 breadcrumb, TASK-0109 channel-edit)**,
+затем Этап 3 (M16-gaps 0102/0103), Этап 4 (production hardening + хвосты).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
@@ -104,7 +113,7 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
   1 skipped. Вне спеки, backlog §8:
   ZAP authenticated baseline (скрипты image без `-H`), security results →
   Grafana.
-- From TASK-0140 findings: `dashboard/stats` perf task (standalone 1.06–1.33s @394 projects, 117/119 load timeouts, per-project aggregation suspect); 50-user throughput investigation (5.1 req/s, p50 1.1s — anyio threadpool saturation suspect); loki OTLP receiver for 3.4.2 (collector→loki:4317 refused; top-level `otlp:` invalid — reverted); grafana `dashboards/production` missing-dir walk + admin password doc mismatch (`admin_change_me` volume-init vs `.env.test` `admin_test`); Lighthouse frontend perf absent from scaffold.
+- ~~From TASK-0140 findings: `dashboard/stats` perf task (standalone 1.06–1.33s @394 projects, 117/119 load timeouts, per-project aggregation suspect); 50-user throughput investigation (5.1 req/s, p50 1.1s — anyio threadpool saturation suspect); loki OTLP receiver for 3.4.2 (collector→loki:4317 refused; top-level `otlp:` invalid — reverted); grafana `dashboards/production` missing-dir walk + admin password doc mismatch (`admin_change_me` volume-init vs `.env.test` `admin_test`); Lighthouse frontend perf absent from scaffold.~~ — **все5 закрыты TASK-0149…0153 (2026-10-24/25)**: set-based health (suite 996), throughput 46.7 rps/SLO 2154/2154, `otlphttp/loki` `/otlp`, grafana dirs+precedence, Lighthouse `make lighthouse` budget 0.8; evidence в файлах задач.
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 
 **Merged:** MR **!56** `feature/sprint7-polish` → `develop` merged 2026-10-16
@@ -183,7 +192,7 @@ Follow-up: `bootstrap_upcp.py` scaffold templates still use legacy names
 **Queued:**
 - ~~Version bump~~ — done 2026-10-17: **0.22.0** (M20 ✅).
 - Component-gap follow-ups from B-matrix blocked rows (6): negative-count clamp in Dashboard health fallback (`?? 100` masks missing score), donut decimal rounding, `PortfolioProject` lacks `tasks_done/tasks_total` (needs type+backend), agent rows not navigable (`/agents/:id`), `progress_percent` not capped at 100, ProjectSelector `project_id` no client-side validation. Low/Medium severity — see TASK-0128 AC notes.
-- SPEC-0024 Phase 5 (integration → CI) — TASK-0143; Phases 2 ✅ (TASK-0140), 3 ✅ (TASK-0141), 4 ✅ (TASK-0142) закрыты. TASK-0140 finding follow-ups: `dashboard/stats` perf, 50-user throughput investigation, loki OTLP receiver (3.4.2), grafana production-folder + password docs, Lighthouse scaffold gap.
+- SPEC-0024 Phase 5 (integration → CI) — TASK-0143; Phases 2 ✅ (TASK-0140), 3 ✅ (TASK-0141), 4 ✅ (TASK-0142) закрыты. TASK-0140 finding follow-ups (stats perf, throughput, loki OTLP, grafana docs, Lighthouse) — **все закрыты TASK-0149…0153 (2026-10-24/25)**.
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 
 ## M17 Summary — Security & Stability

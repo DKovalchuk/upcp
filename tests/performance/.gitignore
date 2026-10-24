@@ -16,3 +16,6 @@ reports/*.html
 # Keep dirs
 !results/.gitkeep
 !reports/.gitkeep
+
+# Lighthouse CI artifacts (generated, TASK-0153)
+lighthouse/.lighthouseci/

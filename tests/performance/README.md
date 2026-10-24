@@ -21,6 +21,9 @@ python tests/performance/runner.py --scenario scenario_concurrency --users 50 --
 # Open Locust Web UI
 docker compose -f docker-compose.test.yml --profile perf up -d locust-master
 # → http://localhost:38089
+
+# Frontend perf audit (Lighthouse) — stack must be up
+make lighthouse
 ```
 
 ## Profiles
@@ -77,9 +80,34 @@ python tests/performance/analyzer.py --input results/ --generate-report --output
 python tests/performance/analyzer.py --input results/ --save-baseline
 ```
 
+## Lighthouse (frontend perf)
+
+Scaffold for SPEC-0024's frontend load-testing requirement (Locust covers
+the API; Lighthouse audits the served frontend).
+
+```bash
+# Stack must be up (test-env frontend on :3071)
+make lighthouse
+```
+
+- Config: `lighthouse/lighthouserc.json` — 3 runs against
+  `http://localhost:3071/`, performance budget **0.8** (calibrated
+  2026-10-25 from a measured median of **0.88** on the test stack;
+  re-measure and re-calibrate after major frontend changes).
+  Reports + `assertion-results.json` land in
+  `lighthouse/.lighthouseci/` (gitignored).
+- Toolchain: Node 20+ and Chrome on the host; LHCI is fetched by `npx`
+  each run (pinned `@lhci/cli@0.14.0` — no package.json/lock changes).
+- CI: not wired into `quality:gate` yet — the gate image is
+  python-slim (no Node) and performance budgets need calibration on
+  runner hardware; follow-up recorded in TASK-0153.
+
 ## Grafana Dashboards
 
-Access: http://localhost:33001 (admin/admin_test)
+Access: http://localhost:33001 — user `admin`; the password is
+**init-once** (seeded into the grafana volume at first start — see
+`docs/ops/observability-stack.md` §4.3: `.env.test` declares
+`admin_test`, a shell carrying the root-`.env` value overrides it).
 
 - **UPCP Test — Overview:** Request rate, latency, errors, DB pool
 - **UPCP Test — Performance:** Detailed latency by handler, auth attempts, rate limits
@@ -116,6 +144,9 @@ tests/performance/
 ├── reports/                   # Generated markdown reports
 ├── analyzer.py                # Results analysis + trend tracking
 ├── runner.py                  # Orchestration + pre-test validation
+├── lighthouse/                # Lighthouse CI scaffold (frontend perf)
+│   ├── lighthouserc.json      # collect/assert/upload config (budget 0.8)
+│   └── .lighthouseci/         # generated reports (gitignored)
 ├── .gitignore
 └── README.md                  # This file
 ```
