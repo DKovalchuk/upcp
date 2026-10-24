@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.reporting.analytics import AnalyticsService
 from app.shared.database import get_session
+from app.shared.pagination import PaginationParams, pagination_dependency
 
 router = APIRouter(tags=["analytics"])
 
@@ -80,7 +81,14 @@ def agent_performance(
     summary="All agents summary",
 )
 def agents_overview(
+    pagination: PaginationParams = Depends(pagination_dependency),  # noqa: B008
     session: Session = Depends(get_session),
-) -> dict[str, list[dict[str, Any]]]:
+) -> dict[str, Any]:
     svc = AnalyticsService(session)
-    return {"items": svc.get_agents_overview()}
+    items, total = svc.get_agents_overview(limit=pagination.limit, offset=pagination.offset)
+    return {
+        "items": items,
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
