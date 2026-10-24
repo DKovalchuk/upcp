@@ -15,13 +15,18 @@ exporters:
     const_labels:
       environment: test
 
-  otlp/loki:
-    # gRPC exporter (otlp/* default): bare host:port only — paths/schemes
-    # make the parser read "3100/otlp" as a port and refuse to start.
-    # Loki 3.x exposes the OTLP gRPC receiver on 4317 by default.
-    endpoint: loki:4317
-    tls:
-      insecure: true
+  otlphttp/loki:
+    # TASK-0151 (grafana/loki:3.4.2, verified empirically):
+    # - the native OTLP receiver is served on the MAIN HTTP port under
+    #   /otlp (POST /otlp/v1/logs parses and ingests) — there is no
+    #   separate 4317/4318 listener (ports closed on the running
+    #   container), and a top-level `otlp:` key in loki-config.yaml
+    #   fails -verify-config ("field otlp not found in type
+    #   loki.ConfigWrapper");
+    # - the previous gRPC export to loki:4317 retried forever with
+    #   connection-refused (TASK-0140 finding).
+    # otlphttp appends /v1/logs to this base endpoint.
+    endpoint: http://loki:3100/otlp
 
   otlp/tempo:
     endpoint: tempo:4317
@@ -60,4 +65,4 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, attributes]
-      exporters: [otlp/loki]
+      exporters: [otlphttp/loki]
