@@ -3,8 +3,15 @@
 **Milestone:** M18
 **Sprint:** S20.4
 **Points:** 5
-**Status:** IN PROGRESS
+**Status:** DONE
 **Spec:** SPEC-0021, §S20.4
+
+**Audit 2026-10-24 (evidence):** все AC закрыты: `HealthScoreCard`,
+`TaskDistributionChart` (donut), `VelocitySparkline`, `RecentActivity`,
+`ProjectOverview` — все компоненты существуют и используются в
+`ProjectOverview.tsx`; `ProjectOverview.test.tsx` = 9 тестов (AC: 8) ✅.
+Evidence: targeted vitest 29 passed включая ProjectOverview (2026-10-24),
+CI 465-469 green.
 
 ## Objective
 

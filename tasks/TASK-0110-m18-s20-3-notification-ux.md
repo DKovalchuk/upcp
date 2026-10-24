@@ -3,8 +3,16 @@
 **Milestone:** M18
 **Sprint:** S20.3
 **Points:** 5
-**Status:** IN PROGRESS
+**Status:** DONE
 **Spec:** SPEC-0021, §S20.3
+
+**Audit 2026-10-24 (evidence):** все AC закрыты: route `/notifications`
+(`router.tsx:271-273`), фильтры type + read/unread
+(`NotificationsPage.tsx:114-115`), mark individual ✅, Mark all read ✅
+(`:137-196`), EmptyState «No notifications» ✅ (`:237-240`), Bell
+click-to-navigate ✅ (`NotificationBell.tsx:98-103`), error-handling toast ✅
+(`:43`), 8 тестов NotificationsPage (AC: 8) ✅, TS clean ✅.
+Evidence: targeted vitest 29 passed (2026-10-24), CI 465-469 green.
 
 ## Objective
 

@@ -3,8 +3,18 @@
 **Spec:** SPEC-0019
 **Milestone:** M16
 **Sprint:** S18.3
-**Status:** PENDING
+**Status:** PARTIAL
 **Size:** L
+
+**Audit 2026-10-24 (evidence):** `AnalyticsService` — 4 метода ✅, API — 6
+эндпоинтов (AC: 5) ✅, роутер зарегистрирован ✅, тесты проходят ✅.
+**Gaps:**
+1. AC «Pagination on list endpoints» — не реализована (нет limit/offset;
+   временные ряды ограничены `weeks`/`days`, но `/analytics/agents/overview`
+   — неограниченный список). Нужно решение: пагинация для list-эндпоинтов.
+2. `test_analytics.py` = 5 сервисных тестов (AC: 6 service + 5 API); API-тесты
+   частично покрыты в `test_dashboard_matrix_ab.py` (13) и
+   `test_dashboard_security.py` (15), но не как отдельный слой по AC.
 
 ## Objective
 

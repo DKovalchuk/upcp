@@ -4,7 +4,18 @@
 **Sprint:** S21.1
 **Points:** 5
 **Spec:** SPEC-0022 §S21.1
-**Status:** PENDING
+**Status:** PARTIAL
+
+**Audit 2026-10-24 (evidence):** markers ✅ (`pyproject.toml:50-54` slow/
+integration/unit), coverage ✅ (`@vitest/coverage-v8`, `test:coverage`,
+каталог `frontend/coverage/` с cobertura), conftest импортирует все модели ✅
+(`tests/conftest.py:15-23`), suites зелёные ✅ (CI 465-469).
+**Gap:** AC «engine duplication eliminated — all test files use shared
+engine» не выполняется в текущем дереве: 17/89 тест-файлов создают собственные
+`create_engine` (15 из них без `db_session`). Часть — post-M19 добавки
+(TASK-0128/0142/0143), часть — намеренные сценарии (например,
+`test_agent_create_commit.py` — два engine). Требуется разбор dedup vs
+зафиксированные исключения → вынесено в очередь (см. PROJECT_STATUS).
 
 ## Objective
 

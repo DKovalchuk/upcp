@@ -3,8 +3,17 @@
 **Spec:** SPEC-0019
 **Milestone:** M16
 **Sprint:** S18.1
-**Status:** PENDING
+**Status:** DONE
 **Size:** L
+
+**Audit 2026-10-24 (evidence):** все AC закрыты. `reporting/trigger.py` (8 event
+типов, `NotificationTrigger.trigger`), интеграция через event bus
+(`shared/event_setup.py` подписывает все 10 событий; legacy-AC «интеграция с
+TaskService.update()» выполнен как `event_bus.publish` в
+`delivery/service.py:138` — рефакторинг TASK-0114), stale-уведомления в
+`stale_reaper.py`, `test_notification_trigger.py` = 10 тестов (8+2 по AC).
+Evidence: targeted pytest 130 passed (2026-10-24), CI pipelines 465-469 green
+(quality:gate passed).
 
 ## Objective
 
