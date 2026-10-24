@@ -9,6 +9,34 @@ vi.mock('@/hooks/use-dashboard', () => ({
   useAgentActivity: vi.fn(),
 }));
 
+// Rows link to /agents/:id (B18.10) — mock the router Link to its href
+// contract, the same pattern as Dashboard.test/PortfolioTable.test.
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({
+    to,
+    params,
+    children,
+    className,
+    ...rest
+  }: {
+    to: string;
+    params?: Record<string, string>;
+    children?: React.ReactNode;
+    className?: string;
+  }) => {
+    const href =
+      params && typeof to === 'string'
+        ? to.replace('$agentId', params.agentId ?? '')
+        : to;
+    return (
+      <a href={href} className={className} {...rest}>
+        {children}
+      </a>
+    );
+  },
+  useNavigate: () => vi.fn(),
+}));
+
 import { useAgentActivity } from '@/hooks/use-dashboard';
 
 const mockUseAgentActivity = vi.mocked(useAgentActivity);
@@ -318,5 +346,68 @@ describe('AgentActivitySummary', () => {
     const bar2 = findBarByWidth(container, '22%');
     expect(bar1?.classList.contains('bg-orange-500')).toBe(true);
     expect(bar2?.classList.contains('bg-orange-500')).toBe(true);
+  });
+
+  // ── B18.10 / B19.7: follow-ups closed in TASK-0154 ──────────
+
+  it('clicking an agent row navigates to /agents/:id (B18.10)', () => {
+    mockUseAgentActivity.mockReturnValue(
+      mockSuccessQuery({
+        items: [
+          {
+            agent_id: 'a1',
+            agent_name: 'Commander',
+            task_id: 't1',
+            task_title: 'Do thing',
+            claimed_at: '2026-07-30T10:00:00Z',
+            last_heartbeat_at: '2026-07-30T10:05:00Z',
+            progress_percent: 65,
+            current_step: 'Implementation',
+            is_stale: false,
+          },
+        ],
+      }),
+    );
+    renderAgentActivitySummary();
+    const link = screen.getByRole('link', { name: /Commander/ });
+    expect(link).toHaveAttribute('href', '/agents/a1');
+  });
+
+  it('progress above 100 caps at 100% and below 0 floors at 0% (B19.7)', () => {
+    mockUseAgentActivity.mockReturnValue(
+      mockSuccessQuery({
+        items: [
+          {
+            agent_id: 'a1',
+            agent_name: 'Overdoer',
+            task_id: 't1',
+            task_title: 'Too much',
+            claimed_at: '2026-07-30T10:00:00Z',
+            last_heartbeat_at: '2026-07-30T10:05:00Z',
+            progress_percent: 150,
+            current_step: 'Implementation',
+            is_stale: false,
+          },
+          {
+            agent_id: 'a2',
+            agent_name: 'Negative',
+            task_id: 't2',
+            task_title: 'Below zero',
+            claimed_at: '2026-07-30T10:00:00Z',
+            last_heartbeat_at: '2026-07-30T10:05:00Z',
+            progress_percent: -20,
+            current_step: 'Start',
+            is_stale: false,
+          },
+        ],
+      }),
+    );
+    const { container } = renderAgentActivitySummary();
+    expect(screen.queryByText('150%')).not.toBeInTheDocument();
+    expect(screen.queryByText('-20%')).not.toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(findBarByWidth(container, '100%')).toBeTruthy();
+    expect(findBarByWidth(container, '0%')).toBeTruthy();
   });
 });

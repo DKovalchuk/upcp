@@ -36,12 +36,12 @@ export function TaskDistributionDonut({ counts, deliveryBase }: { counts?: Statu
   const navigate = useNavigate();
 
   const data: ChartDatum[] = Object.entries(counts ?? {})
-    .filter(([, v]) => (v ?? 0) > 0)
     .map(([k, v]) => ({
       name: STATUS_LABELS[k] ?? k,
-      value: v ?? 0,
+      value: Math.round(v ?? 0),
       status: k,
-    }));
+    }))
+    .filter((d) => d.value > 0);
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
 

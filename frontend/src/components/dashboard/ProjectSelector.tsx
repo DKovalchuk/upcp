@@ -11,9 +11,14 @@ import { useProjects } from '@/hooks/use-projects';
 export function ProjectSelector() {
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as Record<string, string | undefined>;
-  const selectedId = search.project_id ?? '';
   const { data: projectsData } = useProjects({ limit: 100 });
   const projects = projectsData?.items ?? [];
+  // B15.3/B15.4 (TASK-0154): a project_id not present in the loaded list
+  // (unknown or non-UUID) falls back to "All Projects".
+  const rawProjectId = search.project_id ?? '';
+  const selectedId = projects.some((p) => p.id === rawProjectId)
+    ? rawProjectId
+    : '';
 
   if (projects.length <= 1) return null;
 

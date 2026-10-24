@@ -110,6 +110,18 @@ describe('TaskDistributionDonut', () => {
     expect(screen.getByText('tasks')).toBeInTheDocument();
   });
 
+  it('decimal counts are rounded for display (B6.4)', () => {
+    render(<TaskDistributionDonut counts={{ backlog: 2.4, done: 3.6 }} />);
+    // legend shows integers (2.4 → 2, 3.6 → 4), never raw decimals
+    expect(screen.queryByText('2.4')).not.toBeInTheDocument();
+    expect(screen.queryByText('3.6')).not.toBeInTheDocument();
+    const legendValues = screen.getAllByText(/^[0-9]+$/).map((n) => n.textContent);
+    expect(legendValues).toContain('2');
+    expect(legendValues).toContain('4');
+    // center total is the rounded sum
+    expect(screen.getByText('6')).toBeInTheDocument();
+  });
+
   it('renders with large numbers', () => {
     render(<TaskDistributionDonut counts={{ backlog: 9999, done: 99999 }} />);
     expect(screen.getByText('109998')).toBeInTheDocument(); // center total
