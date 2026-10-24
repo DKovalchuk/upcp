@@ -64,6 +64,16 @@ export async function createNotificationChannel(data: {
   });
 }
 
+export async function updateNotificationChannel(
+  id: string,
+  data: { name?: string; config?: Record<string, unknown> }
+): Promise<{ id: string }> {
+  return apiRequest(`/api/v1/notification-channels/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function deleteNotificationChannel(id: string): Promise<void> {
   await apiRequest(`/api/v1/notification-channels/${id}`, { method: 'DELETE' });
 }
