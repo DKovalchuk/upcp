@@ -58,6 +58,25 @@ class ChannelService:
         self._session.commit()
         return ch
 
+    def update(
+        self,
+        channel_id: str,
+        *,
+        name: str | None = None,
+        config: dict[str, Any] | None = None,
+    ) -> NotificationChannel:
+        ch = self.get(channel_id)
+        if name is not None:
+            ch.name = name
+        if config is not None:
+            try:
+                get_channel(ch.channel_type).validate_config(config)
+            except ValueError as exc:
+                raise ValidationError(str(exc)) from None
+            ch.config = config
+        self._session.commit()
+        return ch
+
     # ── Dispatch ──────────────────────────────────────────────
 
     def send_notification(self, notification: Notification) -> None:

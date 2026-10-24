@@ -167,3 +167,31 @@ class TestChannelService:
         assert ch.is_active is True
         ch2 = svc.toggle_active(ch.id)
         assert ch2.is_active is False
+
+    def test_update_name_and_config(self, db_session: Session):
+        svc = ChannelService(db_session)
+        ch = svc.create("webhook", "Ops", {"url": "https://example.com/a"})
+        updated = svc.update(ch.id, name="Ops alerts", config={"url": "https://example.com/b"})
+        assert updated.name == "Ops alerts"
+        assert updated.config == {"url": "https://example.com/b"}
+        reloaded = svc.get(ch.id)
+        assert reloaded.name == "Ops alerts"
+        assert reloaded.config == {"url": "https://example.com/b"}
+
+    def test_update_name_only_keeps_config(self, db_session: Session):
+        svc = ChannelService(db_session)
+        ch = svc.create("webhook", "Ops", {"url": "https://example.com/a"})
+        updated = svc.update(ch.id, name="Ops2")
+        assert updated.name == "Ops2"
+        assert updated.config == {"url": "https://example.com/a"}
+
+    def test_update_invalid_config(self, db_session: Session):
+        svc = ChannelService(db_session)
+        ch = svc.create("webhook", "Ops", {"url": "https://example.com/a"})
+        with pytest.raises(ValidationError):
+            svc.update(ch.id, config={})
+
+    def test_update_not_found(self, db_session: Session):
+        svc = ChannelService(db_session)
+        with pytest.raises(NotFound):
+            svc.update("nonexistent", name="x")
