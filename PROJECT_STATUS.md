@@ -3,17 +3,19 @@
 Updated: 2026-10-24
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 1 perf — TASK-0149 DONE 2026-10-24**:
-`dashboard/stats` N+1 устранён — aggregate health-score переведён на
-exact set-based batch (`get_average_health`, GROUP BY per-project,
-арифметический паритет с `get_project_health`); red **183 запроса @30
-проектов → ≤25**; мёртвый `task_query` удалён. Evidence: red→green +
-parity-пин (failed-DoD дискриминатор + пустой проект), backend
-**994 passed** (3 pre-existing env-failures), ruff/format/mypy clean.
-Корень находки TASK-0140 (1.06–1.33s @394) подтверждён: ≈2400 запросов
-→ ~15. Ветка `feature/TASK-0149-dashboard-stats-health-n1` → MR.
-Дальше: perf-расследования (throughput 50-user, loki OTLP receiver,
-grafana password-docs, Lighthouse) → Этап 2 (M18-gaps 0108/0109).
+Current Task: **Этап 1 perf — TASK-0150 DONE 2026-10-24**:
+50-user throughput-расследование (находка TASK-0140 #2) закрыто —
+коллапс (5.1 rps, 7.82% ошибок, p90 34s) доминирован находкой #1
+(dashboard/stats N+1): после фикса в пересобранном образе замер
+**14003 запросов / 0 ошибок / 46.7 rps / p50 120ms / p95 550ms /
+SLO 2154/2154** (было 1114/1491). Гипотеза anyio-threadpool не
+подтвердилась — прод-изменений не требуется. Уловка: test-compose
+запекает образ (нет bind-mount) — замер требует `up -d --build` +
+проверки фикса в контейнере (run1 на устаревшем образе сохранён как
+evidence). Baseline обновлён (post-fix, run2).
+Ветка `feature/TASK-0150-throughput-reinvestigation` → MR.
+Дальше: loki OTLP receiver, grafana password-docs, Lighthouse →
+Этап 2 (M18-gaps 0108/0109).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
