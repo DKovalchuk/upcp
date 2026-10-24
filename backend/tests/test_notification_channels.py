@@ -5,22 +5,12 @@ from app.reporting.channel_service import ChannelService
 from app.reporting.channels.email import EmailChannel
 from app.reporting.channels.webhook import WebhookChannel
 from app.reporting.models import Notification, NotificationChannel, NotificationDelivery
-from app.shared.database import Base
 from app.shared.errors import NotFound, ValidationError
 from app.shared.text import new_id
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
-
-@pytest.fixture()
-def db_session():
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(bind=engine)
-    TestSession = sessionmaker(bind=engine)
-    session = TestSession()
-    yield session
-    session.close()
-    engine.dispose()
+# Shared hermetic engine via the conftest `db_session` fixture —
+# local create_engine removed by TASK-0112 (engine dedup).
 
 
 # ── Model Tests ──────────────────────────────────────────────

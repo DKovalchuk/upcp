@@ -6,16 +6,11 @@ from app.shared.database import Base, get_session
 from app.shared.errors import register_error_handlers
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-_engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-_Session = sessionmaker(bind=_engine)
+from tests.conftest import _test_engine as _engine
+
+# Shared engine/session from conftest (TASK-0112 engine dedup).
+from tests.conftest import _TestSession as _Session
 
 
 def _override():

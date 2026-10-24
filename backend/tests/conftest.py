@@ -59,7 +59,14 @@ def _override_session() -> Generator:
 
 @pytest.fixture()
 def db_session() -> Generator[Session, None, None]:
-    """Provide a transactional DB session that rolls back after each test."""
+    """Fresh hermetic DB per test: recreate schema, roll back on teardown.
+
+    TASK-0112 folded the local per-file ``sqlite:///:memory:`` engines
+    into this shared engine; drop+create preserves the per-test
+    freshness those fixtures had (commits on the shared StaticPool
+    connection would otherwise leak between tests).
+    """
+    Base.metadata.drop_all(bind=_test_engine)
     Base.metadata.create_all(bind=_test_engine)
     session = _TestSession()
     try:

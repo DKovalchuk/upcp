@@ -3,14 +3,16 @@ from datetime import UTC, datetime
 from app.audit.models import AuditEvent
 from app.audit.service import AuditService
 from app.shared.database import Base
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+# Shared hermetic engine (TASK-0112 engine dedup): fresh schema per call.
+from tests.conftest import _test_engine, _TestSession
 
 
 def _in_memory_db() -> sessionmaker:
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    return sessionmaker(bind=engine)
+    Base.metadata.drop_all(bind=_test_engine)
+    Base.metadata.create_all(bind=_test_engine)
+    return _TestSession
 
 
 def test_audit_event_has_required_columns() -> None:

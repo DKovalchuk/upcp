@@ -1,35 +1,14 @@
 from app.api.v1.projects import router as projects_router
 from app.api.v1.reporting import router
 from app.api.v1.structure import router as structure_router
-
-# Import all models to ensure all tables are created
-from app.reporting.models import Report  # noqa: F401
 from app.shared.database import Base, get_session
 from app.shared.errors import register_error_handlers
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-_test_engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestSessionLocal = sessionmaker(bind=_test_engine)
-
-
-def _override_session():
-    session = TestSessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+# Shared engine/session/override from conftest — local create_engine
+# removed by TASK-0112 (engine dedup).
+from tests.conftest import _override_session, _test_engine
 
 
 def _test_app() -> FastAPI:
