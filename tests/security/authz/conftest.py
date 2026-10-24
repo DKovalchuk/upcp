@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -214,12 +215,19 @@ def admin_user_id(admin_headers: dict[str, str]) -> str:
 
 @pytest.fixture
 def fresh_login() -> dict[str, Any]:
-    """A brand-new admin JWT pair so rotation tests never share refresh state."""
-    resp = httpx.post(
-        f"{BASE}/auth/login",
-        json={"email": PERF_EMAIL, "password": PERF_PASSWORD},
-        timeout=15.0,
-    )
+    """A brand-new admin JWT pair so rotation tests never share refresh state.
+
+    The suite performs 6 admin logins within seconds while /auth/login is
+    limited to 5/min (a production security control): the 6th login gets a
+    429 — wait out the window once and retry, instead of depending on window
+    boundaries. Previously this was masked by the finding-3 non-strict
+    xfail, which swallowed the setup error.
+    """
+    payload = {"email": PERF_EMAIL, "password": PERF_PASSWORD}
+    resp = httpx.post(f"{BASE}/auth/login", json=payload, timeout=15.0)
+    if resp.status_code == 429:
+        time.sleep(int(resp.json().get("retry_after", 60)) + 1)
+        resp = httpx.post(f"{BASE}/auth/login", json=payload, timeout=15.0)
     assert resp.status_code == 200, f"login -> {resp.status_code}: {resp.text[:200]}"
     return resp.json()
 

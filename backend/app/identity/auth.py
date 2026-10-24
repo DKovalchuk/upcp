@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 # Re-export from the actual implementation
 from app.identity.agent_auth import get_current_agent  # noqa: F401
+from app.identity.denylist import is_token_denied, note_denied_token
 from app.identity.dependencies import CurrentAgent, CurrentUser  # noqa: F401
 from app.identity.models import User
 from app.identity.token_service import TokenService
@@ -50,6 +51,15 @@ def get_current_user(
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         ) from None
+
+    # SPEC-0027 §3.3: logout-denylisted tokens are dead (finding 3)
+    if is_token_denied(token):
+        note_denied_token(token)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     user_id: str = payload["sub"]  # type: ignore[assignment]
     user = db.query(User).filter_by(id=user_id).first()

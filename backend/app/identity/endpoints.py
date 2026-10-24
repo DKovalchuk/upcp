@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
-from app.identity.auth import _get_token_service, get_current_user
+from app.identity.auth import _extract_bearer_token, _get_token_service, get_current_user
 from app.identity.dependencies import CurrentUser
 from app.identity.service import AuthService
 from app.identity.token_service import TokenService
@@ -94,8 +94,15 @@ def auth_logout(
     body: RefreshRequest,
     user: CurrentUser = Depends(get_current_user),
     auth: AuthService = Depends(_get_auth_service),
+    token: str | None = Depends(_extract_bearer_token),
 ) -> dict[str, object]:
-    auth.logout(body.refresh_token, user.user_id)
+    if token is None:  # get_current_user 401s first — guard for the type checker
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    auth.logout(body.refresh_token, user.user_id, token)
     return {"ok": True}
 
 

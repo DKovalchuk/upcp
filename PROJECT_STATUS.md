@@ -3,18 +3,18 @@
 Updated: 2026-10-24
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 1 (SPEC-0027 security-батч) — TASK-0146 DONE 2026-10-24**:
-middleware user-existence check (finding 2) — валидная подпись без живого
-аккаунта теперь 401; Redis negative-cache `auth:user:{sub}` TTL 60s.
-Live authz **54 passed / 1 skipped / 1 xfailed** (xfail finding-2 удалён,
-strict; остаётся finding 3 → TASK-0147). Evidence: hermetic subject-check
-5/5, backend 984 passed (3 pre-existing env-failures), ruff/mypy clean.
-Ветка `feature/TASK-0146-jwt-user-existence` → MR.
-Дальше: TASK-0147 (denylist) → 0148 (docs/PUBLIC_PATHS), затем
+Current Task: **Этап 1 (SPEC-0027 security-батч) — TASK-0147 DONE 2026-10-24**:
+logout denylist (finding 3) — logout пишет `auth:deny:{sha256(token)}`
+TTL=exp−now, проверка в AuthMiddleware и `get_current_user`; Redis-down →
+fail-open + structured warning. Live authz **55 passed / 1 skipped /
+0 xfailed** — весь authz-сьют без xfail (AC8; findings 1-3 закрыты).
+Evidence: hermetic red→green 5/5, backend 989 passed (3 pre-existing
+env-failures), ruff/mypy clean. Ветка `feature/TASK-0147-logout-denylist`
+→ MR. Дальше: TASK-0148 (docs/PUBLIC_PATHS — findings 4-5), затем
 perf-расследования Этапа 1.
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
-Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **APPROVED 2026-10-24** — TASK-0145/0146 закрыты)
+Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **APPROVED 2026-10-24** — TASK-0145/0146/0147 закрыты)
 
 ## Status-аудит 2026-10-24 (Этап 0, evidence-based)
 
@@ -101,10 +101,10 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
 - ~~Root `tests/e2e` suite re-run~~ — closed 2026-10-17: **21 passed / 0 failed** against the live dev stack (3 failures were `waitForLoadState('networkidle')` never settling with SSE open — same root cause fixed in `frontend/e2e/comprehensive-ui.spec.ts`; replaced with `'load'` in `tests/e2e/navigation.spec.ts`).
 - ~~SPEC-0024 Phase 5~~ — **закрыт 2026-10-18 (TASK-0143, MR !71–!77)**: quality-gate в CI как hard gate (`allow_failure: false`) после зелёных наблюдений develop ×2 (jobs 3330/3371) + schedule-full ×1 (job 3345); schedule id 1 (03:00 MSK nightly); aggregate reporter + environments/gates docs. Все 4 фикс-раунда (!72–!75) сняли 11 wiring-багов (runner bind-mounts, hostname-vs-name connect, empty-state e2e, chaos URL env ×2, psycopg, timing budget, agent commit-race, env-pollution/collision готчей — в docs §6). Фазы SPEC-0024: **1-5 все ✅**.
 - **SPEC-0027 (создан 2026-10-24, APPROVED)** — закрывает TASK-0142
-  findings 1-5: finding 1 **закрыт** (TASK-0145: RBAC-гейты; live authz
-  53 passed / 2 xfail), finding 2 **закрыт** (TASK-0146: user-existence в
-  middleware; live authz 54 passed / 1 xfail); в работе TASK-0147
-  (finding 3 — logout denylist), TASK-0148 (findings 4-5 — docs-rewrite +
+  findings 1-5: finding 1 **закрыт** (TASK-0145: RBAC-гейты), finding 2
+  **закрыт** (TASK-0146: user-existence в middleware), finding 3 **закрыт**
+  (TASK-0147: logout denylist; live authz **0 xfail** — 55 passed /
+  1 skipped); в работе TASK-0148 (findings 4-5 — docs-rewrite +
   `/mcp/health`). Вне спеки, backlog §8:
   ZAP authenticated baseline (скрипты image без `-H`), security results →
   Grafana.

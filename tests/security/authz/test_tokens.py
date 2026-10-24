@@ -2,9 +2,9 @@
 
 Positive: valid JWT accepted. Negative: missing/garbage/expired/wrong-
 signature/type-confused tokens rejected; refresh rotation enforced;
-logout revokes the refresh token. Finding 2 (nonexistent subject on
-domain routes) is closed by TASK-0146; the remaining known gap —
-logout denylist (finding 3, TASK-0147) — is a strict=False xfail.
+logout revokes the refresh token AND denylists the access JWT.
+Findings 2-3 are closed (TASK-0146/TASK-0147) — this suite runs with
+0 xfail (SPEC-0027 AC8).
 """
 
 from __future__ import annotations
@@ -173,11 +173,6 @@ def test_logout_requires_bearer(fresh_login: dict) -> None:
 
 
 @pytest.mark.severity("medium")
-@pytest.mark.xfail(
-    strict=False,
-    reason="finding: logout revokes only the refresh token — the access JWT keeps working "
-    "until exp (stateless design, 15-minute window, no denylist)",
-)
 def test_access_token_rejected_after_logout(fresh_login: dict) -> None:
     out = _logout(fresh_login["access_token"], fresh_login["refresh_token"])
     assert out.status_code == 200, f"logout precondition -> {out.status_code}: {out.text[:200]}"
