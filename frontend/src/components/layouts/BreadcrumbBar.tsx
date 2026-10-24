@@ -1,5 +1,6 @@
 import { Link, useMatches } from '@tanstack/react-router';
 import { ChevronRight, Home } from 'lucide-react';
+import { useProject } from '@/hooks/use-projects';
 
 interface BreadcrumbItem {
   path: string;
@@ -22,14 +23,19 @@ function isUuid(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 }
 
-function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
+function buildBreadcrumbs(pathname: string, projectLabel?: string): BreadcrumbItem[] {
   const segments = pathname.split('/').filter(Boolean);
   const crumbs: BreadcrumbItem[] = [];
   let builtPath = '';
+  let projectCrumbAdded = false;
 
   for (const seg of segments) {
     builtPath += `/${seg}`;
     if (isUuid(seg)) {
+      if (!projectCrumbAdded) {
+        projectCrumbAdded = true;
+        crumbs.push({ path: builtPath, title: projectLabel ?? 'Project' });
+      }
       continue;
     }
     const label = SEGMENT_LABELS[seg] ?? seg.charAt(0).toUpperCase() + seg.slice(1);
@@ -44,9 +50,12 @@ export function BreadcrumbBar() {
   const lastMatch = matches[matches.length - 1];
   const pathname = lastMatch?.pathname ?? '/';
 
+  const projectId = pathname.split('/').filter(Boolean).find(isUuid) ?? '';
+  const { data: project } = useProject(projectId);
+
   if (pathname === '/') return null;
 
-  const breadcrumbs = buildBreadcrumbs(pathname);
+  const breadcrumbs = buildBreadcrumbs(pathname, project?.name);
 
   return (
     <nav className="flex items-center gap-1 px-4 py-2 text-sm text-muted-foreground lg:px-6" aria-label="Breadcrumb">
