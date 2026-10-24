@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ScrollText,
   Bot,
+  TrendingUp,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -38,6 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'System',
     items: [
       { title: 'Reports', icon: BarChart3, path: '/reports' },
+      { title: 'Analytics', icon: TrendingUp, path: '/analytics' },
       { title: 'Health', icon: Activity, path: '/health' },
       { title: 'Settings', icon: Settings, path: '/settings' },
     ],

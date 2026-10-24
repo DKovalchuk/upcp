@@ -53,6 +53,17 @@ describe('CommandPalette', () => {
     expect(screen.getByText('Health')).toBeInTheDocument();
   });
 
+  it('shows Analytics navigation command', () => {
+    renderPalette();
+    expect(screen.getByText('Analytics')).toBeInTheDocument();
+  });
+
+  it('navigates to /analytics when Analytics selected', () => {
+    renderPalette();
+    fireEvent.click(screen.getByText('Analytics'));
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/analytics' });
+  });
+
   it('filters commands by typing', async () => {
     renderPalette();
     const input = screen.getByPlaceholderText('Type a command or search...');
