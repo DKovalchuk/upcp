@@ -3,14 +3,18 @@
 Updated: 2026-10-24
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 0 (status-аудит) завершён 2026-10-24** — проверен
-пост-мержный hard-гейт (pipelines 465-469 success на `7a22b568`,
-`quality:gate` green 411s; 470 = nightly schedule), синхронизированы статусы
-12 задач (**7 DONE / 5 PARTIAL** — см. «Status-аудит 2026-10-24»), SPEC-0026 →
-APPROVED. Следующий: Этап 1 — находки SPEC-0024 (security + perf)
+Current Task: **Этап 1 (SPEC-0027 security-батч) — TASK-0145 DONE 2026-10-24**:
+RBAC-гейты (`require_permission`, Phase A: projects CRUD + agent-мутации)
+включены; finding 1 закрыт — live authz **53 passed / 2 xfailed** (xfail
+находы-1 удалён, strict; остаются findings 2/3 → TASK-0146/0147). Спека
+amended (backfill → superuser-bypass). Evidence: hermetic RBAC 11/11,
+backend 979 passed (3 pre-existing env-failures), ruff/mypy clean.
+Ветка `feature/TASK-0145-rbac-enforcement` → MR.
+Дальше: TASK-0146 (middleware user-existence) → 0147 (denylist) → 0148
+(docs/PUBLIC_PATHS), затем perf-расследования Этапа 1.
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
-Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**)
+Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **APPROVED 2026-10-24** — TASK-0145 закрыт)
 
 ## Status-аудит 2026-10-24 (Этап 0, evidence-based)
 
@@ -96,7 +100,13 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
 - ~~Product bug: public pages 401-redirect~~ — closed 2026-10-17 (TASK-0139): background notification infra gated on auth — `NotificationBell` unread-count query `enabled: isAuthenticated`, `useSSE` effect connects only when authenticated (aborts on logout). TDD red→green: root e2e `/setup` regression test, 2 vitest gating tests. Workaround mocks removed from frontend `auth.spec.ts` (heading guards kept). Evidence: root e2e 22/22, frontend e2e 153/153, vitest 433/433, lint/tsc clean. Note: live-stack runs require `docker compose --env-file .env.dev build frontend && up -d frontend` first — `upcp-frontend-1` serves a baked `dist/` (see project memory).
 - ~~Root `tests/e2e` suite re-run~~ — closed 2026-10-17: **21 passed / 0 failed** against the live dev stack (3 failures were `waitForLoadState('networkidle')` never settling with SSE open — same root cause fixed in `frontend/e2e/comprehensive-ui.spec.ts`; replaced with `'load'` in `tests/e2e/navigation.spec.ts`).
 - ~~SPEC-0024 Phase 5~~ — **закрыт 2026-10-18 (TASK-0143, MR !71–!77)**: quality-gate в CI как hard gate (`allow_failure: false`) после зелёных наблюдений develop ×2 (jobs 3330/3371) + schedule-full ×1 (job 3345); schedule id 1 (03:00 MSK nightly); aggregate reporter + environments/gates docs. Все 4 фикс-раунда (!72–!75) сняли 11 wiring-багов (runner bind-mounts, hostname-vs-name connect, empty-state e2e, chaos URL env ×2, psycopg, timing budget, agent commit-race, env-pollution/collision готчей — в docs §6). Фазы SPEC-0024: **1-5 все ✅**.
-- From TASK-0142 findings: RBAC-обслуживание не enforced + deleted-user JWT + logout denylist — нужен спека-решение; `docs/security/auth-rbac.md` doc-code mismatch (путь logout, отзыв токенов при смене пароля); dead path `/mcp/health` в PUBLIC_PATHS; ZAP authenticated baseline (скрипты image без `-H`); security results → Grafana (Phase 5).
+- **SPEC-0027 (создан 2026-10-24, APPROVED)** — закрывает TASK-0142
+  findings 1-5: finding 1 **закрыт** (TASK-0145: RBAC-гейты; live authz
+  53 passed / 2 xfail); в работе TASK-0146 (finding 2 — user-existence в
+  middleware), TASK-0147 (finding 3 — logout denylist), TASK-0148
+  (findings 4-5 — docs-rewrite + `/mcp/health`). Вне спеки, backlog §8:
+  ZAP authenticated baseline (скрипты image без `-H`), security results →
+  Grafana.
 - From TASK-0140 findings: `dashboard/stats` perf task (standalone 1.06–1.33s @394 projects, 117/119 load timeouts, per-project aggregation suspect); 50-user throughput investigation (5.1 req/s, p50 1.1s — anyio threadpool saturation suspect); loki OTLP receiver for 3.4.2 (collector→loki:4317 refused; top-level `otlp:` invalid — reverted); grafana `dashboards/production` missing-dir walk + admin password doc mismatch (`admin_change_me` volume-init vs `.env.test` `admin_test`); Lighthouse frontend perf absent from scaffold.
 - `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
 

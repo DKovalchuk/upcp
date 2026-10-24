@@ -43,6 +43,12 @@ auth_attempts_total = Counter(
     ["result"],
 )
 
+rbac_denials_total = Counter(
+    "upcp_rbac_denials_total",
+    "Total RBAC permission denials (403) by action and resource",
+    ["action", "resource"],
+)
+
 claims_total = Counter(
     "upcp_claims_total",
     "Total task claim attempts",

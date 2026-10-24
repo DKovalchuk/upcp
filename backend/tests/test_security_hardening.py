@@ -29,6 +29,26 @@ def _clear_settings_cache() -> None:
     get_settings.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def _reset_settings_cache_after_test():
+    """Drop get_settings() cache after every test in this module.
+
+    The flag tests below rebuild the settings snapshot *inside*
+    ``patch.dict(os.environ, ...)`` (cache_clear + get_settings). The
+    lru_cache survives the context exit, so the patched snapshot — e.g.
+    ``UPCP_DISABLE_AUTH=false`` — leaks into every later test in the
+    session. Latent until RBAC gates (SPEC-0027) started consulting
+    ``settings.disable_auth`` per request: the leak then turned later
+    hermetic suites (test_structure → 401 → KeyError 'id') red.
+    Clearing after each test makes the next get_settings() re-read the
+    real environment.
+    """
+    yield
+    from app.shared.config import get_settings
+
+    get_settings.cache_clear()
+
+
 # ══════════════════════════════════════════════════════════════
 # Issue 1: MCP endpoints require auth
 # ══════════════════════════════════════════════════════════════

@@ -20,7 +20,9 @@ repos:
       - id: debug-statements
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.1
+    # v1.20.2: matches .venv/CI mypy — older revs reject pyproject's
+    # disable_error_code "untyped-decorator" (added 2026-07-25, 58748d6)
+    rev: v1.20.2
     hooks:
       - id: mypy
         files: ^backend/app/
