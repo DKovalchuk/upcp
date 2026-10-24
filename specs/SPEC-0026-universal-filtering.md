@@ -1,6 +1,9 @@
 # SPEC-0026 — Universal Filtering System
 
-**Status:** DRAFT
+**Status:** APPROVED (2026-10-24 — реализация смержена в develop: backend
+фильтры + shared FilterBar/URL-sync, MR !56 2026-10-16; спека поднята из
+DRAFT при status-аудите. Отдельные задачи TASK-0129-0135 не создавались —
+работа шла в составе feature/sprint7-polish)
 **Created:** 2026-09-05
 
 ## 1. Problem
