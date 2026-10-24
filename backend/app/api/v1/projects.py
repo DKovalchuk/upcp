@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.identity.permissions import require_permission
 from app.projects.schemas import ProjectCreate, ProjectResponse, ProjectUpdate
 from app.projects.service import ProjectService
 from app.shared.database import get_session
@@ -16,6 +17,7 @@ router = APIRouter(tags=["projects"])
     summary="Create a project",
     description="Create a new project with the given name, slug, and optional description.",
     responses={422: {"description": "Validation error"}},
+    dependencies=[Depends(require_permission("create", "project"))],
 )
 def create_project(body: ProjectCreate, session: Session = Depends(get_session)) -> ProjectResponse:  # noqa: B008
     service = ProjectService(session)
@@ -63,6 +65,7 @@ def get_project(project_id: str, session: Session = Depends(get_session)) -> Pro
         404: {"description": "Project not found"},
         422: {"description": "Validation error"},
     },
+    dependencies=[Depends(require_permission("update", "project"))],
 )
 def update_project(
     project_id: str, body: ProjectUpdate, session: Session = Depends(get_session)
@@ -87,6 +90,7 @@ def update_project(
     summary="Delete a project",
     description="Delete a project by its identifier. Returns 204 on success.",
     responses={404: {"description": "Project not found"}},
+    dependencies=[Depends(require_permission("delete", "project"))],
 )
 def delete_project(project_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     service = ProjectService(session)

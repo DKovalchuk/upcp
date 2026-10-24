@@ -20,6 +20,7 @@ from app.delivery.models import (
 from app.identity.agents import Agent, AgentToken
 from app.identity.auth import get_current_user
 from app.identity.dependencies import CurrentUser
+from app.identity.permissions import require_permission
 from app.quality.models import Evidence, ReviewRound
 from app.shared.database import get_session
 from app.shared.text import new_id
@@ -47,7 +48,11 @@ class AgentTokenCreate(BaseModel):
 # ── Endpoints ─────────────────────────────────────────────────────
 
 
-@router.post("/agents", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/agents",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission("manage", "agent"))],
+)
 def create_agent(
     body: AgentCreate,
     user: CurrentUser = Depends(get_current_user),
@@ -226,7 +231,11 @@ def get_agent(
     }
 
 
-@router.post("/agents/{agent_id}/tokens", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/agents/{agent_id}/tokens",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission("manage", "agent"))],
+)
 def create_agent_token(
     agent_id: str,
     body: AgentTokenCreate,
@@ -260,7 +269,10 @@ def create_agent_token(
     }
 
 
-@router.post("/agent-tokens/{token_id}/revoke")
+@router.post(
+    "/agent-tokens/{token_id}/revoke",
+    dependencies=[Depends(require_permission("manage", "agent"))],
+)
 def revoke_agent_token(
     token_id: str,
     user: CurrentUser = Depends(get_current_user),
