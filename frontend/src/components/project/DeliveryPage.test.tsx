@@ -145,6 +145,28 @@ describe('DeliveryPage', () => {
     expect(screen.getByText('Login form')).toBeInTheDocument();
   });
 
+  it('accordion header is a semantic button with ARIA state', () => {
+    mockUseFeatures.mockReturnValue({
+      data: {
+        items: [
+          { id: 'f1', project_id: 'p1', name: 'Auth', slug: 'auth', description: null, status: 'backlog', component_id: null, created_at: '', updated_at: '' },
+        ],
+        total: 1, offset: 0, limit: 20,
+      },
+      isLoading: false,
+    } as any);
+
+    renderDelivery();
+    const header = screen.getByRole('button', { name: /Auth/ });
+    expect(header).toHaveAttribute('type', 'button');
+    expect(header).toHaveAttribute('aria-expanded', 'false');
+    expect(header).toHaveAttribute('aria-controls', 'feature-tasks-f1');
+
+    fireEvent.click(header);
+    expect(header).toHaveAttribute('aria-expanded', 'true');
+    expect(document.getElementById('feature-tasks-f1')).toBeTruthy();
+  });
+
   it('opens create feature dialog', async () => {
     mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as any);
     renderDelivery();

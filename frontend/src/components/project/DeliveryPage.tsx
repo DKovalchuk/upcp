@@ -292,14 +292,14 @@ function FeatureSection({
 
   return (
     <div className="rounded-lg border">
-      <button
-        type="button"
-        className="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left hover:bg-muted/50"
-        onClick={onToggle}
-        aria-expanded={isExpanded}
-        aria-controls={`feature-tasks-${feature.id}`}
-      >
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
+        <button
+          type="button"
+          className="flex flex-1 cursor-pointer items-center gap-3 text-left"
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          aria-controls={`feature-tasks-${feature.id}`}
+        >
           {isExpanded ? (
             <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           ) : (
@@ -311,8 +311,8 @@ function FeatureSection({
               ({taskCount} tasks)
             </span>
           </div>
-        </div>
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        </button>
+        <div className="ml-3 flex items-center gap-2">
           <StatusBadge status={featureStatus} />
           <Button
             variant="ghost"
@@ -324,7 +324,7 @@ function FeatureSection({
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </button>
+      </div>
 
       {isExpanded && (
         <div id={`feature-tasks-${feature.id}`} className="border-t px-4 py-3">

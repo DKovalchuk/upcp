@@ -1,20 +1,20 @@
 # PROJECT_STATUS
 
-Updated: 2026-10-24
+Updated: 2026-10-25
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 1 perf — TASK-0153 DONE 2026-10-25 (perf-блок завершён)**:
-Lighthouse-scaffold спецификации SPEC-0024 закрыт: red-of-absence
-(ENOENT→1) → замер (median performance **0.88**) → **budget 0.8** →
-`autorun` **GREEN** (3 прогона, healthcheck/assert/upload, артефакты
-gitignored) + `make lighthouse` (help/dry-run) + README-секция. Node/Chrome
-уже на хосте — без правок package.json/lock (npx pin `@lhci/cli@0.14.0`).
-Отклонение: CI-wiring в `quality:gate` отложен (python-slim без Node +
-калибровка budget на железе раннера) — записано в README и задаче.
-Попутно: README-строка Grafana `admin/admin_test` исправлена по
-TASK-0152-правде. **Все5 находок TASK-0140 закрыты (TASK-0149…0153).**
-Ветка `feature/TASK-0153-lighthouse-scaffold` → MR.
-Дальше: **Этап 2 — M18-gaps (TASK-0108 breadcrumb, TASK-0109 channel-edit)**,
+Current Task: **Этап 2 — TASK-0108 DONE 2026-10-25 (M18 S20.1 accessibility)**:
+BreadcrumbBar разрешает имя проекта через `useProject` (red 4/4 → green 4/4;
+fallback «Project» при загрузке, raw UUID не рендерится никогда). Новые
+keyboard/ARIA-тесты: BoardView (+3 — focus `tabIndex=0`, `aria-roledescription`,
+Enter → KeyboardSensor-drag → DragOverlay), DeliveryPage (+1 — aria-expanded/
+controls toggle), BreadcrumbBar (+4). Попутно в scope исправлен nested
+`<button>` в шапке аккордеона (ARIA-паттерн: тогл-кнопка и экшены — соседи;
+React-варнинг исчез). AC «SavedViewsDropdown» закрыт как **removed**
+(компонента нет в коде, AC устарел). Полный фронтенд: vitest **441/441
+(52 files)**, `tsc -b` 0, oxlint 0 errors. Ветка
+`feature/TASK-0108-m18-s20-1-accessibility` → MR.
+Дальше: **Этап 2 — TASK-0109 (channel-edit + evidence)**,
 затем Этап 3 (M16-gaps 0102/0103), Этап 4 (production hardening + хвосты).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
@@ -33,7 +33,7 @@ Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (D
 | TASK-0101 (M16 channels) | ✅ DONE | откл.: миграция 0020 вместо AC «0019» |
 | TASK-0102 (M16 analytics svc) | ⚠️ PARTIAL | нет пагинации list-эндпоинтов; 5 сервисных тестов (AC: 6+5) |
 | TASK-0103 (M16 analytics UI) | ⚠️ PARTIAL | **нет nav-item /analytics** (страница только по URL); нет выделенных тестов |
-| TASK-0108 (M18 a11y) | ⚠️ PARTIAL | KeyboardSensor/aria-expanded ✅; нет name-resolution в BreadcrumbBar, нет keyboard-тестов, AC «SavedViewsDropdown» устарел (компонента нет) |
+| TASK-0108 (M18 a11y) | ✅ DONE | закрыт 2026-10-25: name-resolution (useProject, red→green), keyboard/ARIA-тесты +8, nested-button fix; AC SavedViews → removed |
 | TASK-0109 (M18 settings) | ⚠️ PARTIAL | 5 табов/ARIA/11 тестов ✅; нет edit-формы канала, evidence-чеклист не заполнен |
 | TASK-0110 (M18 notification UX) | ✅ DONE | все AC: фильтры, mark-all, empty state, navigate, 8 тестов |
 | TASK-0111 (M18 project dashboard) | ✅ DONE | все компоненты + 9 тестов |
@@ -46,9 +46,9 @@ Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (D
 закрыто: M16 2/4 + 2 частично, M18 2/4 + 2 частично, M19 2/3 + 1 частично.
 
 **Новые gaps → в очереди:** analytics nav-item + пагинация + тесты (0102/0103);
-channel edit API + evidence (0109); breadcrumb name-resolution + keyboard
-тесты + судьба SavedViews AC (0108); engine dedup разбор (0112); `as any`
-hygiene (0097).
+channel edit API + evidence (0109); ~~breadcrumb name-resolution + keyboard
+тесты + судьба SavedViews AC (0108)~~ — закрыты TASK-0108 (2026-10-25);
+engine dedup разбор (0112); `as any` hygiene (0097).
 
 ## Current Work (2026-10-17)
 
