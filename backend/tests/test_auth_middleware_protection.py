@@ -61,8 +61,8 @@ def test_middleware_blocks_api_with_invalid_token() -> None:
     assert resp.status_code == 401
 
 
-def test_middleware_allows_api_with_valid_token() -> None:
-    """Request to /api/v1/ with valid token should pass."""
+def test_middleware_allows_api_with_valid_token(seed_subject) -> None:
+    """Request to /api/v1/ with valid token for an existing subject → 200."""
     from app.identity.token_service import TokenService
 
     ts = TokenService(secret_key="test-secret")
@@ -75,6 +75,7 @@ def test_middleware_allows_api_with_valid_token() -> None:
         return {"items": []}
 
     client = TestClient(app)
+    seed_subject("user-123")
     token = ts.create_access_token("user-123")
     resp = client.get(
         "/api/v1/projects",
@@ -111,8 +112,8 @@ def test_middleware_allows_mcp_health() -> None:
     assert resp.status_code == 200
 
 
-def test_middleware_allows_mcp_with_valid_token() -> None:
-    """Request to /mcp/ with valid JWT should pass."""
+def test_middleware_allows_mcp_with_valid_token(seed_subject) -> None:
+    """Request to /mcp/ with valid JWT for an existing subject → 200."""
     from app.identity.token_service import TokenService
 
     ts = TokenService(secret_key="test-secret")
@@ -125,6 +126,7 @@ def test_middleware_allows_mcp_with_valid_token() -> None:
         return {"tools": []}
 
     client = TestClient(app)
+    seed_subject("user-123")
     token = ts.create_access_token("user-123")
     resp = client.get(
         "/mcp/tools",

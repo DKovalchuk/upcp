@@ -40,11 +40,13 @@ _BUDGET_S = 2.5 if os.getenv("CI") else 1.0
 
 
 @pytest.fixture()
-def auth_client() -> TestClient:
+def auth_client(seed_subject) -> TestClient:
     """Client with auth middleware enabled and a valid token on every request."""
     ts = TokenService()
     app = make_test_app(analytics_router, dashboard_router)
     app.add_middleware(AuthMiddleware, token_service=ts)
+    # after make_test_app (drop_all) — the subject must exist (SPEC-0027 §3.2)
+    seed_subject("user-123")
     token = ts.create_access_token("user-123")
     return TestClient(app, headers={"Authorization": f"Bearer {token}"})
 

@@ -78,3 +78,61 @@ def make_test_app(*routers: object) -> FastAPI:
         app.include_router(router, prefix="/api/v1")
     app.dependency_overrides[get_session] = _override_session
     return app
+
+
+@pytest.fixture(autouse=True)
+def _redirect_session_local(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Hermetic tests must not resolve the compose-only ``db`` host.
+
+    AuthMiddleware resolves ``SessionLocal`` lazily per request
+    (SPEC-0027 §3.2 user-existence check); the process DATABASE_URL points
+    at a host that is unreachable (or foreign) from the test runner, so
+    middleware user lookups must land on the shared in-memory test DB.
+    Live suites under ``tests/security/`` use their own conftest and keep
+    the real factory.
+    """
+    import app.shared.database as db_mod
+
+    monkeypatch.setattr(db_mod, "SessionLocal", _TestSession)
+
+
+@pytest.fixture()
+def seed_subject() -> Generator:
+    """Create an active user row for a minted JWT subject; removed after the test.
+
+    SPEC-0027 §3.2: a valid signature alone no longer authenticates — the
+    subject must exist, so tests minting fixed subs (``user-123``) seed a
+    matching row *after* any ``make_test_app()`` (which drops tables).
+    """
+    created: list[str] = []
+
+    def _seed(user_id: str) -> str:
+        from app.identity.models import User
+
+        Base.metadata.create_all(bind=_test_engine)
+        session = _TestSession()
+        try:
+            session.merge(
+                User(
+                    id=user_id,
+                    email=f"{user_id}@middleware.test",
+                    password_hash="x" * 60,
+                    display_name="Middleware Subject",
+                )
+            )
+            session.commit()
+        finally:
+            session.close()
+        created.append(user_id)
+        return user_id
+
+    yield _seed
+    session = _TestSession()
+    try:
+        from app.identity.models import User
+
+        for user_id in created:
+            session.query(User).filter_by(id=user_id).delete()
+        session.commit()
+    finally:
+        session.close()

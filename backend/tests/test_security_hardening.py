@@ -72,8 +72,8 @@ class TestMCPAuthRequired:
         )
         assert resp.status_code == 401
 
-    def test_mcp_accepts_jwt(self) -> None:
-        """POST /mcp with valid JWT → 200."""
+    def test_mcp_accepts_jwt(self, seed_subject) -> None:
+        """POST /mcp with valid JWT for an existing subject → 200."""
         from app.identity.token_service import TokenService
 
         ts = TokenService(secret_key="test-secret")
@@ -85,6 +85,7 @@ class TestMCPAuthRequired:
             return {"ok": True}
 
         client = TestClient(app)
+        seed_subject("user-456")
         token = ts.create_access_token("user-456")
         resp = client.post(
             "/mcp",

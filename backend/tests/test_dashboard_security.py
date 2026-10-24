@@ -113,12 +113,13 @@ def test_e1_e4_invalid_token_returns_401(auth_client: TestClient, endpoint: str)
     assert "detail" in resp.json()
 
 
-def test_valid_token_reaches_dashboard_stats() -> None:
-    """Control: 401 comes from the auth guard — a valid JWT gets through (200)."""
+def test_valid_token_reaches_dashboard_stats(seed_subject) -> None:
+    """Control: 401 comes from the auth guard — a valid JWT for a live subject → 200."""
     ts = TokenService()
     app = make_test_app(dashboard_router, analytics_router)
     app.add_middleware(AuthMiddleware, token_service=ts)
     client = TestClient(app)
+    seed_subject("user-123")
     token = ts.create_access_token("user-123")
     resp = client.get("/api/v1/dashboard/stats", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
