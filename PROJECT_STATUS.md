@@ -1,12 +1,46 @@
 # PROJECT_STATUS
 
-Updated: 2026-10-18
+Updated: 2026-10-24
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: TASK-0143 SPEC-0024 Phase 5 — **DONE (flip MR open)**: все AC закрыты — gate зелёный в CI (develop jobs 3330+3371, schedule-full job 3345), schedule id 1 создан, phase-B flip в этой ветке (`allow_failure: false` + bounded retry before_script); пост-мержный пайплайн = первая валидация hard-гейта
+Current Task: **Этап 0 (status-аудит) завершён 2026-10-24** — проверен
+пост-мержный hard-гейт (pipelines 465-469 success на `7a22b568`,
+`quality:gate` green 411s; 470 = nightly schedule), синхронизированы статусы
+12 задач (**7 DONE / 5 PARTIAL** — см. «Status-аудит 2026-10-24»), SPEC-0026 →
+APPROVED. Следующий: Этап 1 — находки SPEC-0024 (security + perf)
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
-Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, DRAFT)
+Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**)
+
+## Status-аудит 2026-10-24 (Этап 0, evidence-based)
+
+Сверка AC задач против реального кода + тесты. Локально: targeted pytest
+**130 passed**, targeted vitest **29 passed**, `tsc --noEmit` clean, lint
+0 errors; CI 465-469 green.
+
+| Task | Статус | Итог |
+|------|--------|------|
+| TASK-0097 (S16.4 polish) | ✅ DONE | MR смержен, хелперы есть; `as any` вырос позже → hygiene-item |
+| TASK-0100 (M16 trigger) | ✅ DONE | 8 event types, event bus, 10 тестов |
+| TASK-0101 (M16 channels) | ✅ DONE | откл.: миграция 0020 вместо AC «0019» |
+| TASK-0102 (M16 analytics svc) | ⚠️ PARTIAL | нет пагинации list-эндпоинтов; 5 сервисных тестов (AC: 6+5) |
+| TASK-0103 (M16 analytics UI) | ⚠️ PARTIAL | **нет nav-item /analytics** (страница только по URL); нет выделенных тестов |
+| TASK-0108 (M18 a11y) | ⚠️ PARTIAL | KeyboardSensor/aria-expanded ✅; нет name-resolution в BreadcrumbBar, нет keyboard-тестов, AC «SavedViewsDropdown» устарел (компонента нет) |
+| TASK-0109 (M18 settings) | ⚠️ PARTIAL | 5 табов/ARIA/11 тестов ✅; нет edit-формы канала, evidence-чеклист не заполнен |
+| TASK-0110 (M18 notification UX) | ✅ DONE | все AC: фильтры, mark-all, empty state, navigate, 8 тестов |
+| TASK-0111 (M18 project dashboard) | ✅ DONE | все компоненты + 9 тестов |
+| TASK-0112 (M19 test infra) | ⚠️ PARTIAL | markers/coverage/models ✅; **engine dedup не соблюдён** (17/89 файлов со своим `create_engine`) |
+| TASK-0113 (M19 service tests) | ✅ DONE | 95 тестов 4 файлов; minor-откл. по фикстуре (общий engine) |
+| TASK-0114 (M19 event bus) | ✅ DONE | 8 publish-точек, подписки, тесты |
+
+**Ключевая находка:** M16 (S18.1-S18.4) и M18 (S20.1-S20.4) реализованы в
+коде значительно глубже, чем отражал roadmap (он обновлён). Реально
+закрыто: M16 2/4 + 2 частично, M18 2/4 + 2 частично, M19 2/3 + 1 частично.
+
+**Новые gaps → в очереди:** analytics nav-item + пагинация + тесты (0102/0103);
+channel edit API + evidence (0109); breadcrumb name-resolution + keyboard
+тесты + судьба SavedViews AC (0108); engine dedup разбор (0112); `as any`
+hygiene (0097).
 
 ## Current Work (2026-10-17)
 
