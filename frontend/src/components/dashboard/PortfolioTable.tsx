@@ -98,7 +98,7 @@ export function PortfolioTable({
                         <span className="text-xs text-muted-foreground">{p.health_score}%</span>
                       </div>
                     </td>
-                    <td className="py-2 text-muted-foreground">{p.task_count}</td>
+                    <td className="py-2 text-muted-foreground">{p.tasks_done}/{p.tasks_total}</td>
                     <td className="py-2">
                       {status ? (
                         <StatusBadge status={status} />

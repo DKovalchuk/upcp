@@ -56,6 +56,8 @@ export interface PortfolioProject {
   name: string;
   slug: string;
   task_count: number;
+  tasks_done: number;
+  tasks_total: number;
   health_score: number;
   top_issue: string;
 }

@@ -30,6 +30,8 @@ function makeProjects(count: number): PortfolioProject[] {
     name: `Project ${i + 1}`,
     slug: `project-${i + 1}`,
     task_count: i + 1,
+    tasks_done: i,
+    tasks_total: i + 1,
     health_score: 60 + i,
     top_issue: '',
   }));
@@ -137,14 +139,41 @@ describe('PortfolioTable — TASK-0124', () => {
     const { container } = render(
       <PortfolioTable
         projects={[
-          { id: 'p1', name: 'Alpha', slug: 'alpha', task_count: 3, health_score: score, top_issue: '' },
-          { id: 'p2', name: 'Beta', slug: 'beta', task_count: 4, health_score: 70, top_issue: '' },
+          { id: 'p1', name: 'Alpha', slug: 'alpha', task_count: 3, tasks_done: 1, tasks_total: 3, health_score: score, top_issue: '' },
+          { id: 'p2', name: 'Beta', slug: 'beta', task_count: 4, tasks_done: 2, tasks_total: 4, health_score: 70, top_issue: '' },
         ]}
       />,
     );
     const bar = findBarByWidth(container, `${score}%`);
     expect(bar, `bar for score ${score}`).toBeTruthy();
     expect(bar?.classList.contains(colorClass)).toBe(true);
+  });
+
+  // ── B12.7 / B13.7: done/total schema (closed in TASK-0154) ──
+
+  it('tasks column shows done/total format (B12.7)', () => {
+    render(
+      <PortfolioTable
+        projects={[
+          { id: 'p1', name: 'Alpha', slug: 'alpha', task_count: 36, tasks_done: 30, tasks_total: 36, health_score: 70, top_issue: '' },
+          { id: 'p2', name: 'Beta', slug: 'beta', task_count: 4, tasks_done: 3, tasks_total: 4, health_score: 80, top_issue: '' },
+        ]}
+      />,
+    );
+    expect(screen.getByText('30/36')).toBeInTheDocument();
+    expect(screen.getByText('3/4')).toBeInTheDocument();
+  });
+
+  it('project with zero tasks shows 0/0 (B13.7)', () => {
+    render(
+      <PortfolioTable
+        projects={[
+          { id: 'p1', name: 'Alpha', slug: 'alpha', task_count: 0, tasks_done: 0, tasks_total: 0, health_score: 70, top_issue: '' },
+          { id: 'p2', name: 'Beta', slug: 'beta', task_count: 4, tasks_done: 3, tasks_total: 4, health_score: 80, top_issue: '' },
+        ]}
+      />,
+    );
+    expect(screen.getByText('0/0')).toBeInTheDocument();
   });
 
   it('shows all 5 projects when exactly 5 (B13.4)', () => {

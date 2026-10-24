@@ -5,8 +5,10 @@ A5.1/A9.1 (401 without token) are covered by the parametrized
 in ``tests/test_dashboard_security.py`` — asserted here, not duplicated.
 
 Known matrix deviations (documented, not changed here):
-- A8.3: per-project payload carries a single ``task_count`` instead of
-  ``tasks_done``/``tasks_total`` (same deviation recorded in TASK-0124).
+- (resolved 2026-10-25, TASK-0154): A8.3 now asserts the full
+  ``tasks_done``/``tasks_total`` shape — the old single-``task_count``
+  deviation (TASK-0124) was closed; ``task_count`` is kept additively
+  for existing consumers.
 """
 
 import os
@@ -197,14 +199,22 @@ def test_a8_2_health_score_int_in_range(seeded_portfolio_client: TestClient) -> 
 
 
 def test_a8_3_task_count_field(seeded_portfolio_client: TestClient) -> None:
-    """Matrix deviation: shape is a single int ``task_count``, not tasks_done/tasks_total."""
+    """A8.3 (closed in TASK-0154): tasks_done/tasks_total present as ints, task_count kept additively."""
     resp = seeded_portfolio_client.get(_PORTFOLIO_URL)
     for project in resp.json()["projects"]:
-        assert "task_count" in project
         assert isinstance(project["task_count"], int)
-        # Deviation from matrix wording (also recorded in TASK-0124):
-        assert "tasks_done" not in project
-        assert "tasks_total" not in project
+        assert isinstance(project["tasks_done"], int)
+        assert isinstance(project["tasks_total"], int)
+        assert project["tasks_done"] <= project["tasks_total"]
+
+
+def test_a8_3_done_total_values_match_seed(seeded_portfolio_client: TestClient) -> None:
+    """Each seeded project has 4 tasks cycling 4 statuses → exactly 1 done (B12.7/B13.7)."""
+    body = seeded_portfolio_client.get(_PORTFOLIO_URL).json()
+    for project in body["projects"]:
+        assert project["tasks_total"] == 4
+        assert project["tasks_done"] == 1
+        assert project["task_count"] == project["tasks_total"]
 
 
 def test_a8_4_top_issue_is_string(seeded_portfolio_client: TestClient) -> None:
