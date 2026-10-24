@@ -2,7 +2,9 @@
 
 Positive: valid JWT accepted. Negative: missing/garbage/expired/wrong-
 signature/type-confused tokens rejected; refresh rotation enforced;
-logout revokes the refresh token. Known gaps are strict=False xfails.
+logout revokes the refresh token. Finding 2 (nonexistent subject on
+domain routes) is closed by TASK-0146; the remaining known gap —
+logout denylist (finding 3, TASK-0147) — is a strict=False xfail.
 """
 
 from __future__ import annotations
@@ -107,12 +109,6 @@ def test_nonexistent_user_rejected_on_auth_me(mint) -> None:
 
 
 @pytest.mark.severity("high")
-@pytest.mark.xfail(
-    strict=False,
-    reason="finding: AuthMiddleware verifies only the JWT signature and GET /api/v1/projects "
-    "has no get_current_user dependency — a correctly-signed token whose subject does not "
-    "(or no longer) exist is accepted on such routes until exp",
-)
 def test_nonexistent_user_rejected_on_domain_endpoint(mint) -> None:
     token = mint(_FAKE_UUID)
     resp = httpx.get(
