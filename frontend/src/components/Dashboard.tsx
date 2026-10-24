@@ -142,7 +142,10 @@ export function Dashboard() {
 
   const tc = stats?.task_counts_by_status;
   const activeTasks = (tc?.in_progress ?? 0) + (stats?.claimed_count ?? 0) + (tc?.blocked ?? 0);
-  const health = stats?.health_score ?? 100;
+  const health =
+    stats?.health_score == null
+      ? 100
+      : Math.min(100, Math.max(0, stats.health_score));
   const firstProjectId = projectId ?? stats?.recent_projects?.[0]?.id;
   const deliveryBase = firstProjectId ? `/projects/${firstProjectId}/delivery` : '/projects';
 

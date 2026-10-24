@@ -149,23 +149,24 @@ describe('ProjectSelector', () => {
 
   // ── B15: more edge cases ────────────────────────
 
-  it('unknown project_id in URL does not crash; selector stays usable (B15.3)', () => {
-    // Component passes the URL value through without validation (no explicit
-    // fallback to "All"); backend treats unknown project ids as global scope.
+  it('unknown project_id in URL falls back to All (B15.3)', () => {
+    // Closed in TASK-0154 per matrix: a project_id that is not in the loaded
+    // list is treated as no selection (selector shows "All Projects").
     routeState.search = { project_id: 'missing-id' };
     givenProjects(3);
     render(<ProjectSelector />);
-    expect(getSelectValue()).toBe('missing-id');
-    expect(screen.getByTestId('select-item-all')).toBeInTheDocument();
+    expect(getSelectValue()).toBe('all');
+    expect(screen.getByTestId('select-value')).toHaveTextContent('All Projects');
     fireEvent.click(screen.getByTestId('select-item-all'));
     expect(mockNavigate).toHaveBeenCalledWith({ search: {} });
   });
 
-  it('non-UUID project_id in URL does not crash; selector stays usable (B15.4)', () => {
+  it('non-existent project_id falls back to All (B15.4)', () => {
     routeState.search = { project_id: 'not-a-uuid' };
     givenProjects(3);
     render(<ProjectSelector />);
-    expect(getSelectValue()).toBe('not-a-uuid');
+    expect(getSelectValue()).toBe('all');
+    expect(screen.getByTestId('select-value')).toHaveTextContent('All Projects');
     expect(screen.getByTestId('select-item-p1')).toBeInTheDocument();
   });
 

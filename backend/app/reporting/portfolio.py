@@ -39,12 +39,16 @@ class PortfolioService:
         )
         fids_by_project: dict[str, list[str]] = {}
         all_fids: list[str] = []
+        pid_by_fid: dict[str, str] = {}
         for fid, pid in feature_rows:
             fids_by_project.setdefault(pid, []).append(fid)
             all_fids.append(fid)
+            pid_by_fid[fid] = pid
 
         # Batch query: all tasks for all features at once
         tasks_by_feature: dict[str, int] = {}
+        tasks_total_by_project: dict[str, int] = {}
+        tasks_done_by_project: dict[str, int] = {}
         total_tasks = 0
         tasks_by_status: dict[str, int] = {}
         if all_fids:
@@ -57,6 +61,13 @@ class PortfolioService:
                 tasks_by_feature[fid] = tasks_by_feature.get(fid, 0) + 1
                 total_tasks += 1
                 tasks_by_status[status] = tasks_by_status.get(status, 0) + 1
+                # NB: not `pid` — that name is already bound to str by the
+                # feature_rows loop above; .get() yields str | None.
+                task_pid = pid_by_fid.get(fid)
+                if task_pid is not None:
+                    tasks_total_by_project[task_pid] = tasks_total_by_project.get(task_pid, 0) + 1
+                    if status == "done":
+                        tasks_done_by_project[task_pid] = tasks_done_by_project.get(task_pid, 0) + 1
 
         # Batch health query for all projects at once
         attn_svc = AttentionDashboardService(self._session)
@@ -74,6 +85,8 @@ class PortfolioService:
                     "name": p.name,
                     "slug": p.slug,
                     "task_count": p_task_count,
+                    "tasks_done": tasks_done_by_project.get(p.id, 0),
+                    "tasks_total": tasks_total_by_project.get(p.id, 0),
                     "health_score": health["score"],
                     "top_issue": health.get("top_issue", ""),
                 }

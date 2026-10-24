@@ -380,6 +380,24 @@ describe('Dashboard', () => {
     expect(screen.getByText('88888')).toBeInTheDocument();
   });
 
+  it('negative health score clamps to 0% (B3.5)', () => {
+    mockUseDashboardStats.mockReturnValue(
+      mockSuccessQuery({ ...FULL_STATS, health_score: -20 }),
+    );
+    renderDashboard();
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(screen.queryByText('-20%')).not.toBeInTheDocument();
+  });
+
+  it('health score over 100 clamps to 100% (B3.5 boundary)', () => {
+    mockUseDashboardStats.mockReturnValue(
+      mockSuccessQuery({ ...FULL_STATS, health_score: 150 }),
+    );
+    renderDashboard();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.queryByText('150%')).not.toBeInTheDocument();
+  });
+
   it('falls back to 100% when health_score is missing (B3.6)', () => {
     // Note: implementation falls back to 100 (full health), not "N/A"/0 as the
     // task row suggested — documenting actual behavior here.
