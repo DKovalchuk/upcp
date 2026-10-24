@@ -28,15 +28,15 @@ describe('ClarificationsTab', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('renders loading state', () => {
-    mockUseTaskClarifications.mockReturnValue({ data: undefined, isLoading: true } as any);
-    mockUseAnswerClarification.mockReturnValue({ mutate: vi.fn() } as any);
+    mockUseTaskClarifications.mockReturnValue({ data: undefined, isLoading: true } as ReturnType<typeof useTaskClarifications>);
+    mockUseAnswerClarification.mockReturnValue({ mutate: vi.fn() } as ReturnType<typeof useAnswerClarification>);
     renderTab();
     expect(screen.getByText('Loading...')).toBeDefined();
   });
 
   it('renders empty state', () => {
-    mockUseTaskClarifications.mockReturnValue({ data: { items: [] }, isLoading: false } as any);
-    mockUseAnswerClarification.mockReturnValue({ mutate: vi.fn() } as any);
+    mockUseTaskClarifications.mockReturnValue({ data: { items: [] }, isLoading: false } as ReturnType<typeof useTaskClarifications>);
+    mockUseAnswerClarification.mockReturnValue({ mutate: vi.fn() } as ReturnType<typeof useAnswerClarification>);
     renderTab();
     expect(screen.getByText('No clarifications')).toBeDefined();
   });
@@ -49,8 +49,8 @@ describe('ClarificationsTab', () => {
         ],
       },
       isLoading: false,
-    } as any);
-    mockUseAnswerClarification.mockReturnValue({ mutate: vi.fn() } as any);
+    } as ReturnType<typeof useTaskClarifications>);
+    mockUseAnswerClarification.mockReturnValue({ mutate: vi.fn() } as ReturnType<typeof useAnswerClarification>);
     renderTab();
     expect(screen.getByText('What format?')).toBeDefined();
   });

@@ -58,7 +58,7 @@ describe('AgentDetailPage', () => {
     mockUseAgent.mockReturnValue({
       data: undefined,
       isLoading: true,
-    } as any);
+    } as ReturnType<typeof useAgent>);
     const { container } = renderPage();
     expect(container.querySelector('.animate-pulse')).toBeDefined();
   });
@@ -68,7 +68,7 @@ describe('AgentDetailPage', () => {
       data: null,
       isLoading: false,
       error: new Error('not found'),
-    } as any);
+    } as ReturnType<typeof useAgent>);
     renderPage();
     expect(screen.getByText('Agent not found')).toBeDefined();
   });
@@ -77,7 +77,7 @@ describe('AgentDetailPage', () => {
     mockUseAgent.mockReturnValue({
       data: mockAgent,
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useAgent>);
     renderPage();
     expect(screen.getByText('claude-builder')).toBeDefined();
     expect(screen.getByText('12')).toBeDefined();
@@ -88,7 +88,7 @@ describe('AgentDetailPage', () => {
     mockUseAgent.mockReturnValue({
       data: mockAgent,
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useAgent>);
     renderPage();
     expect(screen.getByText('Overview')).toBeDefined();
     expect(screen.getByText('Claims')).toBeDefined();
@@ -111,7 +111,7 @@ describe('AgentDetailPage', () => {
     mockUseAgent.mockReturnValue({
       data: workingAgent,
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useAgent>);
     renderPage();
     expect(screen.getByText('Implement feature')).toBeDefined();
     expect(screen.getByText('67%')).toBeDefined();

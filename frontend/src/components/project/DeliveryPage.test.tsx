@@ -67,32 +67,32 @@ function renderDelivery() {
 describe('DeliveryPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseCreateFeature.mockReturnValue({ mutateAsync: vi.fn() } as any);
-    mockUseDeleteFeature.mockReturnValue({ mutateAsync: vi.fn() } as any);
-    mockUseCreateTask.mockReturnValue({ mutateAsync: vi.fn() } as any);
-    mockUseTasks.mockReturnValue({ data: [], isLoading: false } as any);
+    mockUseCreateFeature.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useCreateFeature>);
+    mockUseDeleteFeature.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useDeleteFeature>);
+    mockUseCreateTask.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useCreateTask>);
+    mockUseTasks.mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useTasks>);
   });
 
   it('renders loading state', () => {
-    mockUseFeatures.mockReturnValue({ data: undefined, isLoading: true } as any);
+    mockUseFeatures.mockReturnValue({ data: undefined, isLoading: true } as ReturnType<typeof useFeatures>);
     const { container } = renderDelivery();
     expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
   });
 
   it('renders empty state when no features', () => {
-    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as any);
+    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as ReturnType<typeof useFeatures>);
     renderDelivery();
     expect(screen.getByText('No features yet')).toBeInTheDocument();
   });
 
   it('renders Delivery heading', () => {
-    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as any);
+    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as ReturnType<typeof useFeatures>);
     renderDelivery();
     expect(screen.getByRole('heading', { name: 'Delivery' })).toBeInTheDocument();
   });
 
   it('renders create feature button in header', () => {
-    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as any);
+    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as ReturnType<typeof useFeatures>);
     renderDelivery();
     const buttons = screen.getAllByRole('button');
     const featureBtn = buttons.find((b) => b.textContent?.trim() === 'Feature');
@@ -109,7 +109,7 @@ describe('DeliveryPage', () => {
         total: 2, offset: 0, limit: 20,
       },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useFeatures>);
 
     renderDelivery();
     expect(screen.getByText('Auth')).toBeInTheDocument();
@@ -128,7 +128,7 @@ describe('DeliveryPage', () => {
         total: 1, offset: 0, limit: 20,
       },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useFeatures>);
     mockUseTasks.mockReturnValue({
       data: {
         items: [
@@ -137,7 +137,7 @@ describe('DeliveryPage', () => {
         total: 1, offset: 0, limit: 20,
       },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useTasks>);
 
     renderDelivery();
     fireEvent.click(screen.getByText('Auth'));
@@ -154,7 +154,7 @@ describe('DeliveryPage', () => {
         total: 1, offset: 0, limit: 20,
       },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useFeatures>);
 
     renderDelivery();
     const header = screen.getByRole('button', { name: /Auth/ });
@@ -168,7 +168,7 @@ describe('DeliveryPage', () => {
   });
 
   it('opens create feature dialog', async () => {
-    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as any);
+    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as ReturnType<typeof useFeatures>);
     renderDelivery();
     const buttons = screen.getAllByRole('button');
     const featureBtn = buttons.find((b) => b.textContent?.trim() === 'Feature');
@@ -179,7 +179,7 @@ describe('DeliveryPage', () => {
   });
 
   it('shows search input', () => {
-    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as any);
+    mockUseFeatures.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false } as ReturnType<typeof useFeatures>);
     renderDelivery();
     expect(screen.getByPlaceholderText('Filter features...')).toBeInTheDocument();
   });
@@ -193,17 +193,17 @@ describe('DeliveryPage', () => {
         total: 1, offset: 0, limit: 20,
       },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useFeatures>);
     mockUseTasks.mockReturnValue({
       data: {
         items: [
-          { id: 't1', feature_id: 'f1', title: 'Login form', description: null, status: 'backlog', priority: 0, assignee_type: null, assignee_id: null, component_id: null, module_id: null, created_at: '', updated_at: '' },
-          { id: 't2', feature_id: 'f1', title: 'Register form', description: null, status: 'backlog', priority: 1, assignee_type: null, assignee_id: null, component_id: null, module_id: null, created_at: '', updated_at: '' },
+          { id: 't1', feature_id: 'f1', title: 'Login form', description: null, status: 'backlog', priority: 0, assignee_type: null, assignee_id: null, component_id: null, module_id: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-07-24T00:00:00Z' },
+          { id: 't2', feature_id: 'f1', title: 'Register form', description: null, status: 'backlog', priority: 1, assignee_type: null, assignee_id: null, component_id: null, module_id: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-07-24T00:00:00Z' },
         ],
         total: 2, offset: 0, limit: 20,
       },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useTasks>);
 
     renderDelivery();
     fireEvent.click(screen.getByText('Auth'));

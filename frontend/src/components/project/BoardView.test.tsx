@@ -41,7 +41,7 @@ function mockQuery(tasks: any[]) {
   mockUseQuery.mockReturnValue({
     data: { items: tasks, total: tasks.length, offset: 0, limit: 100 },
     isLoading: false,
-  } as any);
+  } as ReturnType<typeof useQuery>);
 }
 
 function renderBoard(
@@ -68,7 +68,7 @@ function renderBoard(
 describe('BoardView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseUpdateTask.mockReturnValue({ mutateAsync: vi.fn() } as any);
+    mockUseUpdateTask.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useUpdateTask>);
   });
 
   it('renders all four status columns', () => {

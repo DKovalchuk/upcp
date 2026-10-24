@@ -26,13 +26,13 @@ describe('EvidenceTab', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('renders loading state', () => {
-    mockUseTaskEvidence.mockReturnValue({ data: undefined, isLoading: true } as any);
+    mockUseTaskEvidence.mockReturnValue({ data: undefined, isLoading: true } as ReturnType<typeof useTaskEvidence>);
     renderTab();
     expect(screen.getByText('Loading...')).toBeDefined();
   });
 
   it('renders empty state', () => {
-    mockUseTaskEvidence.mockReturnValue({ data: { items: [] }, isLoading: false } as any);
+    mockUseTaskEvidence.mockReturnValue({ data: { items: [] }, isLoading: false } as ReturnType<typeof useTaskEvidence>);
     renderTab();
     expect(screen.getByText('No evidence')).toBeDefined();
   });
@@ -45,7 +45,7 @@ describe('EvidenceTab', () => {
         ],
       },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useTaskEvidence>);
     renderTab();
     expect(screen.getByText('Test Results')).toBeDefined();
     expect(screen.getByText('All tests pass')).toBeDefined();
