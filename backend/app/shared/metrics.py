@@ -43,6 +43,12 @@ auth_attempts_total = Counter(
     ["result"],
 )
 
+auth_subject_rejections_total = Counter(
+    "upcp_auth_subject_rejections_total",
+    "Valid JWT rejected because subject is unknown or disabled (SPEC-0027 finding 2)",
+    ["reason"],
+)
+
 rbac_denials_total = Counter(
     "upcp_rbac_denials_total",
     "Total RBAC permission denials (403) by action and resource",

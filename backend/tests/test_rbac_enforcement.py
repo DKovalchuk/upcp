@@ -188,8 +188,8 @@ def test_unknown_subject_mutation_rejected_401(
 ) -> None:
     """Valid-signature token whose sub has no user row → 401 on a mutation.
 
-    Middleware (finding 2, TASK-0146) still accepts such tokens; the gate
-    must not let them through to a handler.
+    Finding 2 (TASK-0146) closed: the middleware user-existence check
+    rejects such tokens before the route — this pins the end-to-end 401.
     """
     _enable_enforcement(monkeypatch)
     ns = _client_with_identity()
