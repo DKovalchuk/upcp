@@ -36,18 +36,6 @@ class DashboardService:
 
     def get_stats(self, project_id: str | None = None) -> dict[str, Any]:
         """Get aggregated dashboard statistics."""
-        task_query = self._session.query(Task)
-        if project_id:
-            from app.delivery.models import Feature
-
-            feature_ids = [
-                f.id
-                for f in self._session.query(Feature.id)
-                .filter(Feature.project_id == project_id)
-                .all()
-            ]
-            task_query = task_query.filter(Task.feature_id.in_(feature_ids))
-
         # Project count
         project_count = self._session.query(Project).count()
 
@@ -163,21 +151,12 @@ class DashboardService:
             result = svc.get_project_health(project_id)
             score = result.get("score", 100)
             return score if isinstance(score, int) else 100
-        # Aggregate: average of all project health scores
-        projects = self._session.query(Project).all()
-        if not projects:
-            return 100
+        # Aggregate: mean of per-project scores — exact set-based batch
+        # (was an N+1 loop over get_project_health, TASK-0149/TASK-0140)
         from app.reporting.attention import AttentionDashboardService
 
         svc = AttentionDashboardService(self._session)
-        total = 0
-        count = 0
-        for p in projects:
-            result = svc.get_project_health(p.id)
-            score = result.get("score", 100)
-            total += score if isinstance(score, int) else 100
-            count += 1
-        return round(total / count) if count else 100
+        return svc.get_average_health()
 
     def _get_recent_projects(self, limit: int = 5) -> list[dict[str, object]]:
         """Get recent projects ordered by updated_at desc."""

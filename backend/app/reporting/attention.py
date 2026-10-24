@@ -412,6 +412,105 @@ class AttentionDashboardService:
             "top_issue": top_issue,
         }
 
+    def get_average_health(self) -> int:
+        """Portfolio average of per-project health scores — exact and set-based (TASK-0149).
+
+        Arithmetic parity with calling :meth:`get_project_health` per project
+        (including the empty-project 100 and ``round()`` semantics), but in a
+        fixed number of queries instead of ≈6 per project — the dashboard
+        ``/stats`` N+1 behind the 1.06–1.33s @394-projects finding (TASK-0140).
+        """
+        project_ids = [p.id for p in self._session.query(Project).all()]
+        if not project_ids:
+            return 100
+        scores = self._health_scores_batch(project_ids)
+        return round(sum(scores.values()) / len(scores))
+
+    def _health_scores_batch(self, project_ids: list[str]) -> dict[str, int]:
+        """Exact per-project health scores: each entity queried exactly once.
+
+        Unlike :meth:`get_projects_health_batch` (portfolio approximation with
+        global penalties — its semantics are pinned by the portfolio caller),
+        every metric here is scoped to the project's own tasks, matching
+        :meth:`get_project_health` row for row.
+        """
+        feature_rows = (
+            self._session.query(Feature.id, Feature.project_id)
+            .filter(Feature.project_id.in_(project_ids))
+            .all()
+        )
+        fids_by_project: dict[str, list[str]] = {}
+        all_fids: list[str] = []
+        for fid, pid in feature_rows:
+            fids_by_project.setdefault(pid, []).append(fid)
+            all_fids.append(fid)
+
+        tasks_by_feature: dict[str, list[str]] = {}
+        if all_fids:
+            for tid, fid in (
+                self._session.query(Task.id, Task.feature_id)
+                .filter(Task.feature_id.in_(all_fids))
+                .all()
+            ):
+                tasks_by_feature.setdefault(fid, []).append(tid)
+
+        def _count_by_project(model: Any, *conditions: Any) -> dict[str, int]:
+            rows = (
+                self._session.query(Feature.project_id, func.count(model.id))
+                .join(Task, model.task_id == Task.id)
+                .join(Feature, Task.feature_id == Feature.id)
+                .filter(Feature.project_id.in_(project_ids), *conditions)
+                .group_by(Feature.project_id)
+                .all()
+            )
+            return {pid: cnt for pid, cnt in rows}
+
+        blocked_rows = (
+            self._session.query(Feature.project_id, func.count(Task.id))
+            .join(Feature, Task.feature_id == Feature.id)
+            .filter(Feature.project_id.in_(project_ids), Task.status == "blocked")
+            .group_by(Feature.project_id)
+            .all()
+        )
+        blocked_by_project = {pid: cnt for pid, cnt in blocked_rows}
+        stale_by_project = _count_by_project(
+            TaskClaim,
+            TaskClaim.state == "active",
+            TaskClaim.last_heartbeat_at.isnot(None),
+            TaskClaim.last_heartbeat_at
+            < datetime.now(UTC) - timedelta(minutes=STALE_HEARTBEAT_MINUTES),
+        )
+        failed_dod_by_project = _count_by_project(
+            DoDItem, DoDItem.status.in_(["failed", "pending"])
+        )
+        clar_by_project = _count_by_project(
+            ClarificationRequest,
+            ClarificationRequest.blocking == True,  # noqa: E712
+            ClarificationRequest.state == "open",
+        )
+        rejected_by_project = _count_by_project(
+            ReviewRound,
+            ReviewRound.state == "completed",
+            ReviewRound.verdict == "reject",
+        )
+
+        scores: dict[str, int] = {}
+        for pid in project_ids:
+            p_fids = fids_by_project.get(pid, [])
+            if not any(tasks_by_feature.get(fid) for fid in p_fids):
+                scores[pid] = 100  # no tasks — same early-return as get_project_health
+                continue
+            scores[pid] = max(
+                0,
+                100
+                - (blocked_by_project.get(pid, 0) * HEALTH_BLOCKED_WEIGHT)
+                - (stale_by_project.get(pid, 0) * HEALTH_STALE_WEIGHT)
+                - (failed_dod_by_project.get(pid, 0) * HEALTH_FAILED_DOD_WEIGHT)
+                - (clar_by_project.get(pid, 0) * HEALTH_OPEN_CLARIFICATIONS_WEIGHT)
+                - (rejected_by_project.get(pid, 0) * HEALTH_REJECTED_WEIGHT),
+            )
+        return scores
+
     def get_projects_health_batch(self, project_ids: list[str]) -> dict[str, dict[str, object]]:
         """Calculate health scores for multiple projects in batch.
 
