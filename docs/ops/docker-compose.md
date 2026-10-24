@@ -132,15 +132,29 @@ prometheus:
 grafana:
   image: grafana/grafana:latest
   ports:
-    - "33000:3000"
+    - "127.0.0.1:${UPCP_PORT_GRAFANA:-33000}:3000"
   environment:
-    GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_change_me}
   volumes:
     - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
     - grafanadata:/var/lib/grafana
   profiles:
     - observability
 ```
+
+> **Admin password is captured once**: Grafana seeds it into the
+> `grafanadata` volume at **first start** — later env changes are ignored
+> until the volume is reset
+> (`docker volume rm <compose-project>_grafan-test-data`).
+> **Compose precedence: process (shell) env > `--env-file` > service
+> default** — a shell carrying `GRAFANA_ADMIN_PASSWORD=admin_change_me`
+> (e.g. root `.env` loaded by the launcher) silently overrides
+> `.env.test`'s `admin_test` at interpolation time. Probed TASK-0152:
+> leak-seeded and clean-env-reset volumes answer `admin_change_me` and
+> `admin_test` respectively (200/401 pairs). To get the env-file value:
+> reset the volume **and** run compose where the shell doesn't define
+> the variable (`env -u GRAFANA_ADMIN_PASSWORD docker compose …`).
 
 ## 3. Ports
 
@@ -164,7 +178,7 @@ JWT_SECRET=changeme_32_chars_minimum_random
 API_KEY_SALT=changeme_random_salt
 
 # Optional
-GRAFANA_PASSWORD=admin
+GRAFANA_ADMIN_PASSWORD=admin_test  # applied only when the grafana volume is first created (see §2.7)
 ENVIRONMENT=production
 LOG_LEVEL=INFO
 ```

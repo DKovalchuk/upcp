@@ -41,8 +41,11 @@ exporters:
     endpoint: "0.0.0.0:8889"
     namespace: upcp
 
-  otlp/loki:
-    endpoint: loki:3100/otlp
+  otlphttp/loki:
+    # Native OTLP = HTTP on Loki's MAIN port (/otlp → /v1/logs); the
+    # gRPC-4317 receiver does not exist in grafana/loki:3.4.2 and a
+    # top-level `otlp:` config key fails -verify-config (TASK-0151).
+    endpoint: http://loki:3100/otlp
 
   otlp/tempo:
     endpoint: tempo:4317
@@ -73,7 +76,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch, attributes]
-      exporters: [otlp/loki]
+      exporters: [otlphttp/loki]
 ```
 
 ### 2.2 Docker Compose
@@ -174,16 +177,48 @@ File: `observability/grafana/provisioning/dashboards/dashboards.yaml`
 apiVersion: 1
 
 providers:
-  - name: UPCP
+  - name: UPCP Test
     orgId: 1
-    folder: UPCP
+    folder: UPCP Test Environment
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30
     options:
-      path: /etc/grafana/provisioning/dashboards
-      foldersFromFilesStructure: true
+      path: /etc/grafana/dashboards/test
+      foldersFromFilesStructure: false
+
+  - name: UPCP Production
+    orgId: 1
+    folder: UPCP Production
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards/production
+      foldersFromFilesStructure: false
 ```
+
+Both `dashboards/test/` and `dashboards/production/` must exist on disk
+(`observability/grafana/dashboards/…`, bind-mounted to
+`/etc/grafana/dashboards`) — otherwise Grafana logs
+`failed to walk provisioned dashboards` every update interval. The
+folders are kept with `.gitkeep` placeholders; contract-tested in
+`backend/tests/test_observability_configs.py` (TASK-0152).
+
+### 4.3 Admin access
+
+- UI: `http://localhost:<UPCP_PORT_GRAFANA>` (test env: **33001**),
+  user `admin`.
+- **Password is seeded once** into the grafana volume from
+  `GF_SECURITY_ADMIN_PASSWORD` at first start (init-once). **Compose
+  precedence: process (shell) env > `--env-file` > default** — a shell
+  carrying `GRAFANA_ADMIN_PASSWORD=admin_change_me` (root `.env` loaded
+  by the launcher) overrides `.env.test`'s `admin_test` at
+  interpolation; both paths probed live (TASK-0152): leak-seeded →
+  `admin_change_me` 200, clean env (`env -u …` + volume reset) →
+  `admin_test` 200. Reset:
+  `docker volume rm <compose-project>_grafana-test-data` (grafana
+  restarts, re-seeds, dashboards re-provision from the files above).
 
 ## 5. Loki
 
