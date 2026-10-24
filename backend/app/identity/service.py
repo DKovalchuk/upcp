@@ -7,12 +7,14 @@ is sent, so flush-only mutations race with the client's next request
 """
 
 from datetime import UTC, datetime
+from typing import cast
 
 import bcrypt
 from sqlalchemy.orm import Session
 
+from app.identity.denylist import deny_access_token
 from app.identity.models import LoginAudit, Membership, Organization, User
-from app.identity.token_service import TokenService
+from app.identity.token_service import ACCESS_TOKEN_EXPIRY, TokenService
 
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 30
@@ -141,12 +143,28 @@ class AuthService:
 
     # ── Logout ─────────────────────────────────────────────────────
 
-    def logout(self, refresh_token: str, user_id: str) -> None:
-        """Revoke refresh token."""
+    def logout(self, refresh_token: str, user_id: str, access_token: str) -> None:
+        """Revoke refresh token + denylist the access token (SPEC-0027 §3.3).
+
+        The denylist entry self-expires with the token (TTL = exp − now);
+        a Redis failure degrades best-effort — refresh revocation and
+        audit still commit.
+        """
         self._tokens.revoke_refresh_token(refresh_token, self._db)
+        deny_access_token(access_token, self._access_ttl(access_token))
         self._log_audit(user_id, "", "logout")
         # commit before respond — teardown runs after the response (TASK-0142)
         self._db.commit()
+
+    def _access_ttl(self, access_token: str) -> int:
+        """Remaining access-token lifetime: exp − now, at least 1 second."""
+        try:
+            payload = self._tokens.verify_access_token(access_token)
+            exp = int(cast(int | float, payload["exp"]))
+        except (KeyError, TypeError, ValueError):
+            # unreachable via the endpoint (dependency verified it) — bounded default
+            return int(ACCESS_TOKEN_EXPIRY.total_seconds())
+        return max(exp - int(datetime.now(UTC).timestamp()), 1)
 
     # ── Refresh ────────────────────────────────────────────────────
 

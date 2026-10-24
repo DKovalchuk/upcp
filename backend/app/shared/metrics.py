@@ -49,6 +49,12 @@ auth_subject_rejections_total = Counter(
     ["reason"],
 )
 
+auth_token_denials_total = Counter(
+    "upcp_auth_token_denials_total",
+    "Access token rejected by the logout denylist (SPEC-0027 finding 3)",
+    ["reason"],
+)
+
 rbac_denials_total = Counter(
     "upcp_rbac_denials_total",
     "Total RBAC permission denials (403) by action and resource",

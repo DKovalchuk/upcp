@@ -122,9 +122,11 @@ def test_logout_revocation_visible_before_response(db_pair: tuple[Engine, Engine
     user_id = _seed_user(engine_a)
     session_a = Session(engine_a, expire_on_commit=False)
 
-    raw = _token(_make_service(session_a).login(EMAIL, PASSWORD))
+    login = _make_service(session_a).login(EMAIL, PASSWORD)
+    raw = str(login["refresh_token"])
+    access = str(login["access_token"])
     session_a.commit()
-    _make_service(session_a).logout(raw, user_id)
+    _make_service(session_a).logout(raw, user_id, access)
 
     token_hash = hashlib.sha256(raw.encode()).hexdigest()
     with engine_b.connect() as conn:

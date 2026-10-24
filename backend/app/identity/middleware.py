@@ -19,6 +19,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp
 
+from app.identity.denylist import is_token_denied, note_denied_token
 from app.identity.token_service import TokenService
 from app.shared.logging import get_logger
 from app.shared.metrics import auth_subject_rejections_total
@@ -151,6 +152,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
             try:
                 payload = self._token_service.verify_access_token(token)
             except ValueError:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Invalid or expired token"},
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            # SPEC-0027 §3.3: logout-denylisted token (finding 3)
+            if is_token_denied(token):
+                note_denied_token(token)
                 return JSONResponse(
                     status_code=401,
                     content={"detail": "Invalid or expired token"},
