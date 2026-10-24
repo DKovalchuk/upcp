@@ -26,13 +26,13 @@ describe('ReviewsTab', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('renders loading state', () => {
-    mockUseTaskReviewRounds.mockReturnValue({ data: undefined, isLoading: true } as any);
+    mockUseTaskReviewRounds.mockReturnValue({ data: undefined, isLoading: true } as ReturnType<typeof useTaskReviewRounds>);
     renderTab();
     expect(screen.getByText('Loading...')).toBeDefined();
   });
 
   it('renders empty state', () => {
-    mockUseTaskReviewRounds.mockReturnValue({ data: [], isLoading: false } as any);
+    mockUseTaskReviewRounds.mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useTaskReviewRounds>);
     renderTab();
     expect(screen.getByText('No reviews')).toBeDefined();
   });
@@ -45,7 +45,7 @@ describe('ReviewsTab', () => {
         ],
       },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useTaskReviewRounds>);
     renderTab();
     expect(screen.getByText('reviewer-1')).toBeDefined();
     expect(screen.getByText('Looks good')).toBeDefined();

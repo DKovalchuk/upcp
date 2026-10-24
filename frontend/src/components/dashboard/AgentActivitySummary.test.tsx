@@ -66,7 +66,7 @@ describe('AgentActivitySummary', () => {
       data: undefined,
       isLoading: true,
       error: null,
-    } as any);
+    } as ReturnType<typeof useAgentActivity>);
 
     const { container } = renderAgentActivitySummary();
     const skeletons = container.querySelectorAll('[data-slot="skeleton"]');
@@ -78,7 +78,7 @@ describe('AgentActivitySummary', () => {
       data: { items: [] },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useAgentActivity>);
 
     renderAgentActivitySummary();
     expect(screen.getByText('No active agents')).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe('AgentActivitySummary', () => {
       data: { items: mockItems },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useAgentActivity>);
 
     renderAgentActivitySummary();
 
@@ -147,7 +147,7 @@ describe('AgentActivitySummary', () => {
       data: { items: mockItems },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useAgentActivity>);
 
     renderAgentActivitySummary();
 

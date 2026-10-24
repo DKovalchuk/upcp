@@ -30,6 +30,10 @@ export function useFilters() {
       } else {
         newSearch[key] = value;
       }
+      // Documented escape (TASK-0155): routes are registered without
+      // search validators — typed navigate() accepts only
+      // true | ParamsReducerFn for search, so object-form needs a cast
+      // (probe: TS2322). Fix belongs to router search-validator typing.
       navigate({ search: newSearch as any });
     },
     [navigate, search],

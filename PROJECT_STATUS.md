@@ -3,21 +3,21 @@
 Updated: 2026-10-25
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 4 — TASK-0112 DONE 2026-10-25 (M19 S21.1 Test
-Infrastructure, engine dedup)**: AC «all test files use shared engine»
-закрыт с enforcement-тестом (`test_engine_dedup.py`, AST-скан): red
-**17 violators** (совпало с аудитом) → миграция **17 файлов** тремя
-рецептами (D: conftest-импорты; B: алиасы `_engine/_Session`; A: локальные
-in-memory-фикстуры → conftest `db_session`) → green. conftest `db_session`
-ужесточён (drop+create per test — свежесть заменённых фикстур). FK-on
-fallout: сиды с `flush()` родителя (analytics×2), pre-seed proj-0/proj-1
-(reporting), **fix(quality)**: `upload_file` валидирует задачу → **404**
-(раньше201-сирота на FK-off, unhandled 500 на FK-on; `create()` — latent
-follow-up). Исключения документированы:2 двухдвижковых сценария + live-сьюты.
-Полные гейты: backend **1023 passed**, ruff clean, mypy clean (114 файлов).
-Ветка `feature/TASK-0112-engine-dedup` → MR.
-Дальше в Этапе 4: **`as any` hygiene (TASK-0097), bootstrap port-var**,
-затем backlog §8 (ZAP baseline, security → Grafana).
+Current Task: **Этап 4 — TASK-0155 DONE 2026-10-25 (`as any` test hygiene,
+parent: TASK-0097 audit note)**: AC §6.9 «reduced by ≥80%» закрыт
+**сверх плана: 90 → 0** в 15 тест-файлах (cast-only: `as any` →
+`as ReturnType<typeof useX>` — механики-безопасно, payload не менялся;
+стратегия провалидирована tsc на первой партии). Enforcement-тест
+`src/test/as-any-hygiene.test.ts`: red (`count 90 exceeds budget 18`) →
+**green 2/2** (бюджеты: тесты ≤18, prod ≤4). Prod-эскейпы ×4
+(use-filters/ProjectSelector `navigate({search})`): **probe по факту tsc**
+→ TS2322/TS2353 (роуты без `validateSearch`, typed navigate принимает
+только `true | ParamsReducerFn`) → задокументированы комментариями,
+follow-up = router search-validators typing. Полные гейты: vitest
+**466/466 (56 файлов)** (+2 enforcement), oxlint 0, `tsc -b` 0.
+Ветка `feature/TASK-0155-as-any-hygiene` → MR.
+Дальше в Этапе 4: **bootstrap port-var** (legacy `UPCP_HTTP_PORT` в
+scaffold), затем backlog §8 (ZAP baseline, security → Grafana).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
@@ -30,7 +30,7 @@ Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (D
 
 | Task | Статус | Итог |
 |------|--------|------|
-| TASK-0097 (S16.4 polish) | ✅ DONE | MR смержен, хелперы есть; `as any` вырос позже → hygiene-item |
+| TASK-0097 (S16.4 polish) | ✅ DONE | MR смержен, хелперы есть; hygiene `as any` **закрыт TASK-0155 (2026-10-25): 90 → 0**, enforcement-бюджет, prod-эскейпы ×4 задокументированы |
 | TASK-0100 (M16 trigger) | ✅ DONE | 8 event types, event bus, 10 тестов |
 | TASK-0101 (M16 channels) | ✅ DONE | откл.: миграция 0020 вместо AC «0019» |
 | TASK-0102 (M16 analytics svc) | ✅ DONE | закрыт 2026-10-25: пагинация `/analytics/agents/overview` (limit/offset/total) + API-слой 6 тестов (AC 6+5 → 6+6) |
@@ -53,7 +53,9 @@ Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (D
 ~~breadcrumb name-resolution + keyboard
 тесты + судьба SavedViews AC (0108)~~ — закрыты TASK-0108 (2026-10-25);
 ~~engine dedup разбор (0112)~~ — закрыт TASK-0112 (2026-10-25, все
-PARTIAL-задачи аудита по M16/M18 закрыты); `as any` hygiene (0097).
+PARTIAL-задачи аудита по M16/M18 закрыты);
+~~`as any` hygiene (0097)~~ — закрыт TASK-0155 (2026-10-25: 90 → 0,
+enforcement-бюджет; prod ×4 документированы).
 
 ## Current Work (2026-10-17)
 

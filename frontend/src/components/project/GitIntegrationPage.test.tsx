@@ -50,9 +50,9 @@ function renderPage() {
 describe('GitIntegrationPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseGitProviders.mockReturnValue({ data: PROVIDERS, isLoading: false } as any);
-    mockUseGitBranches.mockReturnValue({ data: BRANCHES, isLoading: false } as any);
-    mockUseGitCommits.mockReturnValue({ data: COMMITS, isLoading: false } as any);
+    mockUseGitProviders.mockReturnValue({ data: PROVIDERS, isLoading: false } as ReturnType<typeof useGitProviders>);
+    mockUseGitBranches.mockReturnValue({ data: BRANCHES, isLoading: false } as ReturnType<typeof useGitBranches>);
+    mockUseGitCommits.mockReturnValue({ data: COMMITS, isLoading: false } as ReturnType<typeof useGitCommits>);
   });
 
   it('renders Git Integration heading', () => {

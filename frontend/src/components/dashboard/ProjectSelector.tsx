@@ -25,6 +25,8 @@ export function ProjectSelector() {
   const handleChange = (value: string | null) => {
     const v = value ?? 'all';
     if (v === 'all') {
+      // Documented escapes (TASK-0155): routes have no search validators —
+      // typed navigate() rejects object-form search (probe: TS2322/TS2353).
       navigate({ search: {} as any });
     } else {
       navigate({ search: { project_id: v } as any });

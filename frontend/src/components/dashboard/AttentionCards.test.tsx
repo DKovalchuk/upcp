@@ -262,7 +262,7 @@ describe('useAttentionDashboard — project scoping (TASK-0125)', () => {
   });
 
   it('passes projectId to fetch and keys the query by it', async () => {
-    mockFetch.mockResolvedValue({ blocked_tasks: [] } as any);
+    mockFetch.mockResolvedValue({ blocked_tasks: [] } as ReturnType<typeof fetchAttentionDashboard>);
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -280,7 +280,7 @@ describe('useAttentionDashboard — project scoping (TASK-0125)', () => {
   });
 
   it('fetches without project when no projectId given', async () => {
-    mockFetch.mockResolvedValue({ blocked_tasks: [] } as any);
+    mockFetch.mockResolvedValue({ blocked_tasks: [] } as ReturnType<typeof fetchAttentionDashboard>);
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
