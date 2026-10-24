@@ -13,7 +13,7 @@ import bcrypt
 from sqlalchemy.orm import Session
 
 from app.identity.denylist import deny_access_token
-from app.identity.models import LoginAudit, Membership, Organization, User
+from app.identity.models import LoginAudit, Membership, Organization, RefreshToken, User
 from app.identity.token_service import ACCESS_TOKEN_EXPIRY, TokenService
 
 MAX_FAILED_ATTEMPTS = 5
@@ -219,7 +219,14 @@ class AuthService:
     # ── Password change ────────────────────────────────────────────
 
     def change_password(self, user_id: str, current_password: str, new_password: str) -> None:
-        """Change user password."""
+        """Change the password and revoke every refresh token (SPEC-0027 §3.4).
+
+        Closes finding 4: the docs promised "all refresh tokens invalidated"
+        — the hash swap alone left every issued refresh token rotating for
+        up to 7 days. Revocation lands in the same commit; other sessions'
+        access JWTs stay valid until exp (<=15 min — killing those earlier
+        needs a jti claim; documented limitation in docs/security/auth-rbac.md).
+        """
         user = self._db.query(User).filter_by(id=user_id).first()
         if user is None:
             raise ValueError("USER_NOT_FOUND")
@@ -231,6 +238,11 @@ class AuthService:
             new_password.encode(), bcrypt.gensalt(rounds=12)
         ).decode()
         user.password_changed_at = datetime.now(UTC)
+        (
+            self._db.query(RefreshToken)
+            .filter(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+            .update({"revoked_at": datetime.now(UTC)}, synchronize_session=False)
+        )
         # commit before respond — teardown runs after the response (TASK-0142)
         self._db.commit()
 

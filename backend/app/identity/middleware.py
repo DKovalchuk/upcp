@@ -39,7 +39,6 @@ PUBLIC_PATHS = frozenset(
         "/docs",
         "/openapi.json",
         "/redoc",
-        "/mcp/health",
     }
 )
 

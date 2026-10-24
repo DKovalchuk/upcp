@@ -98,8 +98,10 @@ def test_middleware_blocks_mcp_without_token() -> None:
     assert resp.status_code == 401
 
 
-def test_middleware_allows_mcp_health() -> None:
-    """/mcp/health is a public endpoint and should pass through."""
+def test_middleware_blocks_mcp_health_without_token() -> None:
+    """/mcp/health is no longer public (TASK-0148 finding 5: the entry was
+    dead — no such route is registered) — unauthenticated → 401 like any
+    other /mcp path."""
     app = FastAPI()
     app.add_middleware(AuthMiddleware)
 
@@ -109,7 +111,7 @@ def test_middleware_allows_mcp_health() -> None:
 
     client = TestClient(app)
     resp = client.get("/mcp/health")
-    assert resp.status_code == 200
+    assert resp.status_code == 401
 
 
 def test_middleware_allows_mcp_with_valid_token(seed_subject) -> None:

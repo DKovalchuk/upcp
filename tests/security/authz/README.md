@@ -43,21 +43,23 @@ One collected test = one check. Written only when `SECURITY_RESULT_OUT` is set.
 | --- | --- | --- | --- |
 | Tokens | valid JWT → `/auth/me` 200; minted JWT accepted (secret wiring) | missing/garbage bearer, wrong signature, `type=refresh`, nonexistent subject → 401 | expired-but-signed JWT → 401 |
 | Refresh | rotation issues new pair; chain hop 2 works | reused old refresh → 401; garbage → 401 | — |
-| Logout | — | logout → refresh 401; logout requires auth | access survives logout (xfail finding) |
+| Logout | — | logout → refresh 401 **and** access 401 (denylist); logout requires auth | — |
 | Auth bypass | 12 endpoints × valid JWT → not 401/403 | same 12 × anonymous → 401; malformed `Authorization`, garbage `X-Agent-Token` → 401 | documented-public `/health`, `/api/v1/health` → 200 |
-| RBAC | owner creates/revokes agent token (201/200); member reads agents; fresh agent token → `/api/v1/agent/me` 200 | member create/revoke token → 403; revoked agent token → 401 | Member `update:project` unenforced (xfail finding) |
+| RBAC | owner creates/revokes agent token (201/200); member reads agents; fresh agent token → `/api/v1/agent/me` 200 | member create/revoke token → 403; revoked agent token → 401 | Member `update:project` → 403 (route gates, TASK-0145) |
 | Password | — | wrong current → 400; unauthenticated → 401 | weak new password → 422 |
 | Lockout | — | **skipped** (see below) | — |
 
-## Known findings (xfail, `strict=False` — recorded as failed checks)
+## Known findings — all closed (SPEC-0027; the suite runs 0 xfail since TASK-0147)
 
-1. `test_nonexistent_user_rejected_on_domain_endpoint` — middleware checks only
-   the signature; routes without `get_current_user` (e.g. `GET /api/v1/projects`)
-   accept a correctly-signed token for a nonexistent/deleted subject until `exp`.
-2. `test_access_token_rejected_after_logout` — logout revokes the refresh token
-   only; the access JWT stays valid until `exp` (stateless, 15-min window).
-3. `test_member_update_project_enforces_role` — seeded RBAC roles are never
-   enforced: domain routes answer 404 (resource lookup) where RBAC intent is 403.
+1. Nonexistent subject accepted on domain routes → fixed by **TASK-0146**
+   (middleware user-existence check); `test_nonexistent_user_rejected_on_domain_endpoint`
+   strict-passes.
+2. Access token alive after logout → fixed by **TASK-0147** (Redis denylist);
+   `test_access_token_rejected_after_logout` strict-passes.
+3. Seeded RBAC roles never enforced → fixed by **TASK-0145** (route gates);
+   `test_member_update_project_enforces_role` strict-passes.
+4. Dead `PUBLIC_PATHS` entry `/mcp/health` → fixed by **TASK-0148** (entry
+   removed; regression in `backend/tests/test_public_paths.py`).
 
 ## Limitations
 
@@ -71,5 +73,5 @@ One collected test = one check. Written only when `SECURITY_RESULT_OUT` is set.
   inactive-user probe (not settable without mutating the DB — the same code
   branch is covered by the nonexistent-subject check).
 - Rate-limit `429` is out of scope: `UPCP_DISABLE_RATE_LIMIT=true` on this stack.
-- `PUBLIC_PATHS` lists `/mcp/health`, which is not a registered route (404);
-  harmless, not asserted here.
+- The former dead `PUBLIC_PATHS` entry `/mcp/health` was removed in
+  TASK-0148 (regression-tested in `backend/tests/test_public_paths.py`).
