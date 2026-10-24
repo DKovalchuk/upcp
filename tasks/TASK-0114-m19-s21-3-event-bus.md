@@ -2,9 +2,17 @@
 
 **Milestone:** M19
 **Sprint:** S21.3
-**Status:** IN PROGRESS
+**Status:** DONE
 **Spec:** SPEC-0022
 **Estimate:** 8pts
+
+**Audit 2026-10-24 (evidence):** все AC закрыты: `shared/events.py` —
+`EventBus.subscribe/publish` (`:16,22,29`), сервисы публикуют через bus —
+8 точек (`delivery/workflow.py:55,186,225`, `delivery/service.py:138`,
+`stale_reaper.py:54`, `quality/service.py:93,167,316`; legacy-AC называл 7,
+появилась 8-я через рефакторинг), NotificationTrigger подписан через
+`shared/event_setup.py:60` (для всех 10 событий), `test_event_bus.py` ✅.
+Evidence: targeted pytest 130 passed (2026-10-24), CI 465-469 green.
 
 ## Objective
 

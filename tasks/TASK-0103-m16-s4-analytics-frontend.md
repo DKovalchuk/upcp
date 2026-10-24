@@ -3,8 +3,20 @@
 **Spec:** SPEC-0019
 **Milestone:** M16
 **Sprint:** S18.4
-**Status:** PENDING
+**Status:** PARTIAL
 **Size:** L
+
+**Audit 2026-10-24 (evidence):** `AnalyticsPage` + `TrendChart` +
+`VelocityChart` + `AgentPerformanceCard` ✅, route `/analytics` ✅
+(`router.tsx:263`), Channel settings UI ✅ как `ChannelsSettingsTab`
+(create/delete/test; отклонение от плана: `ChannelForm`/`ChannelList`/
+`NotificationChannelsPage` не создавались — реализовано одним табом).
+**Gaps:**
+1. **Nav-item для /analytics отсутствует** — `NAV_GROUPS` в
+   `lib/constants.ts` не содержит Analytics, CommandPalette тоже; страница
+   достижима только по прямому URL (недостижима из UI).
+2. Нет выделенных frontend-тестов analytics (AC: 10 новых тестов);
+   каналы покрыты косвенно `SettingsPage.test.tsx` (11 тестов).
 
 ## Objective
 

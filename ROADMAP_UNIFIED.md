@@ -1,11 +1,11 @@
 # UPCP Unified Roadmap — Post-M15
 
 **Created:** 2026-08-12
-**Updated:** 2026-10-17
+**Updated:** 2026-10-24 (status-аудит: фактическая загрузка M16/M18/M19 уточнена по коду)
 **Source:** M16 Comprehensive Audit + existing plans
 **Sprint size:** 1 week
 **Current:** 0.22.0 (M19 + M20 complete)
-**Next:** M18 remaining sprints (0.20.0)
+**Next:** Этап 1 (находки SPEC-0024) → закрытие gaps M16/M18 → production hardening
 
 ---
 
@@ -14,10 +14,12 @@
 ```
 0.17.0 ✅ ──▶ 0.18.0 ──▶ 0.19.0 ✅ ──▶ 0.20.0 ──▶ 0.21.0 ✅ ──▶ 0.22.0 ✅ → ...
    M15          M16         M17          M18          M19          M20
-   done      in progress    done        planned       done        done
+   done   ~done(2+2part)   done    ~done(2+2part)   done ✅       done
 ```
 
-After M20: M18 remaining (S20.1-S20.4) → M16 remaining (S18.2-S18.4) → Production hardening.
+After M20: Этап 1 (SPEC-0024 findings) → close M16/M18 gaps → Production hardening.
+Status-аудит 2026-10-24: M16 и M18 оказались реализованы глубже, чем значилось
+(roadmap показывал 1/4 и 0/4) — см. PROJECT_STATUS «Status-аудит 2026-10-24».
 
 ---
 
@@ -25,22 +27,22 @@ After M20: M18 remaining (S20.1-S20.4) → M16 remaining (S18.2-S18.4) → Produ
 
 **Goal:** Auto-generate notifications from workflow events, add email/webhook channels, build analytics dashboard.
 **Spec:** SPEC-0019
-**Sprints:** 4 (S18.1 done, S18.2-S18.4 pending)
-**Status:** Sprint 1 complete, rest pending
+**Sprints:** 4
+**Status (2026-10-24 audit):** S18.1 ✅ DONE, S18.2 ✅ DONE, S18.3 ⚠️ PARTIAL (нет пагинации + тесты < AC), S18.4 ⚠️ PARTIAL (нет nav-item /analytics, нет тестов) — фактически все 4 спринта реализованы в коде
 
-| Sprint | TASK | Focus | Points |
-|--------|------|-------|--------|
-| S18.1 ✅ | TASK-0100 | NotificationTrigger + event hooks | 8 |
-| S18.2 | TASK-0101 | NotificationChannel + EmailChannel + WebhookChannel + migration 0019 | 8 |
-| S18.3 | TASK-0102 | AnalyticsService + 5 API endpoints | 8 |
-| S18.4 | TASK-0103 | Analytics dashboard frontend + Channel Settings UI | 8 |
+| Sprint | TASK | Focus | Points | Status |
+|--------|------|-------|--------|--------|
+| S18.1 ✅ | TASK-0100 | NotificationTrigger + event hooks | 8 | DONE (audit 2026-10-24) |
+| S18.2 ✅ | TASK-0101 | NotificationChannel + EmailChannel + WebhookChannel + migration 0020 | 8 | DONE (audit 2026-10-24) |
+| S18.3 | TASK-0102 | AnalyticsService + 6 API endpoints | 8 | PARTIAL — gaps: pagination, tests |
+| S18.4 | TASK-0103 | Analytics dashboard frontend + Channel Settings UI | 8 | PARTIAL — gaps: nav-item, tests |
 
 **Exit criteria:**
-- Notifications auto-generated from all 8 workflow events
-- Email channel sends via SMTP, webhook via HTTP
-- Analytics dashboard shows trends, velocity, agent performance
-- Channel config UI in Settings
-- 705+ backend tests, 260+ frontend tests
+- Notifications auto-generated from all 8 workflow events ✅
+- Email channel sends via SMTP, webhook via HTTP ✅
+- Analytics dashboard shows trends, velocity, agent performance ✅
+- Channel config UI in Settings ✅
+- 705+ backend tests, 260+ frontend tests ✅ (сейчас ~944 / ~433)
 
 ---
 
@@ -74,23 +76,23 @@ After M20: M18 remaining (S20.1-S20.4) → M16 remaining (S18.2-S18.4) → Produ
 **Goal:** Fix accessibility gaps, redesign settings, improve notification UX, enhance project dashboard.
 **Spec:** SPEC-0021
 **Sprints:** 4
-**Source:** Audit findings U7-U9, U14-U19, U23
+**Status (2026-10-24 audit):** все 4 спринта реализованы в коде — S20.3 ✅, S20.4 ✅, S20.1 ⚠️ PARTIAL (breadcrumb name-resolution, keyboard-тесты, устаревший AC), S20.2 ⚠️ PARTIAL (channel edit, evidence)
 
-| Sprint | TASK | Focus | Points |
-|--------|------|-------|--------|
-| S20.1 | TASK-0108 | Accessibility: keyboard DnD, ARIA on accordions, breadcrumb UUID resolution | 8 |
-| S20.2 | TASK-0109 | Settings redesign: tabbed settings with Profile, Notifications, Channels, About | 8 |
-| S20.3 | TASK-0110 | Notification UX: full /notifications page, click-to-navigate, error handling | 5 |
-| S20.4 | TASK-0111 | Project dashboard: health chart, velocity chart, overview tab enhancement | 5 |
+| Sprint | TASK | Focus | Points | Status |
+|--------|------|-------|--------|--------|
+| S20.1 | TASK-0108 | Accessibility: keyboard DnD, ARIA on accordions, breadcrumb UUID resolution | 8 | PARTIAL — gaps: name-resolution, keyboard tests, stale AC |
+| S20.2 | TASK-0109 | Settings redesign: tabbed settings with Profile, Notifications, Channels, About | 8 | PARTIAL — gaps: channel edit, evidence checklist |
+| S20.3 ✅ | TASK-0110 | Notification UX: full /notifications page, click-to-navigate, error handling | 5 | DONE (audit 2026-10-24) |
+| S20.4 ✅ | TASK-0111 | Project dashboard: health chart, velocity chart, overview tab enhancement | 5 | DONE (audit 2026-10-24) |
 
 **Exit criteria:**
-- BoardView fully keyboard-accessible
-- All interactive elements have ARIA attributes
-- Settings page has 4 tabs (Profile, Notifications, Channels, About)
-- /notifications page with filters and grouping
-- Notification click navigates to entity
-- Breadcrumbs show resolved entity names (not UUIDs)
-- Project overview shows health score + mini charts
+- BoardView fully keyboard-accessible ✅ (KeyboardSensor; тестов нет — gap)
+- All interactive elements have ARIA attributes ✅
+- Settings page has 4 tabs (Profile, Notifications, Channels, About) ✅ (фактически 5: +Appearance)
+- /notifications page with filters and grouping ✅
+- Notification click navigates to entity ✅
+- Breadcrumbs show resolved entity names (not UUIDs) ❌ (UUID пропускаются, имена не разрешаются — gap)
+- Project overview shows health score + mini charts ✅
 
 ---
 
@@ -99,21 +101,21 @@ After M20: M18 remaining (S20.1-S20.4) → M16 remaining (S18.2-S18.4) → Produ
 **Goal:** Unify test infrastructure, add service-layer tests, improve coverage, implement event bus.
 **Spec:** SPEC-0022
 **Sprints:** 3
-**Source:** Audit findings T1-T11, A1-A2
+**Status (2026-10-24 audit):** S21.2 ✅, S21.3 ✅, S21.1 ⚠️ PARTIAL (engine dedup AC не соблюдён в текущем дереве — 17/89 файлов со своим `create_engine`, часть добавлена post-M19)
 
-| Sprint | TASK | Focus | Points |
-|--------|------|-------|--------|
-| S21.1 | TASK-0112 | Test infrastructure: conftest unification, pytest markers, model imports | 5 |
-| S21.2 | TASK-0113 | Service-layer tests + notification endpoint tests + lifecycle integration test | 8 |
-| S21.3 | TASK-0114 | Event bus implementation + frontend test coverage | 8 |
+| Sprint | TASK | Focus | Points | Status |
+|--------|------|-------|--------|--------|
+| S21.1 | TASK-0112 | Test infrastructure: conftest unification, pytest markers, model imports | 5 | PARTIAL — engine dedup gap |
+| S21.2 | TASK-0113 | Service-layer tests + notification endpoint tests + lifecycle integration test | 8 | ✅ DONE (audit 2026-10-24) |
+| S21.3 | TASK-0114 | Event bus implementation + frontend test coverage | 8 | ✅ DONE (audit 2026-10-24) |
 
 **Exit criteria:**
-- All test files use shared conftest fixtures
-- Service-layer unit tests for delivery, quality, reporting
-- Full lifecycle integration test (create → claim → evidence → review → complete)
-- Event bus replaces direct trigger calls
-- Frontend has coverage reporting (@vitest/coverage-v8)
-- `as any` reduced by 50% in test files
+- All test files use shared conftest fixtures ⚠️ (17/89 файлов — gap, см. TASK-0112)
+- Service-layer unit tests for delivery, quality, reporting ✅
+- Full lifecycle integration test (create → claim → evidence → review → complete) ✅
+- Event bus replaces direct trigger calls ✅
+- Frontend has coverage reporting (@vitest/coverage-v8) ✅
+- `as any` reduced by 50% in test files ⚠️ (сейчас 89 вхождений — позднейшие тесты, hygiene-item)
 
 ---
 
@@ -147,17 +149,24 @@ After M20: M18 remaining (S20.1-S20.4) → M16 remaining (S18.2-S18.4) → Produ
 | Version | Milestone | Sprints | Status | Key Deliverable |
 |---------|-----------|---------|--------|-----------------|
 | 0.17.0 | M15 ✅ | 4/4 | DONE | Agent Workflow |
-| 0.18.0 | M16 | 1/4 | IN PROGRESS | Notifications + Analytics |
+| 0.18.0 | M16 | 2/4 + 2 частично | ~DONE (audit 2026-10-24) | Notifications + Analytics |
 | 0.19.0 | M17 ✅ | 4/4 | DONE | Security + Stability |
-| 0.20.0 | M18 | 0/4 | PLANNED | UX + A11y + Settings |
-| 0.21.0 | M19 ✅ | 3/3 | DONE | Tests + Architecture |
+| 0.20.0 | M18 | 2/4 + 2 частично | ~DONE (audit 2026-10-24) | UX + A11y + Settings |
+| 0.21.0 | M19 ✅ | 3/3 | DONE (S21.1 gap → queue) | Tests + Architecture |
 | 0.22.0 | M20 ✅ | 4/4 | DONE | Extended Features |
 
 ### After M20 (remaining work)
 
-1. **M18 (0.20.0)** — S20.1-S20.4: Accessibility, Settings redesign, Notification UX, Dashboard
-2. **M16 (0.18.0)** — S18.2-S18.4: Notification channels, Analytics service, Analytics frontend
-3. **Production hardening** — E2E coverage, deployment guide, performance benchmarks
+1. **Этап 1 — находки SPEC-0024** (2026-10-24 plan): security-батч
+   (RBAC/deleted-user JWT/logout denylist — спека-решение, Pro), perf
+   (dashboard/stats, 50-user throughput, loki OTLP, grafana docs, Lighthouse)
+2. **Gaps-батч M16/M18/M19** (из status-аудита 2026-10-24): analytics
+   nav-item + пагинация + тесты (TASK-0102/0103); channel edit + evidence
+   (TASK-0109); breadcrumb name-resolution + keyboard-тесты + stale AC
+   (TASK-0108); engine dedup разбор (TASK-0112); `as any` hygiene (TASK-0097)
+3. **M18/M16 закрытие + версии** — после gaps: 0.20.0 и 0.18.0 по VERSIONING
+4. **Production hardening** — E2E coverage, deployment guide, performance
+   benchmarks + хвосты (TASK-0128 B-matrix, bootstrap port-var modernization)
 
 ---
 

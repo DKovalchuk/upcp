@@ -3,8 +3,20 @@
 **Milestone:** M18
 **Sprint:** S20.2
 **Points:** 8
-**Status:** IN PROGRESS
+**Status:** PARTIAL
 **Spec:** SPEC-0021, §S20.2
+
+**Audit 2026-10-24 (evidence):** табличная структура Settings ✅ (5 табов:
+Profile/Notifications/Channels/Appearance/About, `SettingsPage.tsx:10`),
+Profile name/email ✅ (`ProfileTab.tsx:52,56`), тумблеры уведомлений
+`role="switch"` ✅ (`NotificationsTab.tsx:48`), каналы create/delete/test ✅
+(`ChannelsSettingsTab.tsx`), About health ✅ (`AboutTab.tsx`), ARIA-роли табов ✅
+(`SettingsPage.test.tsx` использует `getByRole('tab')` и проходит), 11 тестов
+Settings (AC: 10) ✅, tsc clean ✅, lint 0 errors ✅.
+**Gaps:** (1) AC4 «edit» канала — формы редактирования config канала нет
+(backend API: list/create/delete/toggle/test; PUT/PATCH отсутствует, только
+toggle is_active); (2) evidence-чеклист внизу файла не заполнен (скриншоты,
+pre-commit). Статус → PARTIAL до закрытия gaps.
 
 ## Objective
 

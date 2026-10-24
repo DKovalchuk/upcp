@@ -2,9 +2,21 @@
 
 **Milestone:** M19
 **Sprint:** S21.2
-**Status:** IN PROGRESS
+**Status:** DONE
 **Spec:** SPEC-0022
 **Estimate:** 8pts
+
+**Audit 2026-10-24 (evidence):** все AC закрыты: `test_delivery_service.py`
+(29 тестов), `test_quality_service.py` (34), `test_reporting_service.py` (26),
+`test_lifecycle_integration.py` (6) — все существуют и проходят. Общий
+инфраструктурный engine из `tests/conftest.py` (`_test_engine`/`_TestSession`,
+40 файлов используют) — engine-dedup соблюдён.
+**Отклонение по AC6 (minor):** delivery/reporting/lifecycle используют фикстуру
+`db_session` напрямую, `test_quality_service.py` оборачивает общий
+`_TestSession` в локальные фикстуры (`session`, `project`, `feature`) — общий
+engine, но не сам `db_session`. Движок не дублируется — принято как
+соответствие интенту AC.
+Evidence: targeted pytest 130 passed (2026-10-24), CI 465-469 green.
 
 ## Objective
 

@@ -3,8 +3,17 @@
 **Spec:** SPEC-0019
 **Milestone:** M16
 **Sprint:** S18.2
-**Status:** PENDING
+**Status:** DONE
 **Size:** L
+
+**Audit 2026-10-24 (evidence):** AC выполнены с одним отклонением.
+Модели `NotificationChannel`/`NotificationDelivery` (`reporting/models.py:42,61`),
+каналы base/email/webhook (HMAC + retry в webhook), CRUD API = 5 эндпоинтов
+(list/create/delete/toggle/test), доставка логируется в `NotificationDelivery`,
+тесты `test_notification_channels.py` = 13 (AC: 9), роутер в `main.py`.
+**Отклонение:** AC «Migration 0019» — фактически `0020_add_notification_channels.py`
+(0019 занят миграцией индексов M17); номер миграции менялся, порядок сохранён
+(0019 → 0020).
 
 ## Objective
 
