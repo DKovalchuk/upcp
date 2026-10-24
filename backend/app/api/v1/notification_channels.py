@@ -20,6 +20,11 @@ class ChannelCreate(BaseModel):
     config: dict[str, Any] = {}
 
 
+class ChannelUpdate(BaseModel):
+    name: str | None = None
+    config: dict[str, Any] | None = None
+
+
 class ChannelResponse(BaseModel):
     id: str
     channel_type: str
@@ -66,6 +71,25 @@ def create_channel(
     svc = ChannelService(session)
     try:
         ch = svc.create(body.channel_type, body.name, body.config)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    return _to_response(ch)
+
+
+@router.patch(
+    "/notification-channels/{channel_id}",
+    summary="Update a notification channel",
+)
+def update_channel(
+    channel_id: str,
+    body: ChannelUpdate,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    svc = ChannelService(session)
+    try:
+        ch = svc.update(channel_id, name=body.name, config=body.config)
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
     return _to_response(ch)
