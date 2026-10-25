@@ -3,20 +3,23 @@
 Updated: 2026-10-25
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **TASK-0158 DONE 2026-10-25 — Security results → Grafana:
-Pushgateway [backlog §8-B]**: runner PUT-ит `upcp_security_{pass,findings,
-duration_seconds,timestamp}{suite}` после каждого прогона (best-effort —
-недоступность шлюза не меняет код выхода; grouping key
-`/metrics/job/upcp_security/suite/<suite>`), compose-сервис `pushgateway`
-(`UPCP_PORT_PUSHGATEWAY=39092`, profile observability), scrape-job
-`upcp-security`, дашборд `dashboards/test/security.json`
-(uid `upcp-test-security`). Live-цепочка (fuzz 55/55, RUN_RC=0):
-gateway 7 серий (pass=1) → prometheus target `health=up` → promql
-`upcp_security_pass{suite="fuzz"} = 1` ✓. Контракт-тесты red 8 → green 11
-(тест поймал POST→PUT). Гейты: полный сьют **1045 passed**, ruff/format
-clean. Ветка `feature/TASK-0158-security-results-pushgateway` → MR.
-**Итог backlog §8: оба пункта закрыты — ZAP authenticated baseline
-(TASK-0157) ✅, Sec→Grafana Pushgateway (TASK-0158) ✅.**
+Current Task: **TASK-0159 DONE 2026-10-25 — CI quality-gate repair (инцидент:
+develop красный стабильно с #478)**: «стабильно не проходит quality gate» =
+два независимых дефекта + класс xdist-резиду. (1) **security=1**:
+`create_access_token` был детерминирован внутри секунды (payload без
+случайного клейма; denylist sha256(raw) с TASK-0147 → logout-401 на «свежем»
+токене) → фикс `jti: uuid4` + red→green тест с frozen-clock; **live baseline:
+authz 55/55 failed=0, RUN_RC=0**. (2) **e2e_fe=1** (с #492, merge TASK-0108):
+`BreadcrumbBar` брал первый uuid пути за project-id →
+`GET /api/v1/projects/<agentId>` 404 на Agent Detail → фикс: project-id
+только из `projects/<uuid>`; red→green, frontend vitest **467**/tsc/oxlint
+чисто. (3) **backend:test #508**: **21 файл** с локальной `_db` без
+drop-first (xdist делит движок; fe4835d чинил только conftest) → sweep
++1 строка ×21 + классовый контракт-тест → **CI-команда `-n auto` ×2: RC=0/0,
+1047 passed**; mypy 114 чисто. Radar: `container:scan` = allow_failure
+(trivy DB — внешняя сеть, на гейт не влияет). Ветка
+`feature/TASK-0159-ci-quality-gate-repair` → MR; финальная верификация —
+quality gate develop после merge (среда воспроизведения).
 Prev (Этап 4 / TASK-0156): **Этап 4 ЗАКРЫТ — TASK-0156 DONE 2026-10-25 (bootstrap
 port-var modernization)**: все **14** легаси-вхождений в шаблонах
 скрафтолдера → канонический `UPCP_PORT_*` (docs/11 ×5, .env.example ×5,
