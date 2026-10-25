@@ -82,6 +82,23 @@ instead of legacy `UPCP_HTTP_PORT`-style names**)
    намеренно НЕ переименованы — это записи о прошлом состоянии.
 4. Скрафтолдер вне pre-commit ruff-скоупа (`files: ^backend/`) —
    проверен вручную (`ruff check bootstrap_upcp.py` = clean).
+5. **CI-регрессия на MR !95 (pipeline505, job `backend:test`)** —
+   `test_review_service::test_submit_verdict` ERROR: `UNIQUE constraint
+   failed: project.slug ('test')` под CI-`-n auto` (xdist). Корень:
+   фикстура `_db` делала `create_all` на setup (no-op на живых таблицах,
+   drop только на teardown), а COMMIT-резиду чужих тестов на общем
+   conftest-движке (источник — `test_analytics._setup_project`, мигрированный
+   в TASK-0112 на shared engine) переживал их teardown-роллбек; +3 файла
+   этой задачи перетасовали xdist-распределение и вскрыли порядок-
+   зависимость (CI зелёным был до сих пор благодаря устойчивому порядку).
+   Фикс: `drop_all`+`create_all` на setup `_db` (тот же паттерн, что
+   conftest-харденинг TASK-0112) — **воспроизводимо проверено CI-
+   идентичной командой локально** (`pytest backend/tests -q --tb=short -x
+   -n auto` после установки pytest-xdist): **1026 passed, exit 0**.
+   Sweep `create_all`-без-предшествующего-`drop` нашёл ряд других файлов
+   с тем же teardown-drop-паттерном (латентная та же класс-чувствительность,
+   нигде не проявлялась) → follow-up в очереди PROJECT_STATUS
+   («hermetic setup-drop sweep»), не правилось в этом MR (не AC и объёмный чурн).
 
 ## Files
 
