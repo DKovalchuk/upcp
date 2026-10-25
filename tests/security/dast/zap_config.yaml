@@ -19,6 +19,19 @@
 #   redact:  ->  host-side regex redaction applied to every generated report
 #                and to the result JSON (JWTs / bearer tokens -> REDACTED).
 #   scan:    ->  wrapper defaults for the scripted-scan flags.
+#   auth:    ->  authenticated-baseline hook (TASK-0157): the wrapper emits
+#                <report-dir>/zap_auth_hook_<ts>.py passed to the script as
+#                --hook; the hook mints a JWT via login_path (credentials
+#                from container env — never stored here), attaches a global
+#                Authorization header with a ZAP replacer rule, match type
+#                REQ_HEADER ("add if not present" — network.addHttpRequestHeader
+#                does not exist in python-zap v0.6.0 / ZAP 2.17.0, probed),
+#                and force-fetches probe_urls THROUGH the ZAP proxy (the
+#                classic spider does not walk JSON APIs; the HTTP status
+#                proves the injected header was accepted — 401/403 fails).
+#                The hook must leave "ok ..." in
+#                <report-dir>/zap_auth_hook_status.txt or the wrapper exits 2
+#                — no silent unauthenticated fallback.
 #
 # All sections are valid YAML; `daemon` keys are ZAP daemon property keys —
 # the same names accepted by ZAP's -config command line option.
@@ -28,6 +41,19 @@ scan:
   spider_minutes: 1              # -m for --mode baseline
   full_spider_minutes: 3         # -m for --mode full
   report_prefix: zap
+
+auth:
+  enabled: true                  # authenticated baseline (TASK-0157)
+  login_path: /auth/login        # path on the scan target
+  env_user: PERF_EMAIL           # credential NAMES only — values live in
+  env_password: PERF_PASSWORD    # the container env (compose test stack)
+  # Force-fetched authenticated URLs (paths on scan.target): the classic
+  # spider does not discover JSON API routes on its own.
+  probe_urls:
+    - /
+    - /api/v1/projects
+    - /api/v1/agents
+    - /api/v1/analytics/agents/overview
 
 daemon:
   # Both keys are already applied by the ZAP docker scripts themselves

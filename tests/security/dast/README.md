@@ -16,7 +16,8 @@ into the shared `upcp-security-result/v1` schema, and redacts tokens.
 ```
 
 Exit codes: `0` = no High/Medium alerts (Low/Informational tolerated),
-`1` = findings, `2` = infra failure (scan did not produce a report).
+`1` = findings, `2` = infra failure (no JSON report, or the auth hook did
+not report `ok` — never a silent unauthenticated fallback).
 
 ## How (mechanics)
 
@@ -30,18 +31,36 @@ Exit codes: `0` = no High/Medium alerts (Low/Informational tolerated),
   has no `ZAP_CONF`/`zap-config` handling. Sections: `daemon` → `-z
   "-config key=value"`, `rules` → ZAP's native tab-separated `-c` file
   (generated per run), `redact` → report post-processing, `scan` → flag
-  defaults. See the comments in `zap_config.yaml`.
+  defaults, `auth` → authenticated-baseline hook (see Auth below). See the
+  comments in `zap_config.yaml`.
 
 ## Auth
 
 The stable ZAP automation scripts have **no `-H` flag** (their getopt
 string is `t:c:u:g:m:n:r:J:w:x:l:hdaijp:sz:P:D:T:IU:`), and bearer-token
 auth for a JSON API is not expressible in a ZAP context file without
-script add-ons. The scan therefore runs **unauthenticated on the public
-surface**: `/docs`, `/openapi.json`, `/health`, `/auth/login`, static app
-pages. Authenticated API DAST is a follow-up (needs a context file +
-auth script mount). JWTs are never persisted: `redact.patterns` replace
-any captured token with `REDACTED` in the JSON/HTML reports and the result.
+script add-ons. Since TASK-0157 the scan runs **authenticated** through a
+generated `--hook` (`zap_auth_hook_<ts>.py`, wrapper-written into the
+report dir, removed after every run):
+
+1. the hook mints a JWT with `POST <target>/auth/login` using container
+   env credentials (`PERF_EMAIL`/`PERF_PASSWORD` on the compose `zap`
+   service — only env NAMES are embedded in the hook, never values);
+2. the token is attached as a **global `Authorization` header** with a ZAP
+   replacer rule, match type `REQ_HEADER` — official semantics "add if
+   not present" (`network.addHttpRequestHeader` exists neither in
+   python-zap v0.6.0 nor in the ZAP 2.17.0 API — both probed);
+3. `auth.probe_urls` are force-fetched **through the ZAP proxy** (the
+   classic spider does not walk JSON APIs; the passive scan records the
+   responses) and the HTTP status is asserted: 401/403/5xx → hook status
+   `error …` → wrapper exit `2`.
+
+Live evidence (2026-10-25, env-lifecycle run): `replacer addRule -> 'OK'`,
+`probe /api/v1/projects -> HTTP 200` (agents + analytics overview too;
+`/ -> HTTP 404` tolerated — no route, not auth), ZAP report contains
+`http://app:8080/api/v1/...` instances, `SCAN_RC=0`. JWTs are never
+persisted: `redact.patterns` replace any captured token with `REDACTED`
+in the JSON/HTML reports and the result.
 
 ## Expected duration
 
