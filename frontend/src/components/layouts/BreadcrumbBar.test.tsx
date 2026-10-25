@@ -89,4 +89,18 @@ describe('BreadcrumbBar', () => {
     expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(mockUseProject).toHaveBeenCalledWith('');
   });
+
+  it('does not treat an agent UUID as a project id (no wrong-entity fetch)', () => {
+    // Regression (TASK-0159): the first-uuid-as-project rule fetched
+    // GET /api/v1/projects/<agentId> -> 404 on every agent detail page,
+    // which failed CI e2e "2.4 — Agent Detail page loads" (console errors).
+    const AGENT_UUID = '11111111-2222-3333-4444-555555555555';
+    mockPath(`/agents/${AGENT_UUID}`);
+
+    render(<BreadcrumbBar />);
+
+    expect(mockUseProject).toHaveBeenCalledWith('');
+    expect(screen.getByText('Agents')).toBeInTheDocument();
+    expect(screen.queryByText('Project')).not.toBeInTheDocument();
+  });
 });
