@@ -27,22 +27,33 @@ function buildBreadcrumbs(pathname: string, projectLabel?: string): BreadcrumbIt
   const segments = pathname.split('/').filter(Boolean);
   const crumbs: BreadcrumbItem[] = [];
   let builtPath = '';
-  let projectCrumbAdded = false;
+  let prevSeg = '';
 
   for (const seg of segments) {
     builtPath += `/${seg}`;
     if (isUuid(seg)) {
-      if (!projectCrumbAdded) {
-        projectCrumbAdded = true;
+      // Only `/projects/<uuid>` is a project segment; other uuids (agents,
+      // …) must not render a project crumb nor trigger a wrong-entity fetch
+      // (regression TASK-0159: /api/v1/projects/<agentId> -> 404).
+      if (prevSeg === 'projects') {
         crumbs.push({ path: builtPath, title: projectLabel ?? 'Project' });
       }
+      prevSeg = seg;
       continue;
     }
     const label = SEGMENT_LABELS[seg] ?? seg.charAt(0).toUpperCase() + seg.slice(1);
     crumbs.push({ path: builtPath, title: label });
+    prevSeg = seg;
   }
 
   return crumbs;
+}
+
+function projectIdFrom(pathname: string): string {
+  const segments = pathname.split('/').filter(Boolean);
+  const idx = segments.indexOf('projects');
+  const candidate = idx === -1 ? '' : (segments[idx + 1] ?? '');
+  return isUuid(candidate) ? candidate : '';
 }
 
 export function BreadcrumbBar() {
@@ -50,7 +61,7 @@ export function BreadcrumbBar() {
   const lastMatch = matches[matches.length - 1];
   const pathname = lastMatch?.pathname ?? '/';
 
-  const projectId = pathname.split('/').filter(Boolean).find(isUuid) ?? '';
+  const projectId = projectIdFrom(pathname);
   const { data: project } = useProject(projectId);
 
   if (pathname === '/') return null;
