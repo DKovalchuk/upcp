@@ -3,21 +3,23 @@
 Updated: 2026-10-25
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **Этап 4 — TASK-0155 DONE 2026-10-25 (`as any` test hygiene,
-parent: TASK-0097 audit note)**: AC §6.9 «reduced by ≥80%» закрыт
-**сверх плана: 90 → 0** в 15 тест-файлах (cast-only: `as any` →
-`as ReturnType<typeof useX>` — механики-безопасно, payload не менялся;
-стратегия провалидирована tsc на первой партии). Enforcement-тест
-`src/test/as-any-hygiene.test.ts`: red (`count 90 exceeds budget 18`) →
-**green 2/2** (бюджеты: тесты ≤18, prod ≤4). Prod-эскейпы ×4
-(use-filters/ProjectSelector `navigate({search})`): **probe по факту tsc**
-→ TS2322/TS2353 (роуты без `validateSearch`, typed navigate принимает
-только `true | ParamsReducerFn`) → задокументированы комментариями,
-follow-up = router search-validators typing. Полные гейты: vitest
-**466/466 (56 файлов)** (+2 enforcement), oxlint 0, `tsc -b` 0.
-Ветка `feature/TASK-0155-as-any-hygiene` → MR.
-Дальше в Этапе 4: **bootstrap port-var** (legacy `UPCP_HTTP_PORT` в
-scaffold), затем backlog §8 (ZAP baseline, security → Grafana).
+Current Task: **Этап 4 ЗАКРЫТ — TASK-0156 DONE 2026-10-25 (bootstrap
+port-var modernization)**: все **14** легаси-вхождений в шаблонах
+скрафтолдера → канонический `UPCP_PORT_*` (docs/11 ×5, .env.example ×5,
+docker-compose ×4: backend/db/prometheus/grafana), дефолты портов и
+генерация не менялись. Контракт-тест `backend/tests/test_bootstrap_scaffold.py`
+(imпорт `bootstrap_upcp` безопасен): red **3 failed** → **green 3 passed**;
+grep-легаси по скрафтолдеру = 0. Тест сам поймал 14-й случай, пропущенный
+первичным grep-инвентарём (обрезка `head`) — ловушка отработала. Отклонение:
+`UPCP_FRONTEND_DEV_PORT` → `UPCP_PORT_FRONTEND_DEV` (не `..._FRONTEND` —
+корневой = nginx:3071, scaffold = vite-dev:35173, слияние семантик
+вводило бы в заблуждение; префикс-контракт соблюдён). Полные гейты:
+backend **1026 passed**, ruff (backend + сам скрафтолдер) clean,
+mypy clean (114 файлов). Ветка `feature/TASK-0156-bootstrap-port-vars` → MR.
+**Итог Этапа 4: все4 хвоста закрыты — B-matrix (TASK-0154) ✅, engine dedup
+(TASK-0112) ✅, `as any` hygiene (TASK-0155) ✅, bootstrap port-var
+(TASK-0156) ✅. Дальше: backlog §8 (ZAP authenticated baseline,
+security results → Grafana).**
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
@@ -121,7 +123,7 @@ restored first at `d73868e`). MR **!57** TASK-0119 port externalization
   ZAP authenticated baseline (скрипты image без `-H`), security results →
   Grafana.
 - ~~From TASK-0140 findings: `dashboard/stats` perf task (standalone 1.06–1.33s @394 projects, 117/119 load timeouts, per-project aggregation suspect); 50-user throughput investigation (5.1 req/s, p50 1.1s — anyio threadpool saturation suspect); loki OTLP receiver for 3.4.2 (collector→loki:4317 refused; top-level `otlp:` invalid — reverted); grafana `dashboards/production` missing-dir walk + admin password doc mismatch (`admin_change_me` volume-init vs `.env.test` `admin_test`); Lighthouse frontend perf absent from scaffold.~~ — **все5 закрыты TASK-0149…0153 (2026-10-24/25)**: set-based health (suite 996), throughput 46.7 rps/SLO 2154/2154, `otlphttp/loki` `/otlp`, grafana dirs+precedence, Lighthouse `make lighthouse` budget 0.8; evidence в файлах задач.
-- `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
+- ~~`bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names)~~ — **закрыт TASK-0156 (2026-10-25)**: 14 → 0 легаси, контракт-тест green.
 
 **Merged:** MR **!56** `feature/sprint7-polish` → `develop` merged 2026-10-16
 (merge commit `96b80ae`, pipeline green). Note: `develop` branch had been
@@ -205,7 +207,7 @@ Follow-up: `bootstrap_upcp.py` scaffold templates still use legacy names
   fallback-to-All; evidence в TASK-0154 (red 9FE+2BE → green,
   сьюты 464/464 + 1022).
 - SPEC-0024 Phase 5 (integration → CI) — TASK-0143; Phases 2 ✅ (TASK-0140), 3 ✅ (TASK-0141), 4 ✅ (TASK-0142) закрыты. TASK-0140 finding follow-ups (stats perf, throughput, loki OTLP, grafana docs, Lighthouse) — **все закрыты TASK-0149…0153 (2026-10-24/25)**.
-- `bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names).
+- ~~`bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names)~~ — **закрыт TASK-0156 (2026-10-25)**.
 
 ## M17 Summary — Security & Stability
 
