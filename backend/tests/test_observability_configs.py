@@ -20,6 +20,7 @@ test_public_paths.py.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -78,3 +79,49 @@ def test_grafana_provisioning_dashboard_paths_exist() -> None:
         f"provisioned dashboard folder(s) missing on disk: {missing} — "
         "Grafana's file provider walk-errors on startup (TASK-0152)"
     )
+
+
+def _compose_service_block(compose_text: str, service: str) -> str:
+    """Slice a top-level (2-space) service block out of a compose file."""
+    lines = compose_text.splitlines()
+    start = next((i for i, ln in enumerate(lines) if ln == f"  {service}:"), -1)
+    assert start >= 0, f"service {service} missing from compose file"
+    end = len(lines)
+    for i in range(start + 1, len(lines)):
+        ln = lines[i]
+        if ln.startswith("  ") and not ln.startswith("   ") and ln.rstrip().endswith(":"):
+            end = i
+            break
+    return "\n".join(lines[start:end])
+
+
+def test_compose_test_stack_exposes_pushgateway() -> None:
+    """TASK-0158: security results need a push endpoint on the test stack."""
+    compose = (_ROOT / "docker-compose.test.yml").read_text(encoding="utf-8")
+    block = _compose_service_block(compose, "pushgateway")
+    assert "prom/pushgateway" in block, "official pushgateway image"
+    assert "UPCP_PORT_PUSHGATEWAY:-39092" in block, (
+        "canonical UPCP_PORT_* prefix (task-0119 contract); 39092 sits next to "
+        "the test-stack prometheus 39091"
+    )
+    assert "observability" in block, "gateway belongs to the observability profile"
+    assert ":9091" in block, "pushgateway container port 9091"
+
+
+def test_prometheus_scrapes_pushgateway() -> None:
+    """TASK-0158: pushed security gauges must be scraped by the test Prometheus."""
+    cfg = (_ROOT / "observability" / "prometheus-test.yml").read_text(encoding="utf-8")
+    assert "job_name: upcp-security" in cfg, "scrape job for upcp_security_* gauges"
+    assert "- pushgateway:9091" in cfg, "job must target the compose service name"
+
+
+def test_security_dashboard_exists_and_queries_gauges() -> None:
+    """TASK-0158 (Sec→Grafana): provisioned dashboard over the pushed series."""
+    path = _ROOT / "observability" / "grafana" / "dashboards" / "test" / "security.json"
+    assert path.is_file(), "observability/grafana/dashboards/test/security.json missing"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["uid"] == "upcp-test-security", "stable uid following upcp-test-* convention"
+    exprs = [t.get("expr", "") for p in data.get("panels", []) for t in p.get("targets", [])]
+    assert exprs, "dashboard must have panels with promql targets"
+    for metric in ("upcp_security_pass", "upcp_security_findings", "upcp_security_timestamp"):
+        assert any(metric in e for e in exprs), f"no panel queries {metric}"
