@@ -26,3 +26,9 @@ scrape_configs:
     static_configs:
       - targets:
           - localhost:9090
+
+  # Security run results pushed by tests/security/runner.py (TASK-0158)
+  - job_name: upcp-security
+    static_configs:
+      - targets:
+          - pushgateway:9091

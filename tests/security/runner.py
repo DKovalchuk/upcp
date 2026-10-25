@@ -18,6 +18,7 @@ import json
 import os
 import subprocess
 import sys
+import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -163,6 +164,70 @@ def write_report(results: list[dict], profile: str) -> Path:
     return path
 
 
+# Pushgateway (TASK-0158 — backlog §8-B, "Sec→Grafana"): best-effort publish
+# of run results as Prometheus gauges; an unreachable gateway never changes
+# the suite exit code (observability must not break the gate).
+DEFAULT_PUSHGATEWAY_URL = "http://127.0.0.1:39092"
+PUSH_SEVERITIES = ("high", "medium", "low", "info")
+
+
+def build_push_body(result: dict) -> str:
+    """Prometheus text exposition for one upcp-security-result/v1 document."""
+    suite = str(result.get("suite") or "unknown")
+    failed = int((result.get("summary") or {}).get("failed", 1))
+    counts = {sev: 0 for sev in PUSH_SEVERITIES}
+    for f_ in result.get("findings", []):
+        sev = str(f_.get("severity") or "medium")
+        counts[sev if sev in counts else "medium"] += 1
+    lines = [
+        "# TYPE upcp_security_pass gauge",
+        f'upcp_security_pass{{suite="{suite}"}} {1 if failed == 0 else 0}',
+        "# TYPE upcp_security_findings gauge",
+    ]
+    lines.extend(
+        f'upcp_security_findings{{suite="{suite}",severity="{sev}"}} {counts[sev]}'
+        for sev in PUSH_SEVERITIES
+    )
+    if "duration_seconds" in result:
+        lines.extend(
+            [
+                "# TYPE upcp_security_duration_seconds gauge",
+                f'upcp_security_duration_seconds{{suite="{suite}"}} '
+                f"{float(result['duration_seconds']):g}",
+            ]
+        )
+    lines.extend(
+        [
+            "# TYPE upcp_security_timestamp gauge",
+            f'upcp_security_timestamp{{suite="{suite}"}} {int(datetime.now(UTC).timestamp())}',
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def push_metrics(results: list[dict], *, url: str | None = None) -> bool:
+    """PUT every result to Pushgateway (grouping key: suite). Best-effort."""
+    base = (url or os.getenv("PUSHGATEWAY_URL", DEFAULT_PUSHGATEWAY_URL)).rstrip("/")
+    ok = True
+    for r in results:
+        suite = str(r.get("suite") or "unknown")
+        target = f"{base}/metrics/job/upcp_security/suite/{suite}"
+        try:
+            # PUT replaces the whole metric set for the grouping key (stale
+            # series like a dropped duration disappear); POST would only
+            # replace same-name metrics.
+            req = urllib.request.Request(
+                target, data=build_push_body(r).encode("utf-8"), method="PUT"
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                resp.read()
+            print(f"pushgateway: published suite={suite}")
+        except (OSError, ValueError) as exc:
+            ok = False
+            print(f"pushgateway: security metrics not published ({exc})", file=sys.stderr)
+    return ok
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="UPCP Security Test Runner")
     parser.add_argument("--profile", "-p", help="Profile from security_profiles.yaml")
@@ -231,6 +296,9 @@ def main() -> None:
 
     if results:
         print_summary(results)
+        # TASK-0158 (backlog §8-B): publish results — best-effort, an
+        # unreachable gateway must not change the suite exit code.
+        push_metrics(results)
     if args.report and results:
         report_path = write_report(results, args.profile or args.suite or "custom")
         print(f"\nReport saved to: {report_path}")

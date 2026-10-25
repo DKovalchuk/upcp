@@ -139,6 +139,43 @@ prometheus:
     - observability
 ```
 
+### 3.3 Pushgateway (security results)
+
+Security suite runs are published to a Pushgateway and scraped into
+Prometheus/Grafana (TASK-0158 — backlog §8-B, «Sec→Grafana»). Test stack:
+
+```yaml
+pushgateway:
+  image: prom/pushgateway:latest
+  ports:
+    - "127.0.0.1:${UPCP_PORT_PUSHGATEWAY:-39092}:9091"
+  profiles:
+    - observability
+```
+
+Scrape job in `observability/prometheus-test.yml`:
+
+```yaml
+  - job_name: upcp-security
+    static_configs:
+      - targets: ["pushgateway:9091"]
+```
+
+`tests/security/runner.py` PUTs after **every** run (grouping key
+`/metrics/job/upcp_security/suite/<suite>`, last push wins):
+
+| Metric | Labels | Meaning |
+|--------|--------|---------|
+| `upcp_security_pass` | `suite` | 1 = no failed checks (0 = findings/infra) |
+| `upcp_security_findings` | `suite`, `severity` | counts, all four severities always present |
+| `upcp_security_duration_seconds` | `suite` | only when the result carries it |
+| `upcp_security_timestamp` | `suite` | unix time of the push |
+
+Push is best-effort (`PUSHGATEWAY_URL`, default
+`http://127.0.0.1:39092`) — an unreachable gateway never changes the
+suite exit code. Grafana dashboard: `dashboards/test/security.json`
+(uid `upcp-test-security`).
+
 ## 4. Grafana
 
 ### 4.1 Datasource provisioning
@@ -375,6 +412,7 @@ curl http://localhost:3200/ready                   # Tempo
 | OTel Collector | 4318 | HTTP receiver |
 | OTel Collector | 8889 | Prometheus metrics |
 | Prometheus | 39090 | UI + API |
+| Pushgateway | 39092 | Security run results ingest (test) |
 | Grafana | 33000 | UI |
 | Loki | 3100 | Log API |
 | Tempo | 3200 | Trace API |

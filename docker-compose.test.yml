@@ -260,6 +260,17 @@ services:
     profiles:
       - observability
 
+  # Pushgateway: tests/security/runner.py pushes upcp_security_* gauges here
+  # after every run (TASK-0158 — backlog §8-B, "Sec→Grafana"); the test
+  # Prometheus scrapes it via job upcp-security, Grafana reads dashboards/test/security.json.
+  pushgateway:
+    image: prom/pushgateway:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_PUSHGATEWAY:-39092}:9091"
+    profiles:
+      - observability
+
   grafana:
     image: grafana/grafana:latest
     restart: unless-stopped

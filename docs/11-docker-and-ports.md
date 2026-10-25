@@ -12,8 +12,9 @@ All external-facing ports use `UPCP_PORT_*` prefix:
 | `UPCP_PORT_BACKEND` | 38080 | 38082 | 38081 | 38081 |
 | `UPCP_PORT_POSTGRES` | 35432 | 35434 | 35433 | 35433 |
 | `UPCP_PORT_REDIS` | 36380 | — | 36382 | 36380 |
-| `UPCP_PORT_PROMETHEUS` | 39090 | — | — | 39090 |
-| `UPCP_PORT_GRAFANA` | 33000 | — | — | 33000 |
+| `UPCP_PORT_PROMETHEUS` | 39090 | 39091 | — | 39090 |
+| `UPCP_PORT_PUSHGATEWAY` | — | 39092 | — | — |
+| `UPCP_PORT_GRAFANA` | 33000 | 33001 | — | 33000 |
 
 ## Environment Files
 
