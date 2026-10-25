@@ -212,6 +212,10 @@ services:
     environment:
       ZAP_PORT: 8080
       ZAP_CONF: /zap/config/
+      # Authenticated baseline hook (TASK-0157): test-stack seeded admin,
+      # same defaults as tests/security/common.py — not a production secret.
+      PERF_EMAIL: ${PERF_EMAIL:-admin@example.com}
+      PERF_PASSWORD: ${PERF_PASSWORD:-TestAdmin123!}
     volumes:
       - ./tests/security/dast/zap_config.yaml:/zap/config/zap-config.yaml:ro
       - ./tests/security/reports:/zap/reports:rw
