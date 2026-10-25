@@ -38,15 +38,18 @@
 
 - Format: JWT (HS256, symmetric key from `UPCP_SECRET_KEY`).
 - TTL: 15 minutes.
-- Claims: `sub`, `type`, `iat`, `exp`.
-  There is **no `jti` claim and no embedded roles/scopes** — permissions
-  are resolved per request from the database (Redis-cached, 60 s).
+- Claims: `sub`, `type`, `jti`, `iat`, `exp`.
+  The `jti` claim is a random UUIDv4 minted per token, so two tokens
+  issued in the same wall-clock second are never byte-identical
+  (regression guard, TASK-0159). There are **no embedded roles/scopes** —
+  permissions are resolved per request from the database (Redis-cached, 60 s).
 - Storage: client memory only (not localStorage).
 
 ```json
 {
   "sub": "9646cb69-24c3-456e-b128-6f7ac2c1140c",
   "type": "access",
+  "jti": "7f9f6f0a-1c3d-4e2b-9a85-3b6d2f1c4a10",
   "iat": 1761334440,
   "exp": 1761335340
 }
@@ -170,8 +173,11 @@ but are not resolved yet.
 ## 8. Known limitations
 
 - **Access JWTs survive logout/password change until `exp`** (≤ 15 min)
-  for sessions other than the one that made the request — no `jti`
-  claim, so a single token cannot be killed early.
+  for sessions other than the one that made the request — the token now
+  carries a unique `jti` claim, but revocation is keyed by
+  `sha256(raw token)` (see [Logout denylist](#4-logout-denylist)), so a
+  denylist entry kills only the exact token presented, not every token
+  issued to the subject.
 - **Refresh reuse detection stops at rejecting the reused token** (401);
   the replacement chain is not family-revoked (no token-family table).
 - **Password reset by email does not exist.**
