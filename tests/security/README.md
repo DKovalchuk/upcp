@@ -56,10 +56,18 @@ tests/security/
   `upcp-security-result/v1` (`{suite, target, checks[], findings[],
   summary}`) — the runner aggregates those into `reports/security_<ts>.md`.
 - Reports are actionable: markdown for humans, JSON for tooling.
+- Observability (TASK-0158): after each run the runner PUTs
+  `upcp_security_*` gauges to Pushgateway (`PUSHGATEWAY_URL`, default
+  `http://127.0.0.1:39092`; compose service `pushgateway`, profile
+  `observability`) — best-effort, never changes the exit code. Prometheus
+  scrapes them (job `upcp-security`) into the Grafana dashboard
+  `dashboards/test/security.json`.
 
 ## Known limitations (recorded in TASK-0142)
 
 - ZAP/Kali need the `security` compose profile; they are **not** wired
   into CI yet (Phase 5 — TASK-0143 — owns CI/CD triggers).
-- Grafana ingestion of security results is deferred to the Phase 5
-  aggregate reporter; the JSON schema is the integration point.
+- Grafana ingestion of security results is **wired since TASK-0158**:
+  Pushgateway → Prometheus job `upcp-security` → dashboard
+  `test/security.json` (per-suite last-push-wins grouping key); the
+  `upcp-security-result/v1` JSON schema stays the integration point.
