@@ -23,7 +23,10 @@ Out of scope задачи (обоснование в файле задачи). �
 нет write-API для audit_event/git-sync/task-dependency; bucket-mismatch
 уведомлений (TASK-0164); reaper-дубли claim.stale событий;
 `TaskService.complete` минует validate_transition. Evidence:
-`tasks/TASK-0166-dev-mechanisms-seed.md`.
+`tasks/TASK-0166-dev-mechanisms-seed.md`. Delivery: MR **!102 merged**
+(`1ffa7e7`), post-merge **develop #523 quality:gate success** —
+`RCs: e2e=0 e2e_fe=0 chaos=0 security=0 perf=0`, `quality gate exit: 0`
+(job 4023).
 Prev (TASK-0165): **TASK-0165 DONE 2026-10-31 — attention-e2e strict-mode (инцидент
 schedule gate #515)**: `e2e_fe=1` в schedule-гейте (develop@185f1b8c) —
 заголовок секции vs empty-state ловились case-insensitive substring'ом →

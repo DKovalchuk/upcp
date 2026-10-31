@@ -5,7 +5,9 @@
 **Milestone:** dev-environment / verification (не релизный)
 **Spec:** mini-spec (AC ниже)
 **Points:** 5
-**Status:** DONE (2026-10-31 — AC1-AC5 закрыты; verify 56/56, negative 11/11)
+**Status:** DONE (2026-10-31 — AC1-AC5 закрыты; verify 56/56, negative 11/11;
+MR !102 merged → develop `1ffa7e7`, post-merge **develop #523 quality:gate
+success** — `RCs: e2e=0 e2e_fe=0 chaos=0 security=0 perf=0`, exit 0, job 4023)
 
 ## Context
 
@@ -112,6 +114,13 @@ SEED_BASE=... .venv/bin/python scripts/verify_seed.py
 | SSE | keepalive `: keepalive` получен |
 | MCP | `tools/list` → 200, project_list в ответе |
 | Browser | логин → дашборд: колокольчик 21, Needs Attention (4 карточки), Recent Activity (reaper-событие), Active Agents с прогресс-барами |
+
+### Delivery
+
+- 3 атомарных коммита → MR !102 (`3b2f507` fix 422, `ab04161` seed-скрипты,
+  `30df961` docs) → merged, develop `1ffa7e7`.
+- Post-merge CI: **develop #523 success**, `quality:gate` job 4023 —
+  `RCs: e2e=0 e2e_fe=0 chaos=0 security=0 perf=0`, `quality gate exit: 0`.
 
 ### Multi-factor анализ (AGENTS §12)
 
