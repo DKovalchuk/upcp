@@ -51,7 +51,11 @@ mypy clean (114 файлов). Ветка `feature/TASK-0156-bootstrap-port-vars
 **Итог Этапа 4: все4 хвоста закрыты — B-matrix (TASK-0154) ✅, engine dedup
 (TASK-0112) ✅, `as any` hygiene (TASK-0155) ✅, bootstrap port-var
 (TASK-0156) ✅. Дальше: backlog §8 закрыт (TASK-0157 + TASK-0158).**
-Queued (2026-10-31): **TASK-0161** (e2e coverage audit + gap closure),
+Queued (2026-10-31): **Incident 2026-10-31** — schedule quality gate **#515**
+(develop@185f1b8c) `e2e_fe=1`: attention-e2e strict-mode (заголовок vs
+empty-state, data-dependent флаки) → **TASK-0165** (card-scoped locators +
+empty-state регресс-тест, ветка `feature/TASK-0165-attention-e2e-strict-mode`);
+**TASK-0161** (e2e coverage audit + gap closure),
 **TASK-0162** (deployment guide), **TASK-0163** (performance baselines),
 **TASK-0164** (notifications API contract: user_id bucket + envelope —
 auth-sensitive, эскалация до фикса); follow-ups: FK-500 на unknown

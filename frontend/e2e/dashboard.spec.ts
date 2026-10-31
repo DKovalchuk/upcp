@@ -1,9 +1,20 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { gotoPage } from './fixtures/helpers';
 import {
   MOCK_AGENT_ACTIVITY_STALE,
   MOCK_AGENT_ACTIVITY_EMPTY,
+  MOCK_ATTENTION,
 } from './fixtures/mock-data';
+
+// Attention section title locator that is valid in BOTH section states:
+// with data the CardTitle text carries a count badge ("Open Questions 2"),
+// empty it collides case-insensitively with the empty-state ("No open
+// questions") — plain getByText broke schedule quality gate #515.
+const attentionTitle = (page: Page, sectionText: string) =>
+  page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: sectionText })
+    .locator('[data-slot="card-title"]');
 
 test.describe('Dashboard', () => {
   // KPI labels after the dashboard redesign (SPEC-0025): the old
@@ -16,14 +27,13 @@ test.describe('Dashboard', () => {
   });
 
   test('shows Needs Attention section', async ({ page }) => {
-    // workflow:true loads attention data so section titles don't collide
-    // with their empty-state messages ("No open questions", case-insensitive)
+    // workflow:true loads attention data; the card-scoped title locator
+    // stays valid whether sections carry data or render empty-states.
     await gotoPage(page, '/', { workflow: true });
-    const el = page.getByText('Needs Your Review');
+    const el = attentionTitle(page, 'Needs Your Review');
     await el.scrollIntoViewIfNeeded();
-    await expect(el).toBeVisible({ timeout: 10000 });
-    // CardTitle carries a count badge → substring match, not exact
-    await expect(page.getByText('Open Questions')).toBeVisible();
+    await expect(el).toContainText('Needs Your Review', { timeout: 10000 });
+    await expect(attentionTitle(page, 'Open Questions')).toContainText('Open Questions');
   });
 
   test('shows Active Agents section', async ({ page }) => {
@@ -140,24 +150,56 @@ test.describe('Dashboard — Notifications', () => {
 });
 
 test.describe('Dashboard — Attention Sections', () => {
+  // Titles resolve via attentionTitle(): plain getByText hit strict-mode
+  // violations in schedule quality gate #515 (2026-10-31, e2e_fe=1) —
+  // substring collides with empty-states, exact collides with count badges.
   test('needs review section shows pending reviews', async ({ page }) => {
     await gotoPage(page, '/', { workflow: true });
-    const needsReview = page.getByText('Needs Your Review');
+    const needsReview = attentionTitle(page, 'Needs Your Review');
     await needsReview.scrollIntoViewIfNeeded();
-    await expect(needsReview).toBeVisible({ timeout: 10000 });
+    await expect(needsReview).toContainText('Needs Your Review', { timeout: 10000 });
   });
 
   test('open questions section shows pending clarifications', async ({ page }) => {
     await gotoPage(page, '/', { workflow: true });
-    const openQuestions = page.getByText('Open Questions');
+    const openQuestions = attentionTitle(page, 'Open Questions');
     await openQuestions.scrollIntoViewIfNeeded();
-    await expect(openQuestions).toBeVisible({ timeout: 10000 });
+    await expect(openQuestions).toContainText('Open Questions', { timeout: 10000 });
   });
 
   test('blocked tasks section shows blocked items', async ({ page }) => {
     await gotoPage(page, '/', { workflow: true });
-    const blocked = page.getByText('Blocked Tasks');
+    const blocked = attentionTitle(page, 'Blocked Tasks');
     await blocked.scrollIntoViewIfNeeded();
-    await expect(blocked).toBeVisible({ timeout: 10000 });
+    await expect(blocked).toContainText('Blocked Tasks', { timeout: 10000 });
+  });
+
+  test('empty sections: title stays unique while empty-state collides for substring locators', async ({
+    page,
+  }) => {
+    // Force every attention section empty (LIFO override of workflow mocks).
+    const emptyAttention = Object.fromEntries(Object.keys(MOCK_ATTENTION).map((k) => [k, []]));
+    await gotoPage(page, '/', {
+      workflow: true,
+      beforeGoto: async (p) => {
+        await p.route('**/api/v1/dashboard/attention*', (route) =>
+          route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(emptyAttention),
+          })
+        );
+      },
+    });
+
+    // The #515 trap: the raw substring matcher sees title AND empty-state.
+    await expect(page.getByText('Open Questions')).toHaveCount(2);
+    // Robust locator: exactly one card title, and the empty-state shows.
+    const title = attentionTitle(page, 'Open Questions');
+    await expect(title).toHaveCount(1);
+    await expect(title).toContainText('Open Questions');
+    await expect(page.getByText('No open questions', { exact: true })).toBeVisible();
+    await expect(attentionTitle(page, 'Blocked Tasks')).toHaveCount(1);
+    await expect(page.getByText('No blocked tasks', { exact: true })).toBeVisible();
   });
 });
