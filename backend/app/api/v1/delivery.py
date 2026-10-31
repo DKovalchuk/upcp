@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.delivery.lifecycle import InvalidTransition
 from app.delivery.models import Feature, Subtask, Task
 from app.delivery.schemas import (
     BulkTaskUpdate,
@@ -249,7 +250,15 @@ def get_task(task_id: str, session: Session = Depends(get_session)) -> TaskRespo
 def update_task(
     task_id: str, body: TaskUpdate, session: Session = Depends(get_session)
 ) -> TaskResponse:  # noqa: B008
-    return _task_resp(TaskService(session).update(task_id, **body.model_dump(exclude_unset=True)))
+    try:
+        task = TaskService(session).update(task_id, **body.model_dump(exclude_unset=True))
+    except InvalidTransition as exc:
+        # Same mapping as bulk_update_tasks: a forbidden lifecycle edge is a
+        # client error (422), not an unhandled exception (500).
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    return _task_resp(task)
 
 
 @router.delete(
