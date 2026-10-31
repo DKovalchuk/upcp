@@ -6,7 +6,7 @@
 **Milestone:** CI/CD reliability (класс TASK-0159)
 **Spec:** mini-spec (AC ниже)
 **Points:** 2
-**Status:** in_progress
+**Status:** DONE (2026-10-31 — AC1-AC4 закрыты; инцидент #515 закрыт зелёным develop-гейтом #519)
 
 ## Investigation (2026-10-31, evidence — лог джобы 3935)
 
@@ -52,7 +52,10 @@ Root cause: `getByText(str)` — case-insensitive substring; при пустой
       воспроизводятся на baseline без правок** (comprehensive-ui требует
       живой backend; в CI с `VITE_API_URL` на app эти тесты зелёные — в #515
       падали только attention-тесты).
-- [ ] AC4: CI (MR-пайплайн) зелёный — quality:gate `e2e_fe=0`.
+- [x] AC4: MR !100 pipeline **#518 success**; пост-merge develop **#519
+      quality:gate success** — `RCs: e2e=0 e2e_fe=0 chaos=0 security=0
+      perf=0`, `quality gate exit: 0` (job 3985, develop @ a958d9a) →
+      инцидент #515 закрыт.
 
 ## Verification
 
