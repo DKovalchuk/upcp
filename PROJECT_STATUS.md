@@ -3,7 +3,28 @@
 Updated: 2026-10-31
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **TASK-0165 DONE 2026-10-31 — attention-e2e strict-mode (инцидент
+Current Task: **TASK-0166 DONE 2026-10-31 — dev seed всех механизмов +
+верификация компонентов**: dev-БД наполнена через API + SQL-бэкфил так,
+что каждый механизм покрыт read-back'ом. Новые артефакты: `seed_common.py`
+(пейсинг 90 req/min + 429-retry + auto-refresh), `seed_mechanisms.py`
+(workflow-стейт-машина + negative-path контракт-гейт), `seed_backfill.sql`
+(домены без write-API: membership/audit/git/deps/analytics-backdate/stale),
+`verify_seed.py` (**56/56 PASS, exit 0**). Покрыто: 8 attention-секций
+непустые, 11/11 lifecycle-статусов, notifications 21 в bucket `default`,
+reaper tick `{"stale":1,"released":0}`, SSE keepalive, MCP `tools/list` 200,
+browser-pass (логин → дашборд: колокольчик 21, Needs Attention, Active
+Agents). **Попутно найден и починен TDD баг: невалидный переход статуса →
+500** (InvalidTransition утекал из PATCH /tasks + 3 утечки в
+task_workflow.py: release/blocking-clarification) → **422**;
+red `assert 500 == 422` ×4 → green, полный прогон **1097 passed**,
+ruff/mypy чисто; на живой dev доставлен docker cp (запечённый образ —
+эфемерно до rebuild). Отклонение: фикс 500 — прод-код, вне исходного
+Out of scope задачи (обоснование в файле задачи). Наблюдения (не чинилось):
+нет write-API для audit_event/git-sync/task-dependency; bucket-mismatch
+уведомлений (TASK-0164); reaper-дубли claim.stale событий;
+`TaskService.complete` минует validate_transition. Evidence:
+`tasks/TASK-0166-dev-mechanisms-seed.md`.
+Prev (TASK-0165): **TASK-0165 DONE 2026-10-31 — attention-e2e strict-mode (инцидент
 schedule gate #515)**: `e2e_fe=1` в schedule-гейте (develop@185f1b8c) —
 заголовок секции vs empty-state ловились case-insensitive substring'ом →
 strict-violation при пустой секции (data-dependent флаки; чистый `exact`
@@ -68,7 +89,12 @@ empty-state, data-dependent флаки) → **TASK-0165**~~ — **закрыт 2
 **TASK-0161** (e2e coverage audit + gap closure),
 **TASK-0162** (deployment guide), **TASK-0163** (performance baselines),
 **TASK-0164** (notifications API contract: user_id bucket + envelope —
-auth-sensitive, эскалация до фикса); follow-ups: FK-500 на unknown
+auth-sensitive, эскалация до фикса); **TASK-0166 follow-ups** (наблюдения
+2026-10-31): write-API для audit_event (фронтовый POST /audit-events мёртв —
+Recent Activity только через SQL), HTTP-роут для git sync-веток/коммитов,
+эндпоинт task_dependency CRUD, `TaskService.complete` минует
+validate_transition (done из любого статуса), reaper-дубли claim.stale
+событий на каждом тике; follow-ups: FK-500 на unknown
 parent-task в `POST .../review-rounds|evidence` (404 не проверяется),
 TaskDetailSheet legacy status-Select (`in-progress`/`review` против
 underscore-словаря), bare-`pytest` ломает сбор bootstrap-теста (CI-форма

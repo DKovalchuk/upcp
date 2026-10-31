@@ -61,6 +61,31 @@ docker compose --env-file .env.test down
 | UPCP_ENV | stage | local | test |
 | Log level | INFO | INFO | INFO |
 
+## Seeding Data
+
+Scripts in `scripts/` fill an environment through the public API (this
+doubles as a contract check — broken contracts surface as `WARN` lines).
+All accept `SEED_BASE`, `SEED_EMAIL`, `SEED_PASSWORD`:
+
+```bash
+export SEED_BASE=http://127.0.0.1:38083 SEED_EMAIL=admin@dev.com SEED_PASSWORD=...
+.venv/bin/python scripts/seed_dev.py          # structure: projects/features/tasks/agents
+.venv/bin/python scripts/seed_full.py         # quality depth: DoD/AC/evidence/reviews/channels
+.venv/bin/python scripts/seed_mechanisms.py   # workflow: claims/clarifications/gate + negative paths
+docker exec -i upcp-dev-db-1 psql -U upcp -d upcp -v ON_ERROR_STOP=1 \
+  < scripts/seed_backfill.sql                 # domains with no write API (SQL)
+.venv/bin/python scripts/verify_seed.py       # 56 read-back checks, exit 0 = green
+```
+
+- `scripts/seed_common.py` — shared client: paces requests under the
+  app's 100 req/min limit, retries 429, auto-refreshes the access token.
+- `seed_mechanisms.py` exits non-zero when a negative-path expectation
+  (409/401/404/422/400) doesn't match — a live contract gate.
+- SQL backfill covers `membership`, `audit_event`, `git_branch`/`git_commit`,
+  `task_dependency`, analytics history backdating, stale claim heartbeat;
+  it is idempotent (`ON CONFLICT` / `NOT EXISTS` guards).
+- See `tasks/TASK-0166-dev-mechanisms-seed.md` for the full evidence log.
+
 ## Notes
 
 - **Stage**: Production-like. Rebuilt from `develop` branch via CI deploy job. Images pulled from GitLab registry.
