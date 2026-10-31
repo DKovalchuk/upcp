@@ -134,7 +134,7 @@ Columns by task statuses. Cards show:
 ```
 GET  /api/v1/notifications?unread=true&limit=50
 POST /api/v1/notifications/{id}/read
-POST /api/v1/notifications/mark-all-read
+POST /api/v1/notifications/read-all
 ```
 
 ## 7. Reports
