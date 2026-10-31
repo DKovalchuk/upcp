@@ -361,6 +361,8 @@ class ReviewGateService:
         2. All DoDItems must be passed (or no DoDItems exist).
         3. Required evidence types must be satisfied.
         4. No blocking clarification requests must be open.
+
+        After the gate passes, the task transitions to ``ready_for_review``.
         """
         from app.delivery.models import ClarificationRequest, Task
 
@@ -410,6 +412,21 @@ class ReviewGateService:
 
         if errors:
             raise ReviewGateError("; ".join(errors))
+
+        # Gate passed → move the task itself to ready_for_review, mirroring
+        # the MCP submit_task_for_review tool (mcp/tools.py). The lifecycle
+        # state machine has no claimed → ready_for_review edge, so a claimed
+        # task passes through in_progress first; an already-ready task is a
+        # no-op (ready_for_review → ready_for_review is not a valid edge).
+        from app.delivery.lifecycle import validate_transition
+
+        if task.status == "claimed":
+            validate_transition(task.status, "in_progress")
+            task.status = "in_progress"
+        if task.status != "ready_for_review":
+            validate_transition(task.status, "ready_for_review")
+            task.status = "ready_for_review"
+        self._session.flush()
 
         # Create review round
         rr_svc = ReviewRoundService(self._session)

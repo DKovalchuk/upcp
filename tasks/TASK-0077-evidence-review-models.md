@@ -1,6 +1,6 @@
 # TASK-0077 Evidence + Review Models & Migration
 
-Status: pending
+Status: DONE (2026-10-31 — все 6 AC сверены с кодом: models, migration 0015, unit-тесты; верификация в TASK-0160)
 Milestone: M10
 Spec: SPEC-0015
 Depends: TASK-0076

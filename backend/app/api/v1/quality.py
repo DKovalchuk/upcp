@@ -211,7 +211,7 @@ def complete_task(task_id: str, session: Session = Depends(get_session)) -> dict
 def submit_task_for_review(
     task_id: str,
     session: Session = Depends(get_session),
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = ReviewGateService(session)
     try:
         rr = svc.submit_for_review(
@@ -453,7 +453,7 @@ def download_evidence_file(
 # ── Review Round endpoints ──
 
 
-def _review_round_dict(rr: Any) -> dict[str, str | None]:
+def _review_round_dict(rr: Any) -> dict[str, str | int | None]:
     return {
         "id": rr.id,
         "task_id": rr.task_id,
@@ -516,7 +516,7 @@ def create_review_round(
     task_id: str,
     body: ReviewRoundCreate,
     session: Session = Depends(get_session),
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = ReviewRoundService(session)
     try:
         rr = svc.create(
@@ -542,7 +542,7 @@ def create_review_round(
 )
 def start_review_round(
     round_id: str, session: Session = Depends(get_session)
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = ReviewRoundService(session)
     try:
         rr = svc.start(round_id)
@@ -599,7 +599,7 @@ def submit_verdict(
     round_id: str,
     body: ReviewVerdictRequest,
     session: Session = Depends(get_session),
-) -> dict[str, str | None]:  # noqa: B008
+) -> dict[str, str | int | None]:  # noqa: B008
     svc = ReviewRoundService(session)
     try:
         rr = svc.submit_verdict(

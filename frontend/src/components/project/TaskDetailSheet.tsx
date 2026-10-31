@@ -368,7 +368,7 @@ export function TaskDetailSheet({ taskId, projectId, onOpenChange }: TaskDetailS
 
                 {/* ── Reviews Tab ── */}
                 <TabsContent value="reviews" className="mt-4">
-                  <ReviewsTab taskId={taskId ?? ''} />
+                  <ReviewsTab taskId={taskId ?? ''} taskStatus={task.status} />
                 </TabsContent>
 
                 {/* ── Comments Tab ── */}

@@ -1,6 +1,6 @@
 # TASK-0078 Evidence Service + API
 
-Status: pending
+Status: DONE (2026-10-31 — gap закрыт: HTTP-тесты agent-verify/human-accept/reject (200/404/409); deviation: error-envelope — spec формат не определял, handlers возвращают {detail}; верификация в TASK-0160)
 Milestone: M10
 Spec: SPEC-0015
 Depends: TASK-0077

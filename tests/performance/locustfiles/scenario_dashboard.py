@@ -41,15 +41,15 @@ class DashboardUser(UPCPBaseUser):
 
     @task(8)
     def analytics_overview(self):
-        self.api_get(f"/api/v1/projects/{self.project_id}/analytics")
+        self.api_get(f"/api/v1/analytics/project/{self.project_id}/trends")
 
     @task(5)
     def analytics_velocity(self):
-        self.api_get(f"/api/v1/projects/{self.project_id}/analytics/velocity")
+        self.api_get(f"/api/v1/analytics/project/{self.project_id}/velocity")
 
     @task(2)
     def analytics_agent_performance(self):
-        self.api_get(f"/api/v1/projects/{self.project_id}/analytics/agents")
+        self.api_get("/api/v1/analytics/agents/overview")
 
     # ── Audit (15%) ───────────────────────────────────────────
 
@@ -73,4 +73,4 @@ class DashboardUser(UPCPBaseUser):
 
     @task(2)
     def mark_all_read(self):
-        self.api_post("/api/v1/notifications/mark-all-read")
+        self.api_post("/api/v1/notifications/read-all")

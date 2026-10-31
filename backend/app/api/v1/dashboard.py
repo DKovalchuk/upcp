@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.projects.models import Project
 from app.reporting.attention import AttentionDashboardService
 from app.reporting.dashboard import DashboardService
 from app.reporting.portfolio import PortfolioService
@@ -13,6 +14,7 @@ from app.reporting.schemas import (
     TaskCountsByStatus,
 )
 from app.shared.database import get_session
+from app.shared.errors import NotFound
 
 router = APIRouter(tags=["dashboard"])
 
@@ -66,7 +68,14 @@ def get_project_health(
     project_id: str,
     session: Session = Depends(get_session),
 ) -> dict[str, object]:  # noqa: B008
-    """Get project health score with breakdown."""
+    """Get project health score with breakdown.
+
+    Unknown projects raise ``NotFound`` (→ 404) — the documented contract.
+    Existing projects keep the computed score, including the score-100
+    default when they have no tasks (TASK-0087).
+    """
+    if session.get(Project, project_id) is None:
+        raise NotFound(f"Project '{project_id}' not found")
     svc = AttentionDashboardService(session)
     return svc.get_project_health(project_id)
 

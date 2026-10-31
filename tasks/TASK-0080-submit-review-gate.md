@@ -1,6 +1,6 @@
 # TASK-0080 Submit-for-Review Gate
 
-Status: pending
+Status: DONE (2026-10-31 — все AC сверены (9 тестов gate + submit-review transition red→green в TASK-0160); deviations: error-code в detail-строке (не envelope), TaskWorkflowService → WorkflowService (не существовал), gate принимает также ready_for_review)
 Milestone: M10
 Spec: SPEC-0015
 Depends: TASK-0078, TASK-0079
