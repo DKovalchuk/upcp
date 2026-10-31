@@ -1,9 +1,24 @@
 # PROJECT_STATUS
 
-Updated: 2026-10-25
+Updated: 2026-10-31
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **TASK-0159 DONE 2026-10-25 — CI quality-gate repair (инцидент:
+Current Task: **TASK-0160 DONE 2026-10-31 — doc/status sync batch (stale-задачи
+M10/M11 + roadmap/versioning + TDD-гэпы)**: 11 pending-задач TASK-0077…0087
+закрыты по пер-AC верификации против кода (4 параллельных read-only агента),
+все 11 → DONE; гэпы доработаны red→green: HTTP-тесты evidence/review-round
+lifecycle + submit-review transition (0078/0079/0080), кнопка Submit-for-review
++ bell-тесты (0082/0086), positive-тесты 4 секций attention + health-route
+404 fix (0083/0087), HTTP+route-contract тесты нотификаций (закрыт
+audit-finding T2) + фикс мёртвых путей perf-сценария/PRD (0085). Найдены и
+исправлены баги: **verdict-эндпоинт 500** (int confidence vs str-аннотация)
+и **health 404** для неизвестного проекта; submit-review теперь переводит
+задачу → ready_for_review (201-контракт). Доки: ROADMAP (M16/M18/M19 → DONE,
+After-M20 п.1-3 закрыты), VERSIONING (0.18.0/0.20.0 закрыты без бампа —
+решение Дмитрия 2026-10-31), SPEC-0017 PUT→POST ×3, SPEC-0026 подтверждён
+APPROVED. Evidence: backend **1089 passed**/ruff/mypy 114 чисто, frontend
+**480/480**/tsc/oxlint чисто. Ветка `feature/TASK-0160-doc-status-sync` → MR.
+Prev (TASK-0159): **TASK-0159 DONE 2026-10-25 — CI quality-gate repair (инцидент:
 develop красный стабильно с #478)**: «стабильно не проходит quality gate» =
 два независимых дефекта + класс xdist-резиду. (1) **security=1**:
 `create_access_token` был детерминирован внутри секунды (payload без
@@ -36,6 +51,14 @@ mypy clean (114 файлов). Ветка `feature/TASK-0156-bootstrap-port-vars
 **Итог Этапа 4: все4 хвоста закрыты — B-matrix (TASK-0154) ✅, engine dedup
 (TASK-0112) ✅, `as any` hygiene (TASK-0155) ✅, bootstrap port-var
 (TASK-0156) ✅. Дальше: backlog §8 закрыт (TASK-0157 + TASK-0158).**
+Queued (2026-10-31): **TASK-0161** (e2e coverage audit + gap closure),
+**TASK-0162** (deployment guide), **TASK-0163** (performance baselines),
+**TASK-0164** (notifications API contract: user_id bucket + envelope —
+auth-sensitive, эскалация до фикса); follow-ups: FK-500 на unknown
+parent-task в `POST .../review-rounds|evidence` (404 не проверяется),
+TaskDetailSheet legacy status-Select (`in-progress`/`review` против
+underscore-словаря), bare-`pytest` ломает сбор bootstrap-теста (CI-форма
+`.venv/bin/python -m pytest` рабочая — см. TASK-0161).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
 Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
@@ -152,7 +175,7 @@ deleted server-side and was restored first at its last known SHA `d73868e`.
 | Batch | Scope | Status |
 |-------|-------|--------|
 | Dashboard Sprints 1-4 | SPEC-0025 S25.1-S25.8: KPI drill-down, donut, velocity, clickable attention, portfolio table, project selector, SSE activity, responsive + fix | ✅ merged |
-| Filtering | SPEC-0026: backend filters + shared FilterBar/URL-sync, StructurePage, AgentCenter fix | ✅ merged (спека всё ещё DRAFT, задачи TASK-0129-0135 не созданы) |
+| Filtering | SPEC-0026: backend filters + shared FilterBar/URL-sync, StructurePage, AgentCenter fix | ✅ merged (SPEC-0026 APPROVED 2026-10-24, файл синхронизирован TASK-0160; TASK-0129-0135 не создавались — работа шла в !56) |
 | Sprint 5 | Core UX: task editing + password change | ✅ merged |
 | Sprint 6 | Git-links wiring in TaskDetailSheet | ✅ merged |
 | Sprint 7 | Quality tab CRUD + dead code cleanup | ✅ merged |
@@ -358,15 +381,15 @@ Three pillars: **Performance**, **Chaos Engineering**, **Security Testing**.
 ## Roadmap
 
 ```
-0.17.0 ✅ → 0.18.0 → 0.19.0 ✅ → 0.20.0 → 0.21.0 ✅ → 0.22.0 ✅ → ...
+0.17.0 ✅ → 0.18.0 ✅ → 0.19.0 ✅ → 0.20.0 ✅ → 0.21.0 ✅ → 0.22.0 ✅ → ...
    M15         M16        M17         M18         M19         M20
 ```
 
 See `ROADMAP_UNIFIED.md` for full plan with sprint breakdown.
 
-### M16: 0.18.0 — Notifications & Reporting (S18.1 done, S18.2-S18.4 pending)
+### M16: 0.18.0 — Notifications & Reporting ✅ DONE (gaps закрыты 2026-10-25)
 ### M17: 0.19.0 — Security & Stability ✅ DONE
-### M18: 0.20.0 — UX Polish, Accessibility & Settings (planned, SPEC-0021)
+### M18: 0.20.0 — UX Polish, Accessibility & Settings ✅ DONE (gaps закрыты 2026-10-25, SPEC-0021)
 ### M19: 0.21.0 — Test Quality & Architecture ✅ DONE
 ### M20: 0.22.0 — Extended Features ✅ DONE (S22.1-S22.5 закрыты 2026-10-17)
 

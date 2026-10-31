@@ -5,7 +5,7 @@ MR !98); Дмитрий: «Хорошо, согласен. Давай додел
 **Milestone:** documentation / status hygiene (не релизный)
 **Spec:** mini-spec (AC ниже)
 **Points:** 3
-**Status:** in_progress
+**Status:** DONE (2026-10-31 — все AC закрыты, evidence ниже)
 
 ## Goals
 
@@ -25,23 +25,23 @@ MR !98); Дмитрий: «Хорошо, согласен. Давай додел
 
 ## Acceptance Criteria
 
-- [ ] AC1: по каждому из TASK-0077, 0078, 0079, 0080, 0081, 0082, 0083,
+- [x] AC1: по каждому из TASK-0077, 0078, 0079, 0080, 0081, 0082, 0083,
       0084, 0085, 0086, 0087 — таблица AC → verdict (implemented / gap) с
       evidence (file:line, имя теста); статус меняется только после сверки;
       найденные gap'и — доработка в батче (TDD) либо deviation + follow-up
       задача, решение фиксируется в файле задачи.
-- [ ] AC2: SPEC-0026: в шапке зафиксированы APPROVED 2026-10-24 и факт
+- [x] AC2: SPEC-0026: в шапке зафиксированы APPROVED 2026-10-24 и факт
       реализации (ссылка на MR !56 / задачи), статус DRAFT снят.
-- [ ] AC3: ROADMAP_UNIFIED.md: таблицы M16/M18/M19 не показывают PARTIAL по
+- [x] AC3: ROADMAP_UNIFIED.md: таблицы M16/M18/M19 не показывают PARTIAL по
       закрытым gaps; «After M20 (remaining work)» п.1-2 отмечены закрытыми.
-- [ ] AC4: VERSIONING.md согласно решению Дмитрия (варианты: (a) синхронизация
+- [x] AC4: VERSIONING.md согласно решению Дмитрия (варианты: (a) синхронизация
       таблиц без бампа — 0.18.0/0.20.0 delivered в составе 0.19.0–0.22.0;
       (b) бамп 0.23.0 как milestone-closure; (c) отложить).
-- [ ] AC5: PROJECT_STATUS.md: Current Task → TASK-0160 DONE, Queued
+- [x] AC5: PROJECT_STATUS.md: Current Task → TASK-0160 DONE, Queued
       актуализирован, версии/M16/M18 отражают решение по AC4.
-- [ ] AC6 (если одобрено): файлы задач production hardening созданы
+- [x] AC6 (если одобрено): файлы задач production hardening созданы
       (3-5 задач с AC), добавлены в PROJECT_STATUS Queued.
-- [ ] Evidence: выводы верификации AC1 в этом файле (раздел «Verification»),
+- [x] Evidence: выводы верификации AC1 в этом файле (раздел «Verification»),
       команды/тесты, MR.
 
 ## Out of scope
@@ -52,4 +52,49 @@ MR !98); Дмитрий: «Хорошо, согласен. Давай додел
 
 ## Verification
 
-_(заполняется по результатам: per-task verdict-таблицы, команды, выводы)_
+**AC1 — TASK-0077…0087 (11 файлов):** пер-AC верификация 4 параллельными
+read-only агентами против кода/тестов → все 11 → **DONE** (статусы и
+deviations зафиксированы в самих файлах задач). Гэпы доработаны red→green:
+
+| Gap | Решение | Evidence |
+|-----|---------|----------|
+| 0078: нет HTTP-тестов evidence-переходов | +9 тестов (200/404/409) | `backend/tests/test_quality_api_transitions.py` |
+| 0079: нет HTTP-тестов review-round lifecycle | +10 тестов | тот же файл |
+| 0080: submit-review не переходил задачу | transition → `ready_for_review` (red 5 failed → green 24) | `app/quality/service.py` + 5 тестов |
+| 0082: кнопка Submit-for-review не подключена | кнопка + guard-allowlist + 400-UX (red 4 failed → green 16/16) | `ReviewsTab.tsx/.test.tsx`, `use-quality.ts` |
+| 0083: 4 секции attention только empty-path | +5 positive/boundary HTTP-тестов | `test_attention_sections_positive.py` |
+| 0087: нет route-теста health, 404 мёртв | red `200 == 404` → existence-check fix | `test_health_route.py`, `dashboard.py` |
+| 0085: нет HTTP-тестов (audit T2) | +10 тестов + route-contract против 404-класса | `test_notification_api.py` |
+| 0085: мёртвые пути perf-сценария | `mark-all-read`→`read-all`, 3 analytics-пути → реальные роуты (red → green 10/10) | `scenario_dashboard.py`, PRD |
+| 0086: нет тестов колокольчика | +3 теста (dropdown/mark-read/empty) | `NotificationBell.test.tsx` |
+
+Найденные баги (фикс в батче): **verdict-эндпоинт 500** (int `confidence`
+vs `dict[str, str | None]`) — `quality.py`; **health 404** для неизвестного
+проекта — `dashboard.py`. Наблюдение вне AC: 500 на unknown parent-task
+(fk) в `POST .../review-rounds|evidence` → follow-up в Queued.
+
+**AC2 — SPEC-0026:** синхронизирован ранее (Status APPROVED 2026-10-24 +
+примечание о реализации в !56); в батче проверено — правок не потребовалось.
+
+**AC3 — ROADMAP_UNIFIED:** M16/M18/M19 таблицы + exit criteria → DONE,
+After-M20 п.1-3 закрыты, п.4 → TASK-0161…0163 (commit a97401e).
+
+**AC4 — VERSIONING (решение Дмитрия 2026-10-31: синхронизация без бампа):**
+0.18.0/0.20.0 закрыты «без отдельного релиза — delivered в 0.19.0–0.22.0»;
+диаграмма `done*` + сноска, секции спринтов → DONE, Version History обновлён
+(commit a97401e). `pyproject`/`package.json` не тронуты (0.22.0).
+
+**AC5 — PROJECT_STATUS:** Current Task → TASK-0160, Queued → TASK-0161…0164.
+
+**AC6 — hardening декомпозиция (одобрено):** TASK-0161 (e2e coverage),
+TASK-0162 (deployment guide), TASK-0163 (perf baselines) созданы;
+находки O1/O4 нотификаций → TASK-0164 (auth-sensitive, эскалация §10).
+
+**Итоговые гейты (2026-10-31, ветка TASK-0160):**
+- backend: `.venv/bin/python -m pytest backend/tests -q` → **1089 passed,
+  0 failed, coverage 89.45%**; `ruff check` → clean; `mypy backend/app` →
+  **114 files, no issues**.
+- frontend: `npm test -- --run` → **480/480 (57 files)**; `tsc --noEmit`
+  (app+node) → 0; `npm run lint` (oxlint) → 0 errors (3 pre-existing warns).
+- Отклонения/наблюдения зафиксированы в файлах задач 0078/0080/0082/0083/
+  0084/0085 и в TASK-0164.
