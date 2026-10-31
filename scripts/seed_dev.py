@@ -1,38 +1,35 @@
 #!/usr/bin/env python3
-"""Seed UPCP with realistic data across all domains."""
+"""Seed UPCP with realistic data across all domains (structure layer).
 
-import requests
+Covers: projects, components, modules, features, tasks, agents, DoD/AC,
+reports, search. Workflow mechanics (claims/heartbeats/clarifications) live
+in scripts/seed_mechanisms.py; quality depth in scripts/seed_full.py.
+
+Env-overridable: SEED_BASE, SEED_EMAIL, SEED_PASSWORD (defaults match
+the legacy stage stack; dev runs on its own port — see docs/ENVIRONMENTS.md).
+"""
+
 import sys
+from pathlib import Path
 
-BASE = "http://127.0.0.1:38080"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# ── Auth ─────────────────────────────────────────────
-def login():
-    r = requests.post(f"{BASE}/auth/login", json={"email": "admin@example.com", "password": "admin123"})
-    r.raise_for_status()
-    return r.json()["access_token"]
+from seed_common import Session  # noqa: E402
 
-TOKEN = login()
-H = {"Authorization": f"Bearer {TOKEN}"}
+s = Session()
 
 def api(method, path, **kw):
-    fn = getattr(requests, method)
-    r = fn(f"{BASE}{path}", headers=H, **kw)
-    if r.status_code >= 400:
-        print(f"  WARN {method.upper()} {path} → {r.status_code}: {r.text[:120]}")
-        return None
-    if r.status_code == 204:
-        return {}
-    return r.json()
+    return s.request(method, path, **kw)
 
 def post(path, data):
-    return api("post", path, json=data)
+    return s.post(path, data)
 
 def get(path, **kw):
-    return api("get", path, params=kw)
+    params = kw or None
+    return s.get(path, params=params)
 
 def patch(path, data):
-    return api("patch", path, json=data)
+    return s.patch(path, data)
 
 # ── Clean up placeholder projects ───────────────────
 existing = get("/api/v1/projects", limit=50)
@@ -252,23 +249,20 @@ for fdef in feature_defs:
 done_tasks = [tid for tid in task_ids]
 if len(done_tasks) >= 3:
     for tid in done_tasks[:5]:
-        # DoD items
-        post(f"/api/v1/tasks/{tid}/dod-items", {"title": "Code reviewed", "is_completed": True})
-        post(f"/api/v1/tasks/{tid}/dod-items", {"title": "Tests pass", "is_completed": True})
-        post(f"/api/v1/tasks/{tid}/dod-items", {"title": "Documentation updated", "is_completed": True})
+        # DoD items — contract: {"name"}, status set via PATCH ("passed"/"failed")
+        for dod_name in ("Code reviewed", "Tests pass", "Documentation updated"):
+            d = post(f"/api/v1/tasks/{tid}/dod-items", {"name": dod_name})
+            if d:
+                patch(f"/api/v1/dod-items/{d['id']}", {"status": "passed"})
 
-        # Acceptance criteria
-        post(f"/api/v1/tasks/{tid}/acceptance-criteria", {
-            "description": "Endpoint returns correct response format",
-            "is_met": True,
-            "evidence": "API tests pass, OpenAPI spec validated",
-        })
-        post(f"/api/v1/tasks/{tid}/acceptance-criteria", {
-            "description": "Error handling covers edge cases",
-            "is_met": True,
-            "evidence": "Rate limiting tested, 401/403 flows verified",
-        })
-    print("  ✓ Quality: DoD items + AC added to 5 tasks")
+        # Acceptance criteria — create takes description only; status via PATCH
+        for ac_desc in ("Endpoint returns correct response format",
+                        "Error handling covers edge cases"):
+            ac = post(f"/api/v1/tasks/{tid}/acceptance-criteria",
+                      {"description": ac_desc})
+            if ac:
+                patch(f"/api/v1/acceptance-criteria/{ac['id']}", {"status": "passed"})
+    print("  ✓ Quality: DoD items + AC added to 5 tasks (all passed)")
 
 # ── Agents ──────────────────────────────────────────
 agent_defs = [
@@ -286,14 +280,9 @@ for adef in agent_defs:
         agent_ids.append(agent["id"])
         print(f"  ✓ Agent: {adef['display_name']} ({agent['id'][:8]})")
 
-# ── Agent claims + heartbeats on in-progress tasks ──
-in_progress_tasks = [tid for tid in task_ids]  # claim first 3 tasks
-for i, tid in enumerate(in_progress_tasks[:3]):
-    agent_id = agent_ids[i % len(agent_ids)]
-    claim = post(f"/api/v1/tasks/{tid}/claim", {"agent_id": agent_id})
-    if claim:
-        post(f"/api/v1/tasks/{tid}/heartbeat", {"agent_id": agent_id, "status": "working"})
-        print(f"  → Claimed: task {tid[:8]} by agent {agent_id[:8]}")
+# ── Workflow mechanics (claims/heartbeats) ─────────────
+# Moved to scripts/seed_mechanisms.py — claims require X-Agent-Token
+# (agent tokens) and a task in "ready" status; both live there.
 
 # ── Reports ─────────────────────────────────────────
 report = post(f"/api/v1/projects/{PID}/reports/daily", {})
