@@ -3,7 +3,17 @@
 Updated: 2026-10-31
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **TASK-0160 DONE 2026-10-31 — doc/status sync batch (stale-задачи
+Current Task: **TASK-0165 DONE 2026-10-31 — attention-e2e strict-mode (инцидент
+schedule gate #515)**: `e2e_fe=1` в schedule-гейте (develop@185f1b8c) —
+заголовок секции vs empty-state ловились case-insensitive substring'ом →
+strict-violation при пустой секции (data-dependent флаки; чистый `exact`
+сломал бы матч с count-badge). Фикс: card-scoped `attentionTitle()`
+(`[data-slot=card] filter hasText` → `card-title` + `toContainText`) в
+4 тестах + регресс-тест с принудительно пустыми секциями (canary пинит
+ловушку). Evidence: `dashboard.spec.ts` **16/16 ×2**; MR !100 merged;
+**develop #519 quality:gate success — `RCs: e2e=0 e2e_fe=0 chaos=0
+security=0 perf=0`, exit 0** (job 3985) → инцидент #515 закрыт.
+Prev (TASK-0160): **TASK-0160 DONE 2026-10-31 — doc/status sync batch (stale-задачи
 M10/M11 + roadmap/versioning + TDD-гэпы)**: 11 pending-задач TASK-0077…0087
 закрыты по пер-AC верификации против кода (4 параллельных read-only агента),
 все 11 → DONE; гэпы доработаны red→green: HTTP-тесты evidence/review-round
@@ -51,10 +61,10 @@ mypy clean (114 файлов). Ветка `feature/TASK-0156-bootstrap-port-vars
 **Итог Этапа 4: все4 хвоста закрыты — B-matrix (TASK-0154) ✅, engine dedup
 (TASK-0112) ✅, `as any` hygiene (TASK-0155) ✅, bootstrap port-var
 (TASK-0156) ✅. Дальше: backlog §8 закрыт (TASK-0157 + TASK-0158).**
-Queued (2026-10-31): **Incident 2026-10-31** — schedule quality gate **#515**
+Queued (2026-10-31): ~~**Incident 2026-10-31** — schedule quality gate **#515**
 (develop@185f1b8c) `e2e_fe=1`: attention-e2e strict-mode (заголовок vs
-empty-state, data-dependent флаки) → **TASK-0165** (card-scoped locators +
-empty-state регресс-тест, ветка `feature/TASK-0165-attention-e2e-strict-mode`);
+empty-state, data-dependent флаки) → **TASK-0165**~~ — **закрыт 2026-10-31**
+(develop #519 gate success, e2e_fe=0);
 **TASK-0161** (e2e coverage audit + gap closure),
 **TASK-0162** (deployment guide), **TASK-0163** (performance baselines),
 **TASK-0164** (notifications API contract: user_id bucket + envelope —
