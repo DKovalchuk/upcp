@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.delivery.lifecycle import InvalidTransition
 from app.delivery.models import ClarificationRequest, Heartbeat, Task, TaskClaim
 from app.delivery.workflow import WorkflowService
 from app.identity.agent_auth import get_current_agent
@@ -84,6 +85,7 @@ def claim_task(
     responses={
         404: {"description": "Task not found"},
         409: {"description": "No active claim to release"},
+        422: {"description": "Invalid status transition"},
     },
 )
 def release_task(
@@ -98,6 +100,8 @@ def release_task(
         raise HTTPException(status_code=404, detail=str(e)) from None
     except Conflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
+    except InvalidTransition as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
 
     return {"ok": True}
 
@@ -305,6 +309,7 @@ class ClarificationAnswerRequest(BaseModel):
     responses={
         404: {"description": "Task not found"},
         409: {"description": "No active claim or invalid state"},
+        422: {"description": "Invalid status transition"},
     },
 )
 def create_clarification(
@@ -326,6 +331,8 @@ def create_clarification(
         raise HTTPException(status_code=404, detail=str(e)) from None
     except Conflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
+    except InvalidTransition as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
 
     return {
         "id": cr.id,
@@ -344,6 +351,7 @@ def create_clarification(
     responses={
         404: {"description": "Clarification not found"},
         409: {"description": "Clarification already answered"},
+        422: {"description": "Invalid status transition"},
     },
 )
 def answer_clarification(
@@ -363,6 +371,8 @@ def answer_clarification(
         raise HTTPException(status_code=404, detail=str(e)) from None
     except Conflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
+    except InvalidTransition as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
 
     return {
         "id": cr.id,
