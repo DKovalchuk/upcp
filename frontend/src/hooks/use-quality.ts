@@ -16,6 +16,7 @@ import {
   acceptEvidence,
   rejectEvidence,
   createReviewRound,
+  submitForReview,
 } from '@/lib/api';
 import type {
   AcceptanceCriterionCreate,
@@ -221,6 +222,22 @@ export function useCreateReviewRound(taskId: string) {
       createReviewRound(taskId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'review-rounds'] });
+    },
+  });
+}
+
+// Submit for review (quality gate) — TASK-0082
+// On 201 the backend transitions the task to ready_for_review and creates a
+// review round, so both the task detail and the review-rounds list are
+// invalidated (['tasks', taskId] prefix-covers ['tasks', taskId, 'review-rounds']).
+export function useSubmitForReview(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => submitForReview(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId] });
     },
   });
 }
