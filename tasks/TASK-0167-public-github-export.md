@@ -6,7 +6,8 @@ GitHub... цель — портфолио... давай определяться
 **Milestone:** infra/processes (не релизный)
 **Spec:** mini-spec (Gherkin ниже)
 **Points:** 5
-**Status:** IN PROGRESS
+**Status:** IN PROGRESS (2026-11-01 — код готов, MR !104 открыт, seed-публикация
+выполнена; остаются ручные masked-переменные GitLab, см. prerequisites)
 
 ## Context
 
@@ -115,26 +116,28 @@ Feature: Public repo presentation
 
 ## Acceptance Criteria
 
-- [ ] AC1 (hygiene): контракт-тесты red→green; `docker-compose.stage.yml` —
+- [x] AC1 (hygiene): контракт-тесты red→green; `docker-compose.stage.yml` —
       только `${UPCP_SECRET_KEY:?...}`; `.env.stage` untracked + в
       `.gitignore`; `.env.stage.example` трекается; в
       `tests/security/reports|results` нет JWT-паттерна;
       `docker compose --env-file .env.stage config` проходит с ключом и
       падает с `:?`-подсказкой без него.
-- [ ] AC2 (presentation): `LICENSE` (MIT) + `README.md` (EN) +
+- [x] AC2 (presentation): `LICENSE` (MIT) + `README.md` (EN) +
       `README.ru.md` (RU): TOC, стек, архитектура, метрики, quickstart,
       навигация EN↔RU, ссылка `[MIT](LICENSE)`, без копирайт-строк.
-- [ ] AC3 (export): `scripts/export-public.sh` прогонен на toy-mirror:
+      Все ссылки README проверены на существование файлов.
+- [x] AC3 (export): `scripts/export-public.sh` прогонен на toy-mirror:
       scrub литералов+JWT подтверждён поиском по всей истории,
       gitleaks-гейт с baseline (exit 0), повторный прогон даёт идентичные
       hash'и, `shellcheck` чист.
-- [ ] AC4 (CI wiring): job `publish:github` — только `main`,
+- [x] AC4 (CI wiring): job `publish:github` — только `main`,
       `needs: [build:backend, build:frontend]`, читает
       `GITHUB_PUB_TOKEN`; `.github/workflows/ci.yml` — валидный YAML,
       backend+frontend lint/test jobs.
-- [ ] AC5 (no regressions): `make lint typecheck test` зелёные;
+- [x] AC5 (no regressions): pytest **1102 passed** (coverage 89.53%),
+      ruff check+format, mypy 114 files — clean;
       `docker compose --env-file .env.ci config --quiet` проходит;
-      существующие стеки не сломаны; docs (deployment/mcp-setup) синхронизированы.
+      docs (ENVIRONMENTS, 11-docker-and-ports, mcp-setup) синхронизированы.
 
 ## Decomposition
 
@@ -153,6 +156,100 @@ Feature: Public repo presentation
 - [ ] GitHub token с scopes `repo`+`workflow` → masked CI variable
       `GITHUB_PUB_TOKEN`.
 
-## Verification
+## Verification (2026-11-01)
 
-(заполняется по мере закрытия AC)
+### Red → Green (контракт-тесты)
+
+```text
+red:  5 failed (compose hardcode, gitignore/untracked, example missing,
+      JWT in reports/results)
+green: 5 passed — backend/tests/test_public_export_contracts.py
+```
+
+### Полный прогон (CI-способ запуска `python -m pytest`)
+
+```text
+.venv/bin/python -m pytest backend/tests -q -n auto
+→ 1102 passed, coverage 89.53% (gate 80%)
+ruff check backend → All checks passed; ruff format --check → 250 formatted
+mypy backend/app → Success: no issues found in 114 source files
+shellcheck 0.10.0 scripts/export-public.sh → exit 0
+YAML: .gitlab-ci.yml + .github/workflows/ci.yml → parse OK, publish:github present
+```
+
+### Compose config (позитив/негатив)
+
+```text
+negative: unset key + --env-file .env.stage.example → exit 1,
+          "required variable UPCP_SECRET_KEY is missing a value: ...hint"
+positive: UPCP_SECRET_KEY set → config exit 0
+regression: docker compose --env-file .env.ci config --quiet → exit 0
+```
+
+### Export pipeline smoke (toy-mirror)
+
+```text
+positive: scrub → gate "no leaks found" → push to bare target, exit 0
+scrub proof: stage-секрет и refresh-токен ABSENT во всей истории экспорта;
+          access/refresh → [REDACTED]
+determinism: повторный прогон → идентичный hash main (f3b96c8)
+negative gate: finding вне baseline (AKIA... не-example) →
+          "refusing to push", exit 1, target не сдвинут
+```
+
+### Real run + publication
+
+```text
+dry-run против origin: gitleaks "no leaks found" (baseline: 7 fixture-находок)
+publish: gh repo create DKovalchuk/upcp --public →
+          https://github.com/DKovalchuk/upcp
+export:  scripts/export-public.sh --to https://github.com/DKovalchuk/upcp.git
+          → 428 commits scanned, gate clean, "* [new branch] main -> main"
+verify (свежий clone с GitHub):
+          382 commits; git log -S <stage-secret> → пусто;
+          независимый gitleaks --all → ровно 7 findings, все ∈ baseline,
+          extras = 0
+```
+
+### Delivery
+
+- 3 атомарных коммита: `a64a6d4` fix(secrets), `dca76c2` docs(repo),
+  `b57137b` feat(ci) → MR **!104** (feature/TASK-0167-public-github-export
+  → develop), открыт, auto-merge не выставлен (ждёт ревью).
+- Ветка запушина; pre-commit hooks зелёные (ruff/format/yaml/whitespace).
+
+### Multi-factor анализ (AGENTS §12)
+
+- **Соответствие требованиям:** AC1–AC5 закрыты evidence'ом выше; решения
+  соответствуют согласованному release-mirror workflow (только main, scrub
+  каждый экспорт, MIT, GH Actions).
+- **Архитектура:** экспорт — изолированная вспомогательная площадка
+  (scripts/), не трогает домен; CI-job оркеструет готовый скрипт; локальный
+  репозиторий и история GitLab нигде не переписываются.
+- **Производительность:** экспорт полной истории ~0.5 с (7.3 MB), gitleaks
+  <0.5 с — не узкое место пайплайна.
+- **Безопасность:** секреты вычищены и заперты контракт-тестами; токен CI
+  — masked-переменная, userinfo редактируется в логах, push-URL не печатается;
+  fail-closed гейт (находка вне baseline → не пушим); токену требуется
+  scope workflow (известный подвох GitHub).
+- **Надёжность:** set -euo pipefail + trap cleanup; bounded retry только на
+  сетевых скачиваниях инструментов; отсутствие токена → fail-fast с
+  инструкцией; детерминизм scrub гарантирует fast-forward повторных пушей.
+- **Тестируемость:** 5 контракт-тестов фиксируют инварианты (red→green);
+  скрипт проверен toy-смоуком по четырём сценариям + реальным dry-run'ом;
+  baseline воспроизводим перегенерацией отчёта.
+- **Документация:** README EN/RU синхронны со стеком/метриками (ссылки
+  проверены); stage-setup задокументирован в ENVIRONMENTS/11-docker/mcp-setup;
+  task-файл содержит полный evidence.
+
+### Follow-up / prerequisites (вне этого MR)
+
+1. Masked CI variable `UPCP_SECRET_KEY` в GitLab — без неё `deploy:stage`
+   (ручной) будет fail-fast на `:?`.
+2. Masked CI variable `GITHUB_PUB_TOKEN` (repo + workflow) в GitLab — без
+   неё `publish:github` fail-fast при первом релизе в main.
+3. Первый релизный мерж develop→main после ревью Дмитрия — тогда на GitHub
+   приедут LICENSE/README/CI (seed выложил текущий main от 2026-08-17).
+4. Периодическая перегенерация baseline при новых fixture-находках в новых
+   коммитах (fingerprint включает commit-sha): прогнать экспортный scrub
+   локально и заменить scripts/export-gitleaks-baseline.txt отчётом.

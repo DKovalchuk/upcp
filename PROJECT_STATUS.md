@@ -1,9 +1,34 @@
 # PROJECT_STATUS
 
-Updated: 2026-10-31
+Updated: 2026-11-01
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **TASK-0166 DONE 2026-10-31 — dev seed всех механизмов +
+Current Task: **TASK-0167 IN PROGRESS 2026-11-01 — Public GitHub export
+(release-mirror workflow)**: UPCP опубликован в паблик как портфолио —
+**https://github.com/DKovalchuk/upcp** (public; seed = scrubbed текущий
+`main` 2026-08-17, 382 коммита; независимый gitleaks по свежему clone:
+ровно 7 baseline-фикстур, extras 0, `-S`-поиск stage-секрета по истории —
+пусто). Workflow согласован: GitLab source of truth → публикуется **только
+main** → CI-job `publish:github` после сборки образов: mirror-clone →
+детерминированный `git filter-repo --replace-text` → gitleaks baseline
+гейт → push (история GitLab/локальный репо не переписываются). Сделано в
+MR: scrub HEAD (compose `${UPCP_SECRET_KEY:?hint}` вместо хардкода,
+`.env.stage` untracked + `.env.stage.example`, redact протухших JWT в
+security-отчётах) + **5 контракт-тестов red→green**; MIT + README EN/RU
+(без копирайт-строк, ссылки проверены); `scripts/export-public.sh`
+(shellcheck clean; toy-smoke: scrub-доказательство, детерминизм hash,
+negative-гейт exit 1 без push); `.github/workflows/ci.yml`
+(backend ruff/mypy/pytest + postgres service, frontend oxlint/tsc/vitest).
+Полный прогон **1102 passed**, coverage 89.53%, ruff/format/mypy 114 —
+чисто; compose config позитив/негатив подтверждены. Delivery: 3 атомарных
+коммита (`a64a6d4`, `dca76c2`, `b57137b`) → **MR !104 открыт** (ждёт
+ревью; auto-merge не ставился). Prerequisites (вне MR, GitLab CI/CD
+Variables): masked `UPCP_SECRET_KEY` (иначе deploy:stage fail-fast на
+`:?`) и masked `GITHUB_PUB_TOKEN` (repo+**workflow** — экспорт содержит
+`.github/workflows/*`). Первый релизный мерж develop→main — после ревью
+Дмитрия (тогда на GitHub приедут LICENSE/README/CI). Evidence:
+`tasks/TASK-0167-public-github-export.md`.
+Prev (TASK-0166): **TASK-0166 DONE 2026-10-31 — dev seed всех механизмов +
 верификация компонентов**: dev-БД наполнена через API + SQL-бэкфил так,
 что каждый механизм покрыт read-back'ом. Новые артефакты: `seed_common.py`
 (пейсинг 90 req/min + 429-retry + auto-refresh), `seed_mechanisms.py`
