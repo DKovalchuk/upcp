@@ -20,6 +20,9 @@ curl -s http://upcp.local:3070/mcp/
 ```
 
 **Примечание:** Порт зависит от `.env.*` файла. См. `docs/11-docker-and-ports.md`.
+Если `.env.stage` ещё не создан (файл не отслеживается git): `cp .env.stage.example .env.stage`
+и задайте `UPCP_SECRET_KEY`. Если UPCP уже запущен в dev — используйте его порт
+(`.env.dev`, фронт 3072) вместо stage.
 
 ### 2. Проверить мост
 

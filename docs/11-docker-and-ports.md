@@ -22,7 +22,7 @@ All external-facing ports use `UPCP_PORT_*` prefix:
 |------|---------|
 | `.env.dev` | Dev environment ports |
 | `.env.test` | Test environment ports |
-| `.env.stage` | Stage environment ports + secrets |
+| `.env.stage` | Stage ports + secret — **untracked**, create from `.env.stage.example` (TASK-0167) |
 
 **To change a port:** edit the `.env.*` file. Docker Compose picks it up on next `up`.
 

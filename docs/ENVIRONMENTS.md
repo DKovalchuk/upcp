@@ -14,6 +14,14 @@ Ports are configured via per-environment `.env` files. Each file defines all ext
 
 **To change a port:** edit the corresponding `.env.*` file. No code changes needed.
 
+**Stage setup:** `.env.stage` is untracked (holds the local `UPCP_SECRET_KEY`);
+create it once from the template:
+
+```bash
+cp .env.stage.example .env.stage
+# then set UPCP_SECRET_KEY=$(openssl rand -base64 48) inside .env.stage
+```
+
 **Override at runtime:**
 ```bash
 UPCP_PORT_FRONTEND=4000 docker compose --env-file .env.dev up -d
