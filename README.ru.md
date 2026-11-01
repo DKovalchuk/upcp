@@ -114,11 +114,11 @@ Bounded context'ы: `projects`, `structure`, `delivery`, `quality`, `gitread`,
 
 | Показатель | Значение |
 |---|---|
-| Backend-тесты | **1 073** тест-функции в 107 файлах |
+| Backend-тесты | **1 102** теста (collect) в 108 файлах |
 | Frontend-тесты | 57 тестовых наборов (Vitest) |
 | Дополнительные наборы | e2e (Playwright), security (ZAP baseline + Kali + authz/fuzz), chaos, нагрузка (Locust), lighthouse |
 | Гейт покрытия | ≥ 80 % (`make coverage`) |
-| Статические проверки | ruff, mypy (strict), tsc, eslint |
+| Статические проверки | ruff, mypy (strict), tsc, oxlint |
 | Процессная документация | 29 спеков, 140+ файлов задач с AC и evidence |
 
 CI выполняет `lint → test → quality → build → deploy`; quality gate —
@@ -142,9 +142,9 @@ CI выполняет `lint → test → quality → build → deploy`; quality 
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) и [`ROADMAP_UNIFIED.md`](ROADMAP_UNIFIED.md)
   отслеживают состояние вех; [`CHANGELOG.md`](CHANGELOG.md) фиксирует релизы.
 
-Более 600 коммитов первых месяцев разработки сделаны в этом workflow —
-task-ветки, merge request'ы, quality gates и человеческое ревью на каждом
-слиянии.
+Более 600 коммитов по веткам разработки (382 в релизной ветке `main`)
+сделаны в этом workflow — task-ветки, merge request'ы, quality gates и
+человеческое ревью на каждом слиянии.
 
 ## Быстрый старт
 

@@ -45,16 +45,20 @@ def test_stage_compose_interpolates_secret_key() -> None:
 
 def test_env_stage_is_gitignored_and_not_tracked() -> None:
     # spec: .env.stage is untracked, an example file is tracked
-    gitignore = GITIGNORE.read_text(encoding="utf-8")
-    assert ".env.stage" in gitignore, ".env.stage missing from .gitignore"
-    if shutil.which("git"):
-        result = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", ".env.stage"],
-            capture_output=True,
-            text=True,
-            cwd=ROOT,
-        )
-        assert result.returncode != 0, ".env.stage is still tracked by git"
+    gitignore_lines = {line.strip() for line in GITIGNORE.read_text(encoding="utf-8").splitlines()}
+    assert ".env.stage" in gitignore_lines, (
+        ".gitignore must contain an exact '.env.stage' line "
+        "(a '.env.stage.example' line alone would not match)"
+    )
+    if not shutil.which("git"):
+        pytest.skip("git not in PATH — tracked-status check cannot run here")
+    result = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", ".env.stage"],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+    assert result.returncode != 0, ".env.stage is still tracked by git"
 
 
 def test_env_stage_example_has_placeholder_only() -> None:
@@ -79,10 +83,6 @@ def test_security_artifacts_contain_no_jwts(directory: Path) -> None:
     offenders = []
     for path in sorted(directory.rglob("*")):
         if not path.is_file() or path.suffix not in SECURITY_ARTIFACT_SUFFIXES:
-            continue
-        if path.suffix == ".html":
-            # ZAP/Kali HTML reports are vendor-formatted evidence; the token
-            # contract below targets the human-readable/md/json/xml artifacts
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
         if JWT_PATTERN.search(text):

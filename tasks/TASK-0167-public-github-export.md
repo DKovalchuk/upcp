@@ -242,6 +242,22 @@ verify (свежий clone с GitHub):
   проверены); stage-setup задокументирован в ENVIRONMENTS/11-docker/mcp-setup;
   task-файл содержит полный evidence.
 
+### Aspect review (независимый агент, read-only) — вердикт: готово к PR
+
+Blocker/major отсутствуют (18 находок: minor/nit). **Исправлено в этой же
+ветке** (закоммичено ниже): README EN/RU `eslint` → `oxlint` (фактический
+линтер frontend); метрика тестов пересчитана по `pytest --collect-only`
+(1102/108); формулировка коммитов уточнена (382 на `main`, 600+ по веткам
+разработки); контракт-тест усилен (точная строка `.gitignore` вместо
+substring, явный skip при отсутствии git вместо молчаливого fail-open,
+снято `.html`-исключение — 13 html-артефактов проверены, JWT: NONE);
+`usage()` — диапазон строк `2,27` (без обрывка кода в `--help`).
+**Отложено в follow-ups:** `GIT_ASKPASS` вместо токена в argv `git push`
+(страховка сейчас — masked-переменная); первый живой прогон
+`publish:github` в CI после настройки переменных (п. prerequisites);
+подтверждение ротации старого stage-ключа (его литерал намеренно остаётся
+в replace-правиле — без него не чистится история).
+
 ### Follow-up / prerequisites (вне этого MR)
 
 1. Masked CI variable `UPCP_SECRET_KEY` в GitLab — без неё `deploy:stage`

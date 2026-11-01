@@ -115,11 +115,11 @@ and [`docs/INDEX.md`](docs/INDEX.md).
 
 | Signal | Value |
 |---|---|
-| Backend tests | **1,073** test functions in 107 files |
+| Backend tests | **1,102** tests collected in 108 files |
 | Frontend tests | 57 test suites (Vitest) |
 | Extra suites | e2e (Playwright), security (ZAP baseline + Kali + authz/fuzz), chaos, load (Locust), lighthouse |
 | Coverage gate | ≥ 80 % (`make coverage`) |
-| Static checks | ruff, mypy (strict), tsc, eslint |
+| Static checks | ruff, mypy (strict), tsc, oxlint |
 | Process docs | 29 specs, 140+ task files with acceptance criteria and evidence |
 
 CI runs `lint → test → quality → build → deploy`; the quality gate is a hard
@@ -142,9 +142,9 @@ This repository is also a case study in operating AI coding agents:
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) and [`ROADMAP_UNIFIED.md`](ROADMAP_UNIFIED.md)
   track milestone state; [`CHANGELOG.md`](CHANGELOG.md) records releases.
 
-Over 600 commits in the first months of development were produced under this
-workflow — task branches, merge requests, quality gates, and human review on
-every merge.
+Over 600 commits across the development branches (382 on the released
+`main` line) were produced under this workflow — task branches, merge
+requests, quality gates, and human review on every merge.
 
 ## Quick start
 
