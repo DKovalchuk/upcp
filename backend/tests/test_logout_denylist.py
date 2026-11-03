@@ -76,11 +76,13 @@ def logged_in(db_session: Session, fake_redis: _MemRedis) -> Iterator[SimpleName
     """
     import bcrypt
     from app.identity.auth import _get_token_service
+    from app.identity.endpoints import public_router
     from app.identity.endpoints import router as auth_router
     from app.shared.database import get_session
 
     ts = TokenService(secret_key="test-secret-key-for-denylist-tests")
     app = FastAPI()
+    app.include_router(public_router, prefix="/auth")
     app.include_router(auth_router, prefix="/auth")
 
     @app.get("/api/v1/projects")
@@ -219,6 +221,7 @@ def test_redis_down_fails_open_and_warns(
     """Redis refused → authenticated requests still succeed (availability over ≤15-min window)."""
     import bcrypt
     from app.identity.auth import _get_token_service
+    from app.identity.endpoints import public_router
     from app.identity.endpoints import router as auth_router
     from app.shared.database import get_session
 
@@ -226,6 +229,7 @@ def test_redis_down_fails_open_and_warns(
 
     ts = TokenService(secret_key="test-secret-key-for-denylist-tests")
     app = FastAPI()
+    app.include_router(public_router, prefix="/auth")
     app.include_router(auth_router, prefix="/auth")
 
     @app.get("/api/v1/projects")

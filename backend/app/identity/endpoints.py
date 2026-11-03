@@ -12,6 +12,10 @@ from app.shared.database import get_session
 
 router = APIRouter(tags=["auth"])
 
+# SPEC-0028 D2 / TASK-0168: no-auth routes live in their own router so the
+# web surface can later carry a blanket auth dependency without excluding them.
+public_router = APIRouter(tags=["auth"])
+
 
 def _get_auth_service(
     db: Session = Depends(get_session),
@@ -52,7 +56,7 @@ class TokenResponse(BaseModel):
 # ── Endpoints ─────────────────────────────────────────────────────
 
 
-@router.post("/setup", status_code=status.HTTP_201_CREATED)
+@public_router.post("/setup", status_code=status.HTTP_201_CREATED)
 def auth_setup(
     body: SetupRequest,
     auth: AuthService = Depends(_get_auth_service),
@@ -68,7 +72,7 @@ def auth_setup(
         raise
 
 
-@router.post("/login", response_model=TokenResponse)
+@public_router.post("/login", response_model=TokenResponse)
 def auth_login(
     body: LoginRequest,
     request: Request,
@@ -106,7 +110,7 @@ def auth_logout(
     return {"ok": True}
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@public_router.post("/refresh", response_model=TokenResponse)
 def auth_refresh(
     body: RefreshRequest,
     auth: AuthService = Depends(_get_auth_service),
