@@ -1,9 +1,21 @@
 # PROJECT_STATUS
 
-Updated: 2026-10-31
+Updated: 2026-11-02
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **TASK-0166 DONE 2026-10-31 — dev seed всех механизмов +
+Current Task: **TASK-0168 DONE 2026-11-02 — API surface registry + contract
+test (начало auth-rework пачки SPEC-0028/0029)**: спеки SPEC-0028
+(AuthN/AuthZ rework: Web API vs Agent API) и SPEC-0029 (Identity
+layering: services → repository + cache provider) утверждены Дмитрием
+2026-11-02; реестр `app/api/registry.py` (группы web/agent/public,
+`include_surfaces`) + контракт-тест полноты классификации red→green
+(роут вне группы = fail контракта); `/auth` сплитнут на
+public/protected-роутеры (пути не изменились, харнесс обновлён); в
+`main.py` 19 include-строк → `include_surfaces(app)`. Верификация:
+полный прогон **1102 passed**, coverage **89.51%**, ruff/format/mypy
+(115) чисто. Дальше в пачке: TASK-0169…0177 (см. Queued). Evidence:
+`tasks/TASK-0168-api-surface-registry.md`.
+Prev (TASK-0166): **TASK-0166 DONE 2026-10-31 — dev seed всех механизмов +
 верификация компонентов**: dev-БД наполнена через API + SQL-бэкфил так,
 что каждый механизм покрыт read-back'ом. Новые артефакты: `seed_common.py`
 (пейсинг 90 req/min + 429-retry + auto-refresh), `seed_mechanisms.py`
@@ -89,6 +101,24 @@ Queued (2026-10-31): ~~**Incident 2026-10-31** — schedule quality gate **#515*
 (develop@185f1b8c) `e2e_fe=1`: attention-e2e strict-mode (заголовок vs
 empty-state, data-dependent флаки) → **TASK-0165**~~ — **закрыт 2026-10-31**
 (develop #519 gate success, e2e_fe=0);
+**Auth/layering batch (2026-11-02 — SPEC-0028 + SPEC-0029 APPROVED;
+реализация пошла):** ~~**TASK-0168** (реестр web/agent/public +
+contract-тест default-deny)~~ — **DONE 2026-11-02** (red→green, 1102
+passed); **TASK-0169** (web_auth-зависимость, retirement AuthMiddleware/
+PUBLIC_PATHS, enumeration-тест «без кредов → 401 на КАЖДОЙ ручке»,
+миграция тестового харнесса), **TASK-0170** (agent_auth-зависимость:
+TTL ключей, enforcement scopes, единая верификация),
+**TASK-0171** (MCP principal binding: agent_id из принципала, не из
+аргументов tool-call — critical finding), **TASK-0172** (RBAC: расширение
+require_permission на опасные мутации + require_role),
+**TASK-0173** (surface-aware observability: префиксы корреляции web/agent,
+span-атрибуты, метрики-labels, rate-limit без startswith-хардкода),
+**TASK-0174** (identity layering foundation: repositories +
+AuthCacheProvider + SubjectStateService + AgentTokenService),
+**TASK-0175** (get_current_user/get_current_agent/permission-кеш →
+сервисы, дедуп), **TASK-0176** (cross-context cleanup:
+agent_endpoints/agent_self без прямых запросов к delivery/quality),
+**TASK-0177** (contract-тест границ DDD-контекстов в CI).
 **TASK-0161** (e2e coverage audit + gap closure),
 **TASK-0162** (deployment guide), **TASK-0163** (performance baselines),
 **TASK-0164** (notifications API contract: user_id bucket + envelope —
@@ -104,7 +134,7 @@ underscore-словаря), bare-`pytest` ломает сбор bootstrap-тес
 `.venv/bin/python -m pytest` рабочая — см. TASK-0161).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
-Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
+Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5), SPEC-0028 (AuthN/AuthZ rework: Web API vs Agent API, **APPROVED 2026-11-02** — TASK-0168 ✅ / 0169-0173), SPEC-0029 (Identity layering: services → repository + cache provider, **APPROVED 2026-11-02** — TASK-0174-0177)
 
 ## Status-аудит 2026-10-24 (Этап 0, evidence-based)
 
