@@ -22,8 +22,11 @@ Fail-closed checks, in order:
 5. No role grants the permission → 403 (structured log + metric +
    span attributes).
 
-Permission pairs are cached in Redis (TTL 60 s) with the DB as
-fallback when Redis is unavailable.
+Permission pairs are cached (TTL 60 s) through ``AuthCacheProvider``
+with the DB as fallback when the cache is unavailable; the granted-pairs
+query lives in ``PermissionRepository`` (SPEC-0029 §3.5 / TASK-0175 —
+this module keeps zero direct data access beyond the gate's byte-parity
+subject check).
 """
 
 from __future__ import annotations
@@ -34,13 +37,13 @@ from collections.abc import Callable
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.identity.cache_provider import AuthCacheProvider
 from app.identity.models import User
-from app.identity.rbac import Permission, RoleBinding, RolePermission
+from app.identity.repositories import PermissionRepository
 from app.shared.config import get_settings
 from app.shared.database import get_session
 from app.shared.logging import get_logger
 from app.shared.metrics import rbac_denials_total
-from app.shared.redis import get_redis_client
 
 logger = get_logger(__name__)
 
@@ -68,51 +71,32 @@ def _record_denial_span(action: str, resource: str) -> None:
         )
 
 
-def _query_permissions(db: Session, user_id: str) -> list[list[str]]:
-    """Distinct (action, resource) pairs granted via the user's bindings."""
-    rows = (
-        db.query(Permission.action, Permission.resource)
-        .join(RolePermission, RolePermission.permission_id == Permission.id)
-        .join(RoleBinding, RoleBinding.role_id == RolePermission.role_id)
-        .filter(RoleBinding.user_id == user_id)
-        .distinct()
-        .all()
-    )
-    return [[action, resource] for action, resource in rows]
-
-
-def _cached_permissions(user_id: str) -> list[list[str]] | None:
-    """Redis read. Returns None on miss, parse failure or Redis outage."""
-    try:
-        raw = get_redis_client().get(f"rbac:user_perms:{user_id}")
-    except Exception:
-        return None  # Redis down → caller falls back to the DB
-    if raw is None:
-        return None
-    try:
-        parsed = json.loads(raw)
-    except (TypeError, ValueError):
-        return None
-    return parsed if isinstance(parsed, list) else None
-
-
-def _cache_permissions(user_id: str, perms: list[list[str]]) -> None:
-    """Best-effort cache write — the DB stays authoritative."""
-    try:
-        get_redis_client().set(
-            f"rbac:user_perms:{user_id}", json.dumps(perms), ex=_CACHE_TTL_SECONDS
-        )
-    except Exception:
-        return
-
-
 def _resolve_user_permissions(db: Session, user_id: str) -> set[tuple[str, str]]:
-    cached = _cached_permissions(user_id)
-    if cached is not None:
-        return {(pair[0], pair[1]) for pair in cached if len(pair) == 2}
-    perms = _query_permissions(db, user_id)
-    _cache_permissions(user_id, perms)
-    return {(action, resource) for action, resource in perms}
+    """Cache-aside permission pairs (SPEC-0029 §3.5 / TASK-0175).
+
+    Read through ``AuthCacheProvider`` (never raises — an outage degrades
+    to a cache miss); unparseable or malformed payloads degrade to the
+    granted-pairs query in ``PermissionRepository`` (defensive parsing,
+    the ``subject_state`` corrupt-value precedent). Fail-closed either
+    way: a cache problem can only cost a query, never open the gate.
+    """
+    cache = AuthCacheProvider()
+    key = f"rbac:user_perms:{user_id}"
+    raw = cache.get(key)
+    parsed: object = None
+    if raw is not None:
+        try:
+            parsed = json.loads(raw)
+        except (TypeError, ValueError):
+            parsed = None
+    if isinstance(parsed, list) and all(
+        isinstance(pair, list) and len(pair) == 2 for pair in parsed
+    ):
+        return {(pair[0], pair[1]) for pair in parsed}
+
+    pairs = PermissionRepository(db).granted_pairs(user_id)
+    cache.set(key, json.dumps(pairs), _CACHE_TTL_SECONDS)
+    return {(action, resource) for action, resource in pairs}
 
 
 def require_permission(action: str, resource: str) -> Callable[..., None]:

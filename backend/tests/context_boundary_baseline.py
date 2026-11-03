@@ -227,10 +227,6 @@ BASELINE: dict[tuple[str, str, str], tuple[str, str]] = {
         "subject-state cache inline; -> AuthCacheProvider",
         "TASK-0174",
     ),
-    ("identity/permissions.py", "redis", "app.shared.redis"): (
-        "permission cache inline; -> AuthCacheProvider",
-        "TASK-0175",
-    ),
     ("delivery/service.py", "foreign-model", "app.quality.models"): (
         "delivery reads quality DoD models directly",
         "backlog",
