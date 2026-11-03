@@ -1,9 +1,10 @@
 """API surface registry — composition-time route classification (SPEC-0028 §3.1).
 
 Single source of truth for which router belongs to which API surface.
-Classification data only: auth dependencies attach to these groups in
-TASK-0169/0170 via ``include_surfaces`` — SPEC-0028 D2 forbids path-string
-matching anywhere in authentication.
+Classification data + surface-level auth attachment: the WEB group carries
+``Depends(web_auth)`` through ``include_surfaces`` since TASK-0169 —
+SPEC-0028 D2 forbids path-string matching anywhere in authentication; the
+AGENT group attaches its dependency in TASK-0170, the PUBLIC group never.
 
 Surfaces (SPEC-0028 D5):
 
@@ -14,7 +15,7 @@ Surfaces (SPEC-0028 D5):
   groups fails the contract instead of silently running unauthenticated).
 """
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 
 from app.api.v1.agent_self import router as agent_self_router
 from app.api.v1.analytics import router as analytics_router
@@ -32,6 +33,7 @@ from app.api.v1.search import router as search_router
 from app.api.v1.structure import router as structure_router
 from app.api.v1.task_workflow import router as workflow_router
 from app.identity.agent_endpoints import router as agent_admin_router
+from app.identity.dependencies import get_web_auth
 from app.identity.endpoints import public_router as auth_public_router
 from app.identity.endpoints import router as auth_protected_router
 from app.mcp.server import create_mcp_router
@@ -85,10 +87,19 @@ PUBLIC_APP_PATHS: frozenset[str] = frozenset(
 
 
 def include_surfaces(app: FastAPI) -> None:
-    """Mount every classified router with its declared prefix."""
-    for group in (WEB_ROUTERS, AGENT_ROUTERS, PUBLIC_ROUTERS):
+    """Mount every classified router with its declared prefix.
+
+    The WEB group carries the ``web_auth`` blanket dependency — default
+    deny for every route of the surface (SPEC-0028 D2, TASK-0169); the
+    dependency resolves through identity's public surface
+    (``dependencies.get_web_auth``) so the composition root never reaches
+    into context internals. The AGENT and PUBLIC groups mount bare: agent
+    auth lands in TASK-0170, public is declared no-auth.
+    """
+    web_deps = [Depends(get_web_auth())]
+    for group, deps in ((WEB_ROUTERS, web_deps), (AGENT_ROUTERS, []), (PUBLIC_ROUTERS, [])):
         for router, prefix in group:
-            app.include_router(router, prefix=prefix)
+            app.include_router(router, prefix=prefix, dependencies=deps)
 
 
 _endpoint_surfaces: dict[int, str] = {}
