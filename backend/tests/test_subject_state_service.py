@@ -7,7 +7,7 @@ miss / corrupt / outage → DB via ``UserRepository`` + best-effort write;
 DB failure on a miss propagates (a state cannot be invented), while a
 cache HIT still answers with the DB down; a corrupt value (not one of
 active|unknown|disabled) = miss + rewrite (the
-``permissions._cached_permissions`` parse-fail precedent — recorded
+``permissions._resolve_user_permissions`` parse-fail precedent — recorded
 deviation from middleware's verbatim-garbage→401; see task evidence).
 
 AC3 cache-spy: cold call = 1 DB read + 1 cache write; warm = 0 reads.
@@ -181,7 +181,7 @@ def test_expired_cache_entry_falls_through_to_db(mem_redis: _MemRedis) -> None:
 
 
 def test_corrupt_cache_value_falls_back_to_db_and_rewrites(mem_redis: _MemRedis) -> None:
-    """Parse-fail boundary (permissions._cached_permissions precedent):
+    """Parse-fail boundary (permissions._resolve_user_permissions precedent):
     garbage is not a state → treat as miss, DB wins, cache rewritten."""
     uid = str(uuid4())
     mem_redis.store[_key(uid)] = "not-a-state"

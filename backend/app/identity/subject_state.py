@@ -12,7 +12,7 @@ Failure directions (D6 matrix):
   raises; the service guards its own calls too, so ANY injected cache
   implementation degrades to the DB — ``auth.subject_state_cache_unavailable``);
 - corrupt cache value (not one of the three states) → treated as a miss
-  and rewritten (``permissions._cached_permissions`` parse-fail
+  and rewritten (``permissions._resolve_user_permissions`` parse-fail
   precedent — recorded deviation: middleware returned garbage verbatim);
 - DB failure on a miss → propagates (the state cannot be invented).
 """
