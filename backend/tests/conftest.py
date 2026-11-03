@@ -22,9 +22,10 @@ import app.quality.models  # noqa: E402, F401
 import app.reporting.models  # noqa: E402, F401
 import app.structure.models  # noqa: E402, F401
 import pytest  # noqa: E402
+from app.identity.web_auth import web_auth  # noqa: E402
 from app.shared.database import Base, get_session  # noqa: E402
 from app.shared.errors import register_error_handlers  # noqa: E402
-from fastapi import FastAPI  # noqa: E402
+from fastapi import Depends, FastAPI  # noqa: E402
 from sqlalchemy import create_engine, event  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
@@ -76,13 +77,21 @@ def db_session() -> Generator[Session, None, None]:
         session.close()
 
 
-def make_test_app(*routers: object) -> FastAPI:
+def make_test_app(*routers: object, protect: bool = False) -> FastAPI:
+    """Fresh-schema test app; ``protect=True`` attaches the web surface's
+    ``web_auth`` blanket to every included router (SPEC-0028 D2, TASK-0169).
+
+    ``web_auth`` is inert while conftest's hermetic ``disable_auth=true``
+    stands — protected tests that need the guard also flip the flag
+    (``monkeypatch.setattr(get_settings(), "disable_auth", False)``).
+    """
     Base.metadata.drop_all(bind=_test_engine)
     Base.metadata.create_all(bind=_test_engine)
     app = FastAPI()
     register_error_handlers(app)
+    deps = [Depends(web_auth)] if protect else []
     for router in routers:
-        app.include_router(router, prefix="/api/v1")
+        app.include_router(router, prefix="/api/v1", dependencies=deps)
     app.dependency_overrides[get_session] = _override_session
     return app
 
@@ -91,12 +100,13 @@ def make_test_app(*routers: object) -> FastAPI:
 def _redirect_session_local(monkeypatch: pytest.MonkeyPatch) -> None:
     """Hermetic tests must not resolve the compose-only ``db`` host.
 
-    AuthMiddleware resolves ``SessionLocal`` lazily per request
-    (SPEC-0027 §3.2 user-existence check); the process DATABASE_URL points
-    at a host that is unreachable (or foreign) from the test runner, so
-    middleware user lookups must land on the shared in-memory test DB.
-    Live suites under ``tests/security/`` use their own conftest and keep
-    the real factory.
+    The auth path (``AuthMiddleware`` until TASK-0170, the ``web_auth``
+    dependency's session-less ``SubjectStateService``/repositories) resolves
+    ``SessionLocal`` lazily per request (SPEC-0027 §3.2 subject check); the
+    process DATABASE_URL points at a host that is unreachable (or foreign)
+    from the test runner, so those lookups must land on the shared
+    in-memory test DB. Live suites under ``tests/security/`` use their own
+    conftest and keep the real factory.
     """
     import app.shared.database as db_mod
 

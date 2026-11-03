@@ -22,7 +22,7 @@ from types import SimpleNamespace
 import app.shared.redis as shared_redis
 import pytest
 from app.api.v1.projects import router as projects_router
-from app.identity.middleware import AuthMiddleware
+from app.identity.auth import _get_token_service
 from app.identity.models import User
 from app.identity.rbac import Role, RoleBinding
 from app.identity.seed import seed_roles
@@ -83,10 +83,10 @@ def _enable_enforcement(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture()
 def env(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
-    """Gated app (AuthMiddleware + projects router) with member/owner users."""
+    """Gated app (web_auth blanket + projects router) with member/owner users."""
     _enable_enforcement(monkeypatch)
-    app = make_test_app(projects_router)
-    app.add_middleware(AuthMiddleware, token_service=TS)
+    app = make_test_app(projects_router, protect=True)
+    app.dependency_overrides[_get_token_service] = lambda: TS
     db = _TestSession()
     seed_roles(db)
     member = _add_user(db, _MEMBER_EMAIL, "Member")

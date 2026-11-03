@@ -20,9 +20,10 @@ import pytest
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.delivery.models import Feature, Task
-from app.identity.middleware import AuthMiddleware
+from app.identity.auth import _get_token_service
 from app.identity.token_service import TokenService
 from app.projects.models import Project
+from app.shared.config import get_settings
 from fastapi.testclient import TestClient
 
 from tests.conftest import _TestSession, make_test_app
@@ -42,11 +43,12 @@ _BUDGET_S = 2.5 if os.getenv("CI") else 1.0
 
 
 @pytest.fixture()
-def auth_client(seed_subject) -> TestClient:
-    """Client with auth middleware enabled and a valid token on every request."""
+def auth_client(seed_subject, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """Client with the web_auth guard enabled and a valid token on every request."""
+    monkeypatch.setattr(get_settings(), "disable_auth", False)
     ts = TokenService()
-    app = make_test_app(analytics_router, dashboard_router)
-    app.add_middleware(AuthMiddleware, token_service=ts)
+    app = make_test_app(analytics_router, dashboard_router, protect=True)
+    app.dependency_overrides[_get_token_service] = lambda: ts
     # after make_test_app (drop_all) — the subject must exist (SPEC-0027 §3.2)
     seed_subject("user-123")
     token = ts.create_access_token("user-123")
