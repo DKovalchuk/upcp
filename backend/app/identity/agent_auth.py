@@ -1,23 +1,41 @@
-"""Agent authentication — verify X-Agent-Token header."""
+"""Agent authentication — verify X-Agent-Token header.
 
-import hashlib
-from datetime import UTC, datetime
+TASK-0175 (SPEC-0029 §3.5): verification lives in ``AgentTokenService``
+— this dependency maps the service's rejection reasons onto the
+historical 401 detail strings byte-for-byte and nothing else: no direct
+row queries, no local token hashing (the single sha256 of the raw token
+lives with the service, AC5). The service stamps ``last_used_at`` with
+its commit-before-response invariant (TASK-0174 AC4) through the
+request-scoped repositories.
+"""
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.identity.agents import Agent, AgentToken
+from app.identity.agent_token_service import AgentTokenRejection, AgentTokenService
 from app.identity.dependencies import CurrentAgent
+from app.identity.repositories import AgentRepository, AgentTokenRepository
 from app.shared.database import get_session
 
+# Historical 401 details, keyed by the service's rejection reason
+# (byte-parity with the pre-TASK-0175 dependency behavior).
+_REJECTION_DETAILS: dict[str, str] = {
+    "unknown": "Invalid agent token",
+    "revoked": "Agent token has been revoked",
+    "expired": "Agent token has expired",
+    "agent_inactive": "Agent not found or inactive",
+}
 
-def _hash_token(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
+
+def _get_agent_token_service(db: Session = Depends(get_session)) -> AgentTokenService:
+    """Request-scoped service: repositories bound to the request session,
+    so the committed ``last_used_at`` touch lands before the response."""
+    return AgentTokenService(AgentTokenRepository(db), AgentRepository(db))
 
 
 def get_current_agent(
     x_agent_token: str | None = Header(None, alias="X-Agent-Token"),
-    db: Session = Depends(get_session),
+    agent_token_service: AgentTokenService = Depends(_get_agent_token_service),
 ) -> CurrentAgent:
     """Validate agent token and return current agent. Raises 401 on failure."""
     if x_agent_token is None:
@@ -26,40 +44,15 @@ def get_current_agent(
             detail="Missing agent token",
         )
 
-    token_hash = _hash_token(x_agent_token)
-    record = db.query(AgentToken).filter_by(token_hash=token_hash).first()
-
-    if record is None:
+    result = agent_token_service.verify_detailed(x_agent_token)
+    if isinstance(result, AgentTokenRejection):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid agent token",
+            detail=_REJECTION_DETAILS[result.reason],
         )
-
-    if record.revoked_at is not None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Agent token has been revoked",
-        )
-
-    if record.expires_at is not None and record.expires_at < datetime.now(UTC):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Agent token has expired",
-        )
-
-    agent = db.query(Agent).filter_by(id=record.agent_id).first()
-    if agent is None or not agent.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Agent not found or inactive",
-        )
-
-    # Update last_used_at
-    record.last_used_at = datetime.now(UTC)
-    db.flush()
 
     return CurrentAgent(
-        agent_id=agent.id,
-        name=agent.name,
-        scopes=record.scopes,
+        agent_id=result.agent_id,
+        name=result.name,
+        scopes=result.scopes,
     )

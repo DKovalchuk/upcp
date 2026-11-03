@@ -2,7 +2,10 @@
 
 Layering pilot (TASK-0174): middleware/dependencies stop querying
 ``SessionLocal`` directly — data access lives here and nowhere else in
-the identity auth path (AC1). Two seams per D3:
+the identity auth path (AC1). TASK-0175 extends the same seams to the
+dependency path: ``UserRepository.get_by_id`` (profile read for
+``get_current_user``) and ``PermissionRepository.granted_pairs`` (RBAC
+pairs, extracted from ``permissions.py``). Two seams per D3:
 
 - constructor-injected ``session`` (unit tests, request-scoped DI);
 - session-less → ``SessionLocal`` resolved LAZILY inside each method
@@ -25,6 +28,7 @@ from sqlalchemy.orm import Session
 
 from app.identity.agents import Agent, AgentToken
 from app.identity.models import User
+from app.identity.rbac import Permission, RoleBinding, RolePermission
 
 
 class UserRepository:
@@ -42,6 +46,23 @@ class UserRepository:
         db = SessionLocal()
         try:
             return self._auth_state(db, user_id)
+        finally:
+            db.close()
+
+    def get_by_id(self, user_id: str) -> User | None:
+        """Profile row for the dependency (TASK-0175): email/is_superuser.
+
+        ``Session.get`` reads the identity map first — the profile read on
+        the REQUEST session stays correct even when the session-less
+        liveness call has just rolled back shared-connection test state.
+        """
+        if self._session is not None:
+            return self._session.get(User, user_id)
+        from app.shared.database import SessionLocal  # lazy — test seam (D3)
+
+        db = SessionLocal()
+        try:
+            return db.get(User, user_id)
         finally:
             db.close()
 
@@ -120,3 +141,40 @@ class AgentRepository:
             return db.get(Agent, agent_id)
         finally:
             db.close()
+
+
+class PermissionRepository:
+    """RBAC granted-pairs lookup (SPEC-0029 §3.5 — TASK-0175).
+
+    Extracted verbatim from ``permissions._query_permissions``: the gate
+    always has a request session (``Depends(get_session)``), so the
+    session-injected seam is the production path; the lazy session-less
+    seam keeps the repository testable on its own (D3).
+    """
+
+    def __init__(self, session: Session | None = None) -> None:
+        self._session = session
+
+    def granted_pairs(self, user_id: str) -> list[list[str]]:
+        """Distinct (action, resource) pairs granted via the user's bindings."""
+        if self._session is not None:
+            return self._granted_pairs(self._session, user_id)
+        from app.shared.database import SessionLocal  # lazy — test seam (D3)
+
+        db = SessionLocal()
+        try:
+            return self._granted_pairs(db, user_id)
+        finally:
+            db.close()
+
+    @staticmethod
+    def _granted_pairs(db: Session, user_id: str) -> list[list[str]]:
+        rows = (
+            db.query(Permission.action, Permission.resource)
+            .join(RolePermission, RolePermission.permission_id == Permission.id)
+            .join(RoleBinding, RoleBinding.role_id == RolePermission.role_id)
+            .filter(RoleBinding.user_id == user_id)
+            .distinct()
+            .all()
+        )
+        return [[action, resource] for action, resource in rows]
