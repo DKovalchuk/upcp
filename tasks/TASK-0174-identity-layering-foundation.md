@@ -6,7 +6,8 @@
 **Milestone:** auth rework (SPEC-0029 batch)
 **Spec:** SPEC-0029 §3.1-3.4, AC1-AC4, AC6
 **Points:** 8
-**Status:** PENDING (реализация не начата)
+**Status:** DONE (2026-11-03 — repository + AuthCacheProvider +
+SubjectStateService/AgentTokenService, red→green, все gates зелёные)
 
 ## Context
 
@@ -76,3 +77,119 @@ agent-token продублирована дважды с разной семан
   новый источник; подключение (`web_auth`/`agent_auth`) — TASK-0169/0170.
   Допустимо временно два потребителя (middleware + сервисы), если это
   снижает размер диффа; финальное удаление старого пути — в 0169.
+
+## Evidence (2026-11-03)
+
+Ветка `feature/TASK-0174-identity-layering-foundation`, коммит `6627ed9`
+(8 файлов, +1273; pre-commit ruff/format/mypy Passed). Новые модули:
+`identity/repositories.py`, `identity/cache_provider.py`,
+`identity/subject_state.py`, `identity/agent_token_service.py` + 4
+тестовых файла; существующие файлы не тронуты (scope соблюдён).
+
+**Red (до реализации):** `pytest <4 новых файла> -q` →
+`4 errors during collection — ModuleNotFoundError: No module named
+'app.identity.repositories' / 'app.identity.cache_provider' /
+'app.identity.subject_state' / 'app.identity.agent_token_service'`.
+
+**Green (финальное состояние):**
+
+| Gate | Результат |
+|---|---|
+| targeted (3 файла брифа) | `38 passed` |
+| `test_auth_cache_provider.py` (4-й файл) | `9 passed` (итого 47 новых тестов) |
+| auth parity subset (4 файла) | `36 passed` |
+| полный прогон `backend/tests -n auto` | `1172 passed, 0 failed`, coverage **89.79%** (≥80%) |
+| покрытие новых модулей | 100%: repositories 60/60, cache_provider 26/26, subject_state 30/30, agent_token_service 31/31 |
+| `ruff format` + `ruff check` (8 новых файлов) | `8 files already formatted`, `All checks passed` |
+| `ruff check backend` | 4 ошибки — все в `backend/tests/test_context_boundaries.py` (см. отклонения 8); `ruff check backend/app/identity` → `All checks passed` |
+| `mypy backend/app` | `Success: no issues found in 119 source files` |
+
+**Решение по семантике записи (AC4):** `touch_last_used` выполняет
+COMMIT внутри единственной точки записи, которую вызывает сервис —
+к моменту возврата `verify()` запись закоммичена (commit-before-response,
+`service.py`/TASK-0142). Расхождение middleware-`commit()` vs
+agent_auth-`flush()` снято в пользу commit.
+
+**Отклонения от спеки/брифа и причины:**
+
+1. Повреждённое значение кеша (не из `active|unknown|disabled`) →
+   фолбэк в БД + перезапись, как `permissions._cached_permissions`
+   (по Test design D6 задачи). `_user_state` возвращал мусор как есть →
+   401; для трёх легитимных состояний поведение байт-в-байт.
+2. tz-naive `expires_at` трактуется как UTC (`_ensure_utc`): на SQLite
+   строгое `naive < aware` бросало TypeError (middleware → generic 401,
+   agent_auth → 500 при `expires_at != NULL`). На Postgres (offset
+   сохраняется) поведение не меняется; без нормализации expired-матрица
+   на тестовом движке неисполнима.
+3. Grep-контракты AC1/AC5 в этой задаче не добавлялись: middleware и
+   agent_auth ещё содержат `SessionLocal`/`_hash_token` (двухпотребительский
+   период по Notes) — контракт упал бы by design; переносится в TASK-0175
+   вместе с переключением потребителей.
+4. Commit-invariant проверен на shared engine: спай `Session.commit`
+   (ровно 1 вызов за `verify`) + persistence-чтение после закрытия
+   session-less репозитория; двухдвижковый TASK-0142-пробник запрещён
+   `test_engine_dedup.py` (allowlist не расширять — правка существующего
+   теста вне скоупа).
+5. Четвёртый тестовый файл `test_auth_cache_provider.py` сверх трёх
+   предложенных: контракт провайдера (never-raise, warnings) — отдельная
+   единица; каждый файл ≤300 строк.
+6. `scopes: dict[str, object] | None` вместо `dict | None` — mypy strict
+   (`disallow_any_generics`); структурно идентично и совпадает с
+   `CurrentAgent`.
+7. Даты: шаблон брифа указывал 2026-11-02; фактические прогоны и
+   завершение — 2026-11-03.
+8. Рабочая среда: во время сессии параллельная сессия дописывает
+   untracked `backend/tests/test_context_boundaries.py` (mtime во время
+   прогона; +23 теста в полном наборе между прогонами) — файл вне моего
+   скоупа, его 4 ruff-ошибки не мои и не тронуты; все мои файлы чисты.
+
+**Multi-factor analysis (AGENTS §12):**
+
+- *Требования:* AC2/AC3/AC4/AC6/AC8 закрыты тестами (cache-spy ровно
+  1 DB read + 1 write / 0 reads, commit-spy, seam-тесты, паритет-подмножество
+  без правок существующих файлов); AC1/AC5 — частично (новые модули
+  изолированы, полный grep — в 0175, см. отклонение 3); потребители не
+  изменены (scope-проверка: git status только 8 новых файлов).
+- *Архитектура:* слои service → repository/cache (D1) внутри identity
+  (DDD, пилот D2); внедрение через конструктор; presentation-слой не
+  тронут; модули небольшие (78–122 строки), без god-объектов; импортная
+  цикличность отсутствует (новые модули ничего не импортируют из
+  middleware/auth).
+- *Производительность:* hot-path не деградировал — cache hit = 0 DB
+  запросов, miss = 1 SELECT + 1 SET (как `_user_state`); agent-путь:
+  2 SELECT + 1 UPDATE/COMMIT (как middleware сегодня); новых сессий на
+  запрос не добавлено (шов per-call заменяет прежний инлайновый
+  `SessionLocal()`).
+- *Безопасность:* обхода auth нет при любом сбое кеша (БД авторитетна,
+  состояние не «изобретается»); sha256 единый; все запросы
+  параметризованы (`filter_by`/`db.get`); секретов нет; логируются
+  только ключи и причины деградации, не токены.
+- *Наблюдаемость:* структурированные warnings с `action`
+  (`auth.cache_{get,set,delete}_failed`,
+  `auth.subject_state_cache_unavailable`), `entity_type`, `cache_key`;
+  DB-ошибки не глушатся (propagate); метрики/спаны отказов остаются у
+  потребителей (D4 — не дублировать).
+- *Тестируемость:* швы D3 — lazy `SessionLocal` (патч conftest),
+  constructor-session, патч `app.shared.redis.get_redis_client`;
+  stub-репозитории/кеш для юнит-матрицы, реальная БД через `db_session`
+  для интеграции; 47 тестов: позитивы, негативы (×5 жизненного цикла
+  токена, outage, corrupt, disabled/unknown), границы (TTL-протухание,
+  `expires_at == now`, naive/aware), оба направления фолбэка, 100%
+  покрытие новых модулей.
+- *Документация:* docstrings модулей ссылаются на SPEC-0029 §/AC и
+  TASK; статус задачи и Evidence обновлены; PROJECT_STATUS, спеки и
+  чужие задачи не тронуты (вне скоупа).
+
+**Заметки для downstream (0169/0170/0175):**
+
+- `verify()` возвращает `None` для всех отказов — различие 401-detail
+  («has expired» / «not found or inactive») живёт у потребителя; в
+  тестах детальные строки не закреплены.
+- DB-ошибки из `verify()` всплывают: middleware-потребитель должен
+  сохранить свой broad-except → fail-closed 401; для agent-зависимости
+  (0175) решение 500-vs-401 принять осознанно.
+- Session-less репозитории возвращают detached-but-loaded записи:
+  читать можно, мутировать вне `touch_last_used` нельзя.
+- `AgentPrincipal` поля совпадают с `CurrentAgent` (agent_id/name/scopes).
+- Состояние тестового шва: `SubjectStateService.get` не пишет
+  метрики/логи отказов — их место у потребителей (`_reject_subject`).
