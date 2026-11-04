@@ -59,7 +59,7 @@ One collected test = one check. Written only when `SECURITY_RESULT_OUT` is set.
 3. Seeded RBAC roles never enforced → fixed by **TASK-0145** (route gates);
    `test_member_update_project_enforces_role` strict-passes.
 4. Dead `PUBLIC_PATHS` entry `/mcp/health` → fixed by **TASK-0148** (entry
-   removed; regression in `backend/tests/test_public_paths.py`).
+   removed; regression in `backend/tests/test_auth_docs_contract.py`).
 
 ## Limitations
 
@@ -74,4 +74,5 @@ One collected test = one check. Written only when `SECURITY_RESULT_OUT` is set.
   branch is covered by the nonexistent-subject check).
 - Rate-limit `429` is out of scope: `UPCP_DISABLE_RATE_LIMIT=true` on this stack.
 - The former dead `PUBLIC_PATHS` entry `/mcp/health` was removed in
-  TASK-0148 (regression-tested in `backend/tests/test_public_paths.py`).
+  TASK-0148; `PUBLIC_PATHS` itself retired with `AuthMiddleware` in
+  TASK-0170 (docs↔routes regression: `backend/tests/test_auth_docs_contract.py`).

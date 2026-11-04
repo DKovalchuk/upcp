@@ -20,9 +20,11 @@ re-point to the same layer the middleware extracted into:
 | ``mw.get_redis_client``             | ``app.shared.redis.get_redis_client``       |
 
 Behavioral assertions (negative caching, TTL 60, cache-hit → no DB read,
-Redis-down → DB) are unchanged. Agent-token branch and PUBLIC_PATHS are
-covered elsewhere. New symbols are imported/patched inside tests, so the
-file collects before the implementation exists.
+Redis-down → DB) are unchanged. Agent-surface auth (the retired
+middleware's agent branch + PUBLIC_PATHS) is covered by
+``test_agent_surface_auth.py`` since TASK-0170. New symbols are
+imported/patched inside tests, so the file collects before the
+implementation exists.
 """
 
 from __future__ import annotations

@@ -100,8 +100,8 @@ def make_test_app(*routers: object, protect: bool = False) -> FastAPI:
 def _redirect_session_local(monkeypatch: pytest.MonkeyPatch) -> None:
     """Hermetic tests must not resolve the compose-only ``db`` host.
 
-    The auth path (``AuthMiddleware`` until TASK-0170, the ``web_auth``
-    dependency's session-less ``SubjectStateService``/repositories) resolves
+    The auth path (the ``web_auth``/``agent_auth`` surface dependencies and
+    their session-less ``SubjectStateService``/repositories) resolves
     ``SessionLocal`` lazily per request (SPEC-0027 §3.2 subject check); the
     process DATABASE_URL points at a host that is unreachable (or foreign)
     from the test runner, so those lookups must land on the shared

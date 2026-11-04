@@ -1,11 +1,14 @@
-"""PUBLIC_PATHS + auth-docs contracts — SPEC-0027 §3.4 / TASK-0148.
+"""Auth docs ↔ code route contract — SPEC-0027 §3.4 finding 4 / TASK-0148.
 
-Finding 5: ``PUBLIC_PATHS`` listed ``/mcp/health``, which is not a
-registered route (404) — an exemption that can never be served.
-Regression: every PUBLIC_PATHS entry must resolve to a route on the real
-app (static docs allowlisted); plus a doc-literal contract — paths the
-auth doc documents as ```METHOD /path` `` must equal the code routes
+Doc-literal half of the retired ``tests/test_public_paths.py`` (TASK-0170
+deleted that file together with the ``PUBLIC_PATHS`` dictionary): paths the
+auth doc documents as ```METHOD /path``` must equal real code routes
 (finding 4: docs claimed ``/api/v1/auth/*`` which does not exist).
+
+The dead-exemption half («every PUBLIC_PATHS entry resolves to a route»)
+died with the dictionary itself — publicness is declared in
+``app/api/registry.py`` and covered by ``test_api_surface_registry.py`` /
+``test_auth_enumeration.py`` (SPEC-0028 D2/AC1).
 """
 
 from __future__ import annotations
@@ -13,11 +16,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from app.identity.middleware import PUBLIC_PATHS
-
 _DOCS = Path(__file__).resolve().parents[2] / "docs" / "security" / "auth-rbac.md"
-# FastAPI serves these without an explicit endpoint — whitelisted per AC7
-_STATIC_ALLOWLIST = {"/docs", "/redoc", "/openapi.json"}
 _DOC_PATH_RE = re.compile(r"`(?:POST|GET)\s+(/[^`\s]+)`")
 
 
@@ -25,18 +24,10 @@ def _registered_paths() -> set[str]:
     """OpenAPI paths — FastAPI 0.138 keeps ``include_router`` results as lazy
     ``_IncludedRouter`` wrappers without ``.path``; the generated schema is the
     public, stable enumeration of registered routes (docs/redoc/openapi.json
-    are not part of it — covered by the static allowlist, per AC7)."""
+    are not part of it)."""
     from app.main import app
 
     return set(app.openapi()["paths"])
-
-
-def test_every_public_path_is_a_registered_route() -> None:
-    """AC7: no dead exemptions — each PUBLIC_PATHS entry must actually serve."""
-    routes = _registered_paths()
-    missing = {p for p in PUBLIC_PATHS if p not in routes and p not in _STATIC_ALLOWLIST}
-    assert not missing, f"PUBLIC_PATHS entries without a registered route: {sorted(missing)}"
-    assert "/mcp/health" not in PUBLIC_PATHS, "finding 5: dead /mcp/health must be removed"
 
 
 def test_auth_docs_paths_match_code_routes() -> None:

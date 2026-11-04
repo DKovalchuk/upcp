@@ -11,8 +11,9 @@ the exact behavior the finding-1 xfail test encodes.
 Fail-closed checks, in order:
 
 1. ``UPCP_DISABLE_AUTH`` → gate inert (the auth stack is off — hermetic
-   test mode; mirrors main.py not mounting AuthMiddleware then).
-2. No identity on the request (middleware missing) → 401.
+   test mode; mirrors the surface auth dependencies short-circuiting
+   then, TASK-0170).
+2. No identity on the request (auth dependency did not run) → 401.
 3. Unknown or disabled subject → 401 (a valid signature does not imply
    a live account — defense in depth under finding 2 / TASK-0146).
 4. ``is_superuser`` → allowed: setup/seeder admins hold no RoleBinding

@@ -4,15 +4,15 @@ TASK-0169: the harness moved off ``app.add_middleware(AuthMiddleware)`` to
 dependency-based protection (``FastAPI(dependencies=[Depends(web_auth)])`` /
 ``include_router(..., dependencies=[Depends(get_current_agent)])``); every
 assertion (status, detail, headers) is unchanged — the migration is
-mechanism-only. ``PUBLIC_PATHS`` stays until the middleware retires in
-TASK-0170 (with ``tests/test_public_paths.py``).
+mechanism-only. ``PUBLIC_PATHS``/``tests/test_public_paths.py`` retired
+with the middleware in TASK-0170 (publicness is declared in
+``app/api/registry.py``).
 """
 
 import app.identity.agents  # noqa: F401 — register Agent/AgentToken tables
 import pytest
 from app.identity.agent_auth import get_current_agent
 from app.identity.auth import _get_token_service
-from app.identity.middleware import PUBLIC_PATHS
 from app.identity.web_auth import web_auth
 from app.shared.config import get_settings
 from app.shared.database import Base
@@ -28,15 +28,6 @@ def _enable_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     (main.py mounts it only when auth is enabled).
     """
     monkeypatch.setattr(get_settings(), "disable_auth", False)
-
-
-def test_public_paths_are_exempt() -> None:
-    """Public paths should not require auth."""
-    assert "/health" in PUBLIC_PATHS
-    assert "/api/v1/health" in PUBLIC_PATHS
-    assert "/auth/setup" in PUBLIC_PATHS
-    assert "/auth/login" in PUBLIC_PATHS
-    assert "/auth/refresh" in PUBLIC_PATHS
 
 
 def test_middleware_allows_public_path() -> None:

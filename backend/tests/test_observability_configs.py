@@ -14,8 +14,7 @@ Empirical ground truth for grafana/loki:3.4.2 (TASK-0151):
 
 Pins: the collector must export logs via OTLP/HTTP to ``/otlp`` on
 Loki's main port, and loki-config must not regain a top-level ``otlp:``
-key. Text-level assertions (no YAML dependency), same style as
-test_public_paths.py.
+key. Text-level assertions (no YAML dependency).
 """
 
 from __future__ import annotations

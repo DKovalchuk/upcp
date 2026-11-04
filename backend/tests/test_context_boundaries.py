@@ -165,7 +165,7 @@ def test_foreign_model_rule(source: str, own: str | None, expected: list[str]) -
             "identity",
             ["app.delivery.lifecycle"],
         ),
-        ("from app.identity.middleware import AuthMiddleware", "mcp", ["app.identity.middleware"]),
+        ("from app.identity.denylist import is_token_denied", "mcp", ["app.identity.denylist"]),
         ("from app.gitread.adapters import push_link", "delivery", ["app.gitread.adapters"]),
         # negative — public surface of another context is allowed
         ("from app.delivery.service import TaskService", "identity", []),
@@ -186,7 +186,7 @@ def test_foreign_internal_rule(source: str, own: str | None, expected: list[str]
 def test_sessionlocal_rule_detects_references_outside_whitelist() -> None:
     """Rule 3: imports and uses count; whitelist files and prose mentions do not."""
     src = "from app.shared.database import SessionLocal\ndef f():\n    return SessionLocal()"
-    assert _sessionlocal_refs(src, "identity/middleware.py") == [1, 3]
+    assert _sessionlocal_refs(src, "identity/agent_auth.py") == [1, 3]
     assert _sessionlocal_refs(src, "mcp/tools.py") == [1, 3]
     assert _sessionlocal_refs(src, "shared/database.py") == []
     assert _sessionlocal_refs(src, "identity/repositories.py") == []  # tolerated if absent

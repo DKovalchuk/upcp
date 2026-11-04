@@ -17,10 +17,6 @@ BASELINE: dict[tuple[str, str, str], tuple[str, str]] = {
         "composition root starts reaper",
         "—",
     ),
-    ("main.py", "foreign-internal", "app.identity.middleware"): (
-        "composition root adds AuthMiddleware",
-        "TASK-0169",
-    ),
     ("main.py", "session-local", "SessionLocal"): ("root passes SessionLocal to reaper loop", "—"),
     ("main.py", "redis", "app.shared.redis"): ("root health probe (check_redis_health)", "—"),
     ("api/registry.py", "foreign-internal", "app.identity.agent_endpoints"): (
@@ -217,14 +213,6 @@ BASELINE: dict[tuple[str, str, str], tuple[str, str]] = {
     ),
     ("identity/denylist.py", "redis", "app.shared.redis"): (
         "denylist caches inline; auth-path redis -> AuthCacheProvider",
-        "TASK-0174",
-    ),
-    ("identity/middleware.py", "session-local", "SessionLocal"): (
-        "middleware queries DB directly; AuthMiddleware retired",
-        "TASK-0169",
-    ),
-    ("identity/middleware.py", "redis", "app.shared.redis"): (
-        "subject-state cache inline; -> AuthCacheProvider",
         "TASK-0174",
     ),
     ("delivery/service.py", "foreign-model", "app.quality.models"): (

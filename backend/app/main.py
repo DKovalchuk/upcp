@@ -8,7 +8,6 @@ from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.api.registry import include_surfaces
-from app.identity.middleware import AuthMiddleware
 from app.shared.config import get_settings
 from app.shared.correlation import CorrelationMiddleware
 from app.shared.database import check_db_health
@@ -96,9 +95,10 @@ try:
 except ImportError:
     pass
 
-# Auth middleware — protects all /api/v1/ and /mcp/ routes except public ones
-if not settings.disable_auth:
-    app.add_middleware(AuthMiddleware)
+# Auth — per-surface dependencies (SPEC-0028 D2): the WEB and AGENT groups
+# carry their auth dependency through include_surfaces(); the PUBLIC group
+# and the app-level routes are declared no-auth. No path-string guard and
+# no auth middleware (TASK-0170 retired AuthMiddleware/PUBLIC_PATHS).
 
 # CORS — configured via UPCP_CORS_ORIGINS and UPCP_CORS_ALLOW_HEADERS env vars
 app.add_middleware(
