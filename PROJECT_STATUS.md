@@ -1,20 +1,28 @@
 # PROJECT_STATUS
 
-Updated: 2026-11-02
+Updated: 2026-11-04
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **TASK-0168 DONE 2026-11-02 — API surface registry + contract
-test (начало auth-rework пачки SPEC-0028/0029)**: спеки SPEC-0028
-(AuthN/AuthZ rework: Web API vs Agent API) и SPEC-0029 (Identity
-layering: services → repository + cache provider) утверждены Дмитрием
-2026-11-02; реестр `app/api/registry.py` (группы web/agent/public,
-`include_surfaces`) + контракт-тест полноты классификации red→green
-(роут вне группы = fail контракта); `/auth` сплитнут на
-public/protected-роутеры (пути не изменились, харнесс обновлён); в
-`main.py` 19 include-строк → `include_surfaces(app)`. Верификация:
-полный прогон **1102 passed**, coverage **89.51%**, ruff/format/mypy
-(115) чисто. Дальше в пачке: TASK-0169…0177 (см. Queued). Evidence:
-`tasks/TASK-0168-api-surface-registry.md`.
+Current Task: **ПАЧКА SPEC-0028/0029 DONE 2026-11-04 — Auth rework +
+identity layering (TASK-0168…0177, 10 задач) — MR !105 открыт**:
+default-deny реестр поверхностей + `web_auth`/`agent_auth` зависимости
+(`AuthMiddleware`/`PUBLIC_PATHS` удалены; enumeration AC1 — все ручки
+web+agent отвечают 401 без кредов), principal-binding в MCP
+(`agent_id`/`answered_by`/`created_by_id` == принципал, spoofing →
+`-32001`), обязательный TTL ключей + fail-closed scopes (новый ключ без
+scopes → `[]`), RBAC **43 гейта** + 19 пар в seed, layering-пилот
+(repositories + cache provider + SubjectState/AgentToken сервисы;
+`get_current_user`/`get_current_agent`/кеш прав — на них), cross-context
+чистка (AgentActivityService и др. — чужих моделей в identity/api нет),
+boundary-контракт exact-set (mutation-tested), surface observability
+(корреляция `web:`/`agent:` с санитизацией, span/metrics labels) +
+двухслойный rate-limit **без path-хардкодов** (fail-open + threadpool).
+Aspect-review (независимый read-only): вердикт «merge after fixing
+highs» → **8/8 фиксов в ветке** (`510e958`, `f79eead`, `286b006`);
+medium/low → **TASK-0178** (в очереди). Финальные гейты: **1565 passed,
+coverage 91.40%**, ruff/format/mypy (119) чисто, boundary gate green.
+Evidence: `tasks/TASK-0168…0178`; CHANGELOG [Unreleased] заполнен.
+MR: **!105** (feature/TASK-0168-api-surface-registry → develop).
 Prev (TASK-0166): **TASK-0166 DONE 2026-10-31 — dev seed всех механизмов +
 верификация компонентов**: dev-БД наполнена через API + SQL-бэкфил так,
 что каждый механизм покрыт read-back'ом. Новые артефакты: `seed_common.py`
@@ -101,24 +109,18 @@ Queued (2026-10-31): ~~**Incident 2026-10-31** — schedule quality gate **#515*
 (develop@185f1b8c) `e2e_fe=1`: attention-e2e strict-mode (заголовок vs
 empty-state, data-dependent флаки) → **TASK-0165**~~ — **закрыт 2026-10-31**
 (develop #519 gate success, e2e_fe=0);
-**Auth/layering batch (2026-11-02 — SPEC-0028 + SPEC-0029 APPROVED;
-реализация пошла):** ~~**TASK-0168** (реестр web/agent/public +
-contract-тест default-deny)~~ — **DONE 2026-11-02** (red→green, 1102
-passed); **TASK-0169** (web_auth-зависимость, retirement AuthMiddleware/
-PUBLIC_PATHS, enumeration-тест «без кредов → 401 на КАЖДОЙ ручке»,
-миграция тестового харнесса), **TASK-0170** (agent_auth-зависимость:
-TTL ключей, enforcement scopes, единая верификация),
-**TASK-0171** (MCP principal binding: agent_id из принципала, не из
-аргументов tool-call — critical finding), **TASK-0172** (RBAC: расширение
-require_permission на опасные мутации + require_role),
-**TASK-0173** (surface-aware observability: префиксы корреляции web/agent,
-span-атрибуты, метрики-labels, rate-limit без startswith-хардкода),
-**TASK-0174** (identity layering foundation: repositories +
-AuthCacheProvider + SubjectStateService + AgentTokenService),
-**TASK-0175** (get_current_user/get_current_agent/permission-кеш →
-сервисы, дедуп), **TASK-0176** (cross-context cleanup:
-agent_endpoints/agent_self без прямых запросов к delivery/quality),
-**TASK-0177** (contract-тест границ DDD-контекстов в CI).
+**Auth/layering batch (SPEC-0028 + SPEC-0029) — ВСЁ DONE 2026-11-04,
+MR !105:** ~~TASK-0168 (реестр поверхностей), TASK-0169 (web_auth +
+enumeration + миграция харнесса), TASK-0170 (agent surface + TTL/scopes +
+retirement AuthMiddleware), TASK-0171 (MCP principal binding),
+TASK-0172 (RBAC 43 гейта), TASK-0173 (surface observability + rate без
+хардкодов), TASK-0174 (layering foundation), TASK-0175 (unification),
+TASK-0176 (cross-context cleanup), TASK-0177 (boundary contract)~~ —
+все 10 закрыты с evidence (red→green + per-task multi-factor);
+aspect-review пачки → 8 фиксов в ветке. **В очереди: TASK-0178**
+(follow-ups: сканер `db.query` на весь identity, denylist → cache
+provider, RBAC subject → сервис, MCP tools → threadpool, locust
+scopes-fix).
 **TASK-0161** (e2e coverage audit + gap closure),
 **TASK-0162** (deployment guide), **TASK-0163** (performance baselines),
 **TASK-0164** (notifications API contract: user_id bucket + envelope —
@@ -134,7 +136,7 @@ underscore-словаря), bare-`pytest` ломает сбор bootstrap-тес
 `.venv/bin/python -m pytest` рабочая — см. TASK-0161).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
-Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5), SPEC-0028 (AuthN/AuthZ rework: Web API vs Agent API, **APPROVED 2026-11-02** — TASK-0168 ✅ / 0169-0173), SPEC-0029 (Identity layering: services → repository + cache provider, **APPROVED 2026-11-02** — TASK-0174-0177)
+Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5), SPEC-0028 (AuthN/AuthZ rework: Web API vs Agent API, **ЗАКРЫТ 2026-11-04** — TASK-0168…0173 все DONE, MR !105), SPEC-0029 (Identity layering: services → repository + cache provider, **ЗАКРЫТ 2026-11-04** — TASK-0174-0177 все DONE, MR !105; AC1 amended после aspect-review)
 
 ## Status-аудит 2026-10-24 (Этап 0, evidence-based)
 
