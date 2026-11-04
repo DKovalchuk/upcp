@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from uuid import uuid4
@@ -363,3 +364,118 @@ def test_principal_isolation_between_concurrent_clients(auth_enabled: None, tmp_
             assert error is not None and error["code"] == FORBIDDEN_CODE, (
                 f"agent {agent_arg} spoof not refused: {resp.text[:300]}"
             )
+
+
+# ── AC5: identity args OUTSIDE the historical ``agent_id`` inventory ──────
+# (aspect-review FIX 3: ``answered_by`` / ``created_by_id`` carried agent
+#  identity but sat outside the binding — spoofable.)
+
+
+def test_spoofed_answered_by_rejected(auth_enabled: None, db_session: Session) -> None:
+    """A-authenticated answer_clarification claiming answered_by=B → -32001."""
+    raw, _principal = _seed_agent(db_session)
+    _other_raw, other = _seed_agent(db_session)
+    client = TestClient(_binding_app())
+    resp = _tools_call(
+        client,
+        {"X-Agent-Token": raw},
+        "answer_clarification",
+        {"clarification_id": str(uuid4()), "answer": "looks good", "answered_by": other},
+    )
+    assert resp.status_code == 200, resp.text
+    error = _error_of(resp)
+    assert error, f"spoofed answered_by must be refused by the BINDING, got: {resp.text[:300]}"
+    assert error["code"] == FORBIDDEN_CODE, resp.text
+    assert error["message"] == MISMATCH_MSG, resp.text
+
+
+def test_spoofed_created_by_id_rejected(auth_enabled: None, db_session: Session) -> None:
+    """A-authenticated attach_evidence claiming created_by_id=B → -32001."""
+    raw, _principal = _seed_agent(db_session)
+    _other_raw, other = _seed_agent(db_session)
+    client = TestClient(_binding_app())
+    resp = _tools_call(
+        client,
+        {"X-Agent-Token": raw},
+        "attach_evidence",
+        {
+            "task_id": str(uuid4()),
+            "type": "test_output",
+            "title": "spoofed evidence",
+            "created_by_type": "agent",
+            "created_by_id": other,
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    error = _error_of(resp)
+    assert error, f"spoofed created_by_id must be refused by the BINDING, got: {resp.text[:300]}"
+    assert error["code"] == FORBIDDEN_CODE, resp.text
+    assert error["message"] == MISMATCH_MSG, resp.text
+
+
+def test_matching_identity_args_pass_binding(auth_enabled: None, db_session: Session) -> None:
+    """Own identity in answered_by / created_by_id is never refused BY THE BINDING
+    (the tool itself may still fail downstream — that lands in ``result.is_error``)."""
+    from app.delivery.models import Feature, Task
+    from app.projects.models import Project
+
+    raw, principal = _seed_agent(db_session)
+    project = Project(name="pb-matching", slug="pb-matching")
+    db_session.add(project)
+    db_session.flush()
+    feature = Feature(project_id=project.id, name="F", slug="f")
+    db_session.add(feature)
+    db_session.flush()
+    task = Task(feature_id=feature.id, title="T", status="in_progress")
+    db_session.add(task)
+    db_session.commit()
+
+    client = TestClient(_binding_app())
+    answer = _tools_call(
+        client,
+        {"X-Agent-Token": raw},
+        "answer_clarification",
+        {"clarification_id": str(uuid4()), "answer": "ok", "answered_by": principal},
+    )
+    assert _error_of(answer) is None, answer.text
+    evidence = _tools_call(
+        client,
+        {"X-Agent-Token": raw},
+        "attach_evidence",
+        {
+            "task_id": str(task.id),
+            "type": "test_output",
+            "title": "own evidence",
+            "created_by_type": "agent",
+            "created_by_id": principal,
+        },
+    )
+    assert _error_of(evidence) is None, evidence.text
+    assert evidence.json()["result"]["is_error"] is False, evidence.text
+
+
+# ── Class guard: a NEW identity-ish schema arg breaks until the map is ────
+# extended (aspect-review FIX 3 — the declared map can never silently lag
+# behind ``get_tools()``.)
+
+
+# Tuned against the real inventory: matches exactly ``agent_id``,
+# ``answered_by`` and ``created_by_id`` — and nothing else (e.g.
+# ``created_by_type`` is a role discriminator, not an identity id).
+IDENTITY_ARG_RE = re.compile(r"^(agent_id|.*_(by|by_id|owner_id|creator_id)|answered_by)$", re.I)
+
+
+def test_identity_arg_class_guard_matches_declared_binding_map() -> None:
+    from app.mcp.server import IDENTITY_ARGS
+
+    declared = {
+        prop
+        for tool in get_tools()
+        for prop in (tool.input_schema.properties or {})
+        if IDENTITY_ARG_RE.match(prop)
+    }
+    assert declared == set(IDENTITY_ARGS), (
+        f"schema/binding drift — extend IDENTITY_ARGS in app/mcp/server.py: "
+        f"unmapped={sorted(declared - set(IDENTITY_ARGS))} "
+        f"stale={sorted(set(IDENTITY_ARGS) - declared)}"
+    )

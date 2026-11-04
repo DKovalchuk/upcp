@@ -9,8 +9,10 @@ Binding rule (auth on, i.e. ``settings.disable_auth`` is false):
 
 - a ``tools/call`` without a principal is refused — fail-closed for
   mis-mounted routers that reach the handler with no auth context;
-- every tool argument named ``agent_id`` must EQUAL the principal, and
-  every tool whose schema DECLARES ``agent_id`` must receive it;
+- EVERY declared identity argument present in the call must EQUAL the
+  principal (``IDENTITY_ARGS``: ``agent_id``, ``answered_by``,
+  ``created_by_id``), and every tool whose schema DECLARES ``agent_id``
+  must receive it;
 - refusals answer a JSON-RPC error (``-32001``) inside the normal
   HTTP 200 response — protocol-correct for tool-level refusals — plus a
   structured warning (``action=auth.principal_mismatch``) and span
@@ -18,6 +20,11 @@ Binding rule (auth on, i.e. ``settings.disable_auth`` is false):
 
 Under the hermetic ``disable_auth`` flag the binding is skipped entirely
 (legacy behavior — bare ``create_mcp_router()`` test mounts keep working).
+
+A class-guard test scans ``get_tools()`` schemas with an identity-ish
+regex and fails until every match is declared in ``IDENTITY_ARGS`` — a
+future tool introducing a new identity argument cannot silently sit
+outside the binding.
 """
 
 from typing import Any
@@ -49,6 +56,19 @@ _MSG_NO_PRINCIPAL = "Forbidden: no authenticated principal"
 _AGENT_ID_TOOLS = frozenset(
     tool.name for tool in get_tools() if "agent_id" in tool.input_schema.properties
 )
+
+# Declared identity arguments (SPEC-0028 §3.4): every call argument whose
+# value IS (or claims to be) an agent identity must equal the authenticated
+# principal. ``agent_id`` is the historical inventory; ``answered_by``
+# (answer_clarification) and ``created_by_id`` (attach_evidence) were added
+# by the aspect review — they carried identity outside the binding and were
+# spoofable. Pinned by the class-guard test in test_mcp_principal_binding
+# (regex match over get_tools() must equal this map's keys exactly).
+IDENTITY_ARGS: dict[str, str] = {
+    "agent_id": "acting agent (claim/release/heartbeat/inbox/… tools)",
+    "answered_by": "answering agent (answer_clarification)",
+    "created_by_id": "creating agent (attach_evidence)",
+}
 
 
 class PrincipalBindingError(Exception):
@@ -87,11 +107,13 @@ def _enforce_principal_binding(
 ) -> None:
     """Bind tools/call identity to the authenticated principal (AC5).
 
-    Fail-closed while auth is on: missing principal → refuse; ``agent_id``
-    present in the arguments or declared by the tool's schema → it must
-    equal ``request.state.agent_id`` (string compare). Skipped entirely
-    under the hermetic ``disable_auth`` flag — parity with the blanket and
-    scope gate, preserving bare ``create_mcp_router()`` mounts.
+    Fail-closed while auth is on: missing principal → refuse; every
+    declared identity argument PRESENT in the call must equal
+    ``request.state.agent_id`` (string compare), and a tool whose schema
+    DECLARES ``agent_id`` must receive it (absence counts as a mismatch —
+    the historical contract). Skipped entirely under the hermetic
+    ``disable_auth`` flag — parity with the blanket and scope gate,
+    preserving bare ``create_mcp_router()`` mounts.
     """
     if get_settings().disable_auth:
         return  # hermetic kill switch (AC10, documented test-only)
@@ -100,8 +122,11 @@ def _enforce_principal_binding(
     if principal is None:
         _observe_binding_refusal("missing-principal", None, tool_name)
         raise PrincipalBindingError(_MSG_NO_PRINCIPAL)
-    subject_to_binding = tool_name in _AGENT_ID_TOOLS or "agent_id" in arguments
-    if subject_to_binding and str(arguments.get("agent_id")) != principal:
+    spoofed_identity = any(
+        arg in arguments and str(arguments.get(arg)) != principal for arg in IDENTITY_ARGS
+    )
+    missing_declared_agent_id = tool_name in _AGENT_ID_TOOLS and "agent_id" not in arguments
+    if spoofed_identity or missing_declared_agent_id:
         _observe_binding_refusal("mismatch", principal, tool_name)
         raise PrincipalBindingError(_MSG_MISMATCH)
 
