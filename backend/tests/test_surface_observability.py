@@ -90,6 +90,15 @@ def test_sanitize_rejects_none_and_regenerates() -> None:
     assert sanitize_request_id("") != ""
 
 
+def test_sanitize_rejects_trailing_newline_payload() -> None:
+    """``$`` would match before a final newline — the docstring promises such
+    payloads never round-trip, so the anchor must be ``\\Z`` (review FIX 12)."""
+    hostile = "clean-id\n"
+    out = sanitize_request_id(hostile)
+    assert out != hostile, "a trailing-newline payload must not survive"
+    assert _ID_RE.match(out), out
+
+
 @pytest.mark.parametrize(
     "hostile",
     [

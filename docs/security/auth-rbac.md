@@ -101,7 +101,9 @@
   **403** `{"detail": "Insufficient scope"}` (metric
   `upcp_agent_scope_denials_total`, span attribute
   `upcp.auth.scope_denied`). Legacy keys with `scopes=null` are
-  grandfathered and pass every scope gate until reissued.
+  grandfathered and pass every scope gate until reissued; a NEW key
+  issued without `scopes` is stored as `[]` (deny-all) and gets no
+  access until scopes are granted (fail-closed issuance).
 - Hermetic test mode (`UPCP_DISABLE_AUTH=true`, test-only): the surface
   blankets and scope gates short-circuit, mirroring the retired
   middleware's conditional mounting (AC10).

@@ -152,3 +152,9 @@ async def web_auth(
 
     request.state.user_id = payload["sub"]
     request.state.auth_type = "user"
+    # Memo (agent_auth pattern, review FIX 6): the VERIFIED token + payload —
+    # ``auth.get_current_user`` reuses them for this same request instead of
+    # re-running verify_access_token + the denylist check (exactly ONE
+    # verification per request through blanket + handler dependency).
+    request.state.verified_token = token
+    request.state.verified_token_payload = payload

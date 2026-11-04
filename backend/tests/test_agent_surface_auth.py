@@ -329,3 +329,107 @@ def test_real_main_agent_surface_lifecycle(auth_enabled: None, db_session: Sessi
     assert client.get(MCP_TOOLS, headers={"X-Agent-Token": under}).status_code == 403
     ok = _seed_token(db_session, scopes=["agent:mcp"])
     assert client.get(MCP_TOOLS, headers={"X-Agent-Token": ok}).status_code == 200
+
+
+# ── AC6: issuance fail-closed — a NEW key can never be scopeless ──────────
+# (aspect-review FIX 1: body default ``scopes=None`` used to store NULL,
+#  which the scope gate grandfathers → omission silently meant ALLOW.)
+
+
+def _issue_key(db: Session, *, scopes: list[str] | None = None) -> tuple[str, str]:
+    """Issue a key through the REAL endpoint function; return (raw, token_id)."""
+    from app.identity.agent_endpoints import AgentTokenCreate, create_agent_token
+    from app.identity.dependencies import CurrentUser
+    from app.identity.models import User
+
+    # The ownership gate re-loads the owner from the user table (its
+    # superuser bypass is table-backed), so seed a real admin row.
+    owner = User(
+        email=f"iss-{uuid4().hex[:10]}@issuance.local",
+        password_hash="x" * 60,
+        display_name="Issuance",
+        is_superuser=True,
+    )
+    db.add(owner)
+    db.flush()
+    agent = Agent(
+        name=f"iss-{uuid4().hex[:8]}",
+        description="issuance",
+        created_by=str(owner.id),
+    )
+    agent.is_active = True
+    db.add(agent)
+    db.commit()
+    cu = CurrentUser(user_id=str(owner.id), email=owner.email, is_superuser=True)
+    issued = create_agent_token(
+        str(agent.id), AgentTokenCreate(name="issued", scopes=scopes), cu, db
+    )
+    return str(issued["token"]), str(issued["id"])
+
+
+def test_key_issuance_without_scopes_stores_deny_all(db_session: Session) -> None:
+    """Omission must store ``[]`` (deny-all), never NULL (grandfather-bait)."""
+    _raw, token_id = _issue_key(db_session, scopes=None)
+    row = db_session.get(AgentToken, token_id)
+    assert row is not None, "issuance must commit the key row"
+    assert row.scopes == [], f"scopeless-by-omission key would be grandfathered: {row.scopes!r}"
+
+
+def test_key_issued_without_scopes_denied_by_scope_gate(
+    auth_enabled: None, db_session: Session
+) -> None:
+    """A key issued without scopes grants NOTHING until scopes are granted."""
+    raw, _token_id = _issue_key(db_session, scopes=None)
+    resp = TestClient(_surface_app(db_session)).get(MCP_TOOLS, headers={"X-Agent-Token": raw})
+    assert resp.status_code == 403, f"scopeless new key must be denied, got {resp.status_code}"
+    assert resp.json()["detail"] == CANONICAL["scope"]
+
+
+# ── AC4 cross-surface: one surface's credentials never work on the other ──
+# (aspect-review FIX 8 — gap cases both directions.)
+
+
+def test_web_bearer_jwt_is_rejected_on_agent_surface(
+    auth_enabled: None, db_session: Session
+) -> None:
+    """A valid web JWT without X-Agent-Token → 401 at the agent blanket."""
+    from app.identity.token_service import TokenService
+
+    web_jwt = TokenService().create_access_token(str(uuid4()))
+    resp = TestClient(_surface_app(db_session)).get(
+        MCP_TOOLS, headers={"Authorization": f"Bearer {web_jwt}"}
+    )
+    assert resp.status_code == 401, resp.text
+    assert resp.json()["detail"] == CANONICAL["missing"]
+
+
+# ── AC11: raw X-Agent-Token values never reach log records ────────────────
+# (aspect-review FIX 9 — mirrors test_web_auth_dependency's ``token not in
+#  caplog.text`` assertions for the web surface.)
+
+
+def test_agent_token_never_logged_on_denial(
+    auth_enabled: None, db_session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    """401 denial class: the raw key must not appear in any log record."""
+    raw = _seed_token(db_session, revoked_at=datetime.now(UTC))
+    client = TestClient(_surface_app(db_session))
+    with caplog.at_level(logging.WARNING):
+        resp = client.get(MCP_TOOLS, headers={"X-Agent-Token": raw})
+    assert resp.status_code == 401, resp.text
+    assert resp.json()["detail"] == CANONICAL["revoked"]
+    assert raw not in caplog.text, "AC11: raw agent token leaked into logs"
+
+
+def test_agent_token_never_logged_on_scope_refusal(
+    auth_enabled: None, db_session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    """403 scope refusal: the structured warning carries ids, never the key."""
+    raw = _seed_token(db_session, scopes=[])
+    client = TestClient(_surface_app(db_session))
+    with caplog.at_level(logging.WARNING):
+        resp = client.get(MCP_TOOLS, headers={"X-Agent-Token": raw})
+    assert resp.status_code == 403, resp.text
+    refusal = [r for r in caplog.records if getattr(r, "action", "") == "auth.scope_denied"]
+    assert refusal, "scope refusal must stay observable"
+    assert raw not in caplog.text, "AC11: raw agent token leaked into logs"

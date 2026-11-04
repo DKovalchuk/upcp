@@ -18,6 +18,7 @@ import hashlib
 import logging
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 import app.shared.redis as shared_redis
@@ -34,7 +35,7 @@ from app.shared.metrics import auth_subject_rejections_total, auth_token_denials
 from fastapi import Depends, FastAPI, Request
 from fastapi.testclient import TestClient
 
-from tests.conftest import _test_engine, _TestSession
+from tests.conftest import _override_session, _test_engine, _TestSession
 
 TS = TokenService(secret_key="web-auth-test-secret")
 _SECRET = "web-auth-test-secret"
@@ -378,3 +379,98 @@ def test_sync_pipeline_runs_in_threadpool(
     sub = _seed_subject(active=True)
     assert _get(web_client, TS.create_access_token(sub)).status_code == 200
     assert calls["n"] == 1, f"exactly one threadpool hop per authorized request, got {calls['n']}"
+
+
+# ── Double verification: blanket memo reused by get_current_user ──────────
+# (aspect-review FIX 6 — /auth/me ran verify_access_token + is_token_denied
+#  TWICE per request: once in the web_auth blanket, once in the handler dep.)
+
+
+def _me_client(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
+    """Production shape: app-level web_auth blanket + a route depending on
+    ``get_current_user`` (the ``/auth/me`` composition)."""
+    from app.identity.auth import get_current_user
+    from app.shared.database import get_session
+
+    _enable_auth(monkeypatch)
+    app = FastAPI(dependencies=[Depends(web_auth)])
+    app.dependency_overrides[_get_token_service] = lambda: TS
+    app.dependency_overrides[get_session] = _override_session
+
+    @app.get("/auth/me")
+    def me(user=Depends(get_current_user)) -> dict:  # noqa: ANN001, ANN202
+        return {"user_id": user.user_id}
+
+    return app
+
+
+def test_blanket_memo_makes_get_current_user_verify_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ONE ``verify_access_token`` per request through blanket + get_current_user."""
+    app = _me_client(monkeypatch)
+    sub = _seed_subject(active=True)
+    token = TS.create_access_token(sub)
+    calls: list[str] = []
+    original = TokenService.verify_access_token
+
+    def spy(self: TokenService, raw: str, *args: object, **kwargs: object) -> dict:
+        calls.append(raw)
+        return original(self, raw, *args, **kwargs)
+
+    try:
+        with patch.object(TokenService, "verify_access_token", spy):
+            resp = TestClient(app).get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    finally:
+        _cleanup_subjects()
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["user_id"] == sub
+    assert len(calls) == 1, f"memo must kill the double verification, got {len(calls)} calls"
+
+
+def test_get_current_user_without_blanket_still_verifies(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Standalone mounts (no blanket → no memo) keep the full verify path."""
+    from app.identity.auth import get_current_user
+    from app.shared.database import get_session
+
+    _enable_auth(monkeypatch)
+    app = FastAPI()
+    app.dependency_overrides[_get_token_service] = lambda: TS
+    app.dependency_overrides[get_session] = _override_session
+
+    @app.get("/standalone/me")
+    def standalone(user=Depends(get_current_user)) -> dict:  # noqa: ANN001, ANN202
+        return {"user_id": user.user_id}
+
+    sub = _seed_subject(active=True)
+    token = TS.create_access_token(sub)
+    calls: list[str] = []
+    original = TokenService.verify_access_token
+
+    def spy(self: TokenService, raw: str, *args: object, **kwargs: object) -> dict:
+        calls.append(raw)
+        return original(self, raw, *args, **kwargs)
+
+    try:
+        with patch.object(TokenService, "verify_access_token", spy):
+            resp = TestClient(app).get(
+                "/standalone/me", headers={"Authorization": f"Bearer {token}"}
+            )
+    finally:
+        _cleanup_subjects()
+    assert resp.status_code == 200, resp.text
+    assert len(calls) == 1, f"no memo → the dependency verifies itself, got {len(calls)}"
+
+
+# ── AC4 cross-surface: agent credentials never authenticate a web route ───
+# (aspect-review FIX 8, web direction.)
+
+
+def test_agent_key_header_is_not_a_web_credential(web_client: TestClient) -> None:
+    """X-Agent-Token without Authorization → the web blanket answers 401."""
+    resp = web_client.get(_PATH, headers={"X-Agent-Token": "raw-agent-key-not-a-jwt"})
+    assert resp.status_code == 401, resp.text
+    assert resp.json() == {"detail": _MISSING}
+    assert resp.headers.get("www-authenticate") == "Bearer"

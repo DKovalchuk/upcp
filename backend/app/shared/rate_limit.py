@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException, Request, status
+from starlette.concurrency import run_in_threadpool
 
 from app.shared.config import Settings, get_settings
 from app.shared.logging import get_logger
@@ -41,6 +42,13 @@ def check_rate_limit(
 ) -> dict[str, object]:
     """Check rate limit using Redis sliding window.
 
+    Redis outage FAILS OPEN (review FIX 2 — availability posture matching
+    ``identity/denylist.py``'s ``auth.denylist_unavailable`` precedent): any
+    Redis exception allows the request with a structured
+    ``action=ratelimit.unavailable`` warning instead of 500ing the route.
+    Tradeoff: no throttling while Redis is down; the auth layer and the
+    per-route logic are unaffected.
+
     Args:
         identifier: Unique identifier (IP, user_id, etc.)
         route: Route name for per-route limits
@@ -54,31 +62,50 @@ def check_rate_limit(
     max_req = max_requests or limits[0]
     window = window_seconds or limits[1]
 
-    client: Any = get_redis_client()
-    key = _get_client_key(identifier, route)
-    now = datetime.now(UTC).timestamp()
+    try:
+        client: Any = get_redis_client()
+        key = _get_client_key(identifier, route)
+        now = datetime.now(UTC).timestamp()
 
-    # Sliding window using sorted sets
-    pipe = client.pipeline(transaction=True)
+        # Sliding window using sorted sets
+        pipe = client.pipeline(transaction=True)
 
-    # Remove entries outside window
-    pipe.zremrangebyscore(key, 0, now - window)
+        # Remove entries outside window
+        pipe.zremrangebyscore(key, 0, now - window)
 
-    # Count current entries
-    pipe.zcard(key)
+        # Count current entries
+        pipe.zcard(key)
 
-    # Add current request
-    pipe.zadd(key, {f"{now}": now})
+        # Add current request
+        pipe.zadd(key, {f"{now}": now})
 
-    # Set TTL on key
-    pipe.expire(key, window)
+        # Set TTL on key
+        pipe.expire(key, window)
 
-    results = pipe.execute()
-    current_count = results[1]  # zcard result
+        results = pipe.execute()
+        current_count = results[1]  # zcard result
 
-    if current_count >= max_req:
-        # Rate limited — remove the entry we just added
-        client.zrem(key, f"{now}")
+        if current_count >= max_req:
+            # Rate limited — remove the entry we just added
+            client.zrem(key, f"{now}")
+            denied = True
+        else:
+            denied = False
+    except Exception as exc:
+        logger.warning(
+            "rate limiter unavailable — allowing request (fail-open): %s",
+            exc,
+            extra={"action": "ratelimit.unavailable", "entity_type": "rate_limit"},
+        )
+        return {
+            "allowed": True,
+            "remaining": max(0, max_req - 1),
+            "retry_after": None,
+            "limit": max_req,
+            "window": window,
+        }
+
+    if denied:
         retry_after = window  # Wait for full window to expire
         return {
             "allowed": False,
@@ -138,7 +165,9 @@ class SurfaceRateLimit:
         if settings.disable_rate_limit:
             return  # same observable parity as the middleware mount gate
         max_requests, window = self._limits(settings)
-        result = check_rate_limit(
+        # sync Redis I/O off the event loop (S28.2 rule, auth-deps pattern)
+        result = await run_in_threadpool(
+            check_rate_limit,
             self._identifier(request),
             f"surface_{self.surface}",
             max_requests=max_requests,

@@ -227,6 +227,11 @@ def create_agent_token(
     ``expires_at`` is honored but must be in the future (422 otherwise).
     Keys issued before this rule (``expires_at IS NULL``) are grandfathered
     — the verifier only rejects non-null past expiries — until revoked.
+
+    Scopes are FAIL-CLOSED at issuance (SPEC-0028 AC6, review fix): a body
+    without ``scopes`` stores ``[]`` (deny-all), never NULL — the scope gate
+    grandfathers only legacy ``NULL`` rows, so omission must never mint a key
+    that inherits the grandfather. An explicit list is stored as-is.
     """
     _require_agent(db, agent_id, user.user_id)
 
@@ -253,7 +258,7 @@ def create_agent_token(
         agent_id=agent_id,
         token_hash=token_hash,
         name=body.name,
-        scopes=body.scopes,
+        scopes=body.scopes if body.scopes is not None else [],
         expires_at=expires_at,
     )
     db.add(record)

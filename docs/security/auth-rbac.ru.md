@@ -100,7 +100,9 @@
   Ключу не хватает нужного scope → **403** `{"detail": "Insufficient scope"}`
   (метрика `upcp_agent_scope_denials_total`, span-атрибут
   `upcp.auth.scope_denied`). Legacy-ключи с `scopes=null` проходят все
-  scope-гейты до переиздания (grandfathered).
+  scope-гейты до переиздания (grandfathered); НОВЫЙ ключ, выпущенный
+  без `scopes`, сохраняется как `[]` (deny-all) и не имеет доступа,
+  пока scopes не выдадут (fail-closed выпуск).
 - Hermetic-тестовый режим (`UPCP_DISABLE_AUTH=true`, только тесты):
   surface-blankets и scope-гейты отключаются — как и middleware при
   выключенном флаге (AC10).

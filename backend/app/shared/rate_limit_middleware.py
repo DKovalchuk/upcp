@@ -18,6 +18,7 @@ historical registration gate, pinned by test_dashboard_security E8).
 
 from collections.abc import Awaitable, Callable
 
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -71,8 +72,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Determine strict bucket for exact sensitive routes
         route = STRICT_ROUTES.get(path, "default")
 
-        # Check rate limit
-        result = check_rate_limit(client_ip, route)
+        # Check rate limit — sync Redis I/O off the event loop (S28.2 rule,
+        # auth-deps pattern); the check itself fails OPEN on Redis outage
+        # (check_rate_limit docstring, review FIX 2) so this never 500s.
+        result = await run_in_threadpool(check_rate_limit, client_ip, route)
 
         if not result["allowed"]:
             logger.warning(

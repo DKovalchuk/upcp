@@ -24,7 +24,10 @@ from starlette.types import ASGIApp
 
 from app.shared.logging import agent_id_var, request_id_var, surface_var, user_id_var
 
-_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+# ``\Z`` (absolute end), NOT ``$`` — ``$`` also matches before a trailing
+# newline, which would let e.g. ``"abc\n"`` round-trip (docstring promise;
+# review FIX 12).
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}\Z")
 _SURFACE_VALUES = frozenset({"web", "agent", "public", "none"})
 
 
