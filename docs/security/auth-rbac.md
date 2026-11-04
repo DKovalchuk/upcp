@@ -2,10 +2,11 @@
 
 **EN** | [RU](auth-rbac.ru.md)
 
-> Scope: `auth` | Owner: security-team | Version: 3.1.0
+> Scope: `auth` | Owner: security-team | Version: 3.2.0
 > Rewritten 2026-10-24 against the real code (SPEC-0027 §3.4, findings 4-5);
 > auth reworked to dependency-based surface guards 2026-11-04
-> (SPEC-0028, TASK-0169/TASK-0170).
+> (SPEC-0028, TASK-0169/TASK-0170); Phase-B RBAC gate table appended
+> 2026-11-04 (TASK-0172).
 > Every endpoint path below is contract-tested against the OpenAPI schema
 > (`backend/tests/test_auth_docs_contract.py`).
 
@@ -187,6 +188,53 @@ Enforced today (Phase A — admin-dangerous mutations):
 - agent management mutations (`POST /api/v1/agents`, token issuance and
   revocation under `/api/v1/agents/{agent_id}`) → `manage:agent`
 
+Phase B (TASK-0172) — every dangerous mutation on the web surface
+(per-route inventory and no-gate justifications:
+`tasks/TASK-0172-rbac-coverage.md`):
+
+| Endpoint | Permission |
+|----------|------------|
+| `POST /api/v1/projects/{project_id}/components` | `create:component` |
+| `PATCH /api/v1/components/{component_id}` | `update:component` |
+| `DELETE /api/v1/components/{component_id}` | `delete:component` |
+| `POST /api/v1/components/{component_id}/modules` | `create:module` |
+| `PATCH /api/v1/modules/{module_id}` | `update:module` |
+| `DELETE /api/v1/modules/{module_id}` | `delete:module` |
+| `DELETE /api/v1/features/{feature_id}` | `delete:feature` |
+| `PATCH /api/v1/tasks/bulk` | `update:task` |
+| `DELETE /api/v1/tasks/{task_id}` | `delete:task` |
+| `DELETE /api/v1/subtasks/{subtask_id}` | `delete:subtask` |
+| `POST /api/v1/tasks/{task_id}/acceptance-criteria` | `create:acceptance_criteria` |
+| `PATCH`/`DELETE /api/v1/acceptance-criteria/{ac_id}` | `update`/`delete:acceptance_criteria` |
+| `POST /api/v1/tasks/{task_id}/dod-items` | `create:dod_item` |
+| `PATCH`/`DELETE /api/v1/dod-items/{item_id}` | `update`/`delete:dod_item` |
+| `POST /api/v1/tasks/{task_id}/complete` | `update:task` |
+| `POST /api/v1/tasks/{task_id}/submit-review`, `POST /api/v1/tasks/{task_id}/review-rounds` | `create:review_round` |
+| `POST /api/v1/review-rounds/{round_id}/start`, `POST /api/v1/review-rounds/{round_id}/verdict` | `update:review_round` |
+| `POST /api/v1/review-rounds/{round_id}/findings` | `create:review_finding` |
+| `POST /api/v1/tasks/{task_id}/evidence`, `POST /api/v1/tasks/{task_id}/evidence/upload` | `create:evidence` |
+| `POST /api/v1/evidence/{evidence_id}/agent-verify`, `/human-accept`, `/reject` | `update:evidence` |
+| `POST /api/v1/notification-channels` | `create:notification_channel` |
+| `PATCH /api/v1/notification-channels/{channel_id}` | `update:notification_channel` |
+| `DELETE /api/v1/notification-channels/{channel_id}` | `delete:notification_channel` |
+| `POST /api/v1/notification-channels/{channel_id}/toggle`, `/test` | `update:notification_channel` |
+| `POST /api/v1/projects/{project_id}/git-providers` | `create:git_provider` |
+| `PATCH`/`DELETE /api/v1/git-providers/{provider_id}` | `update`/`delete:git_provider` |
+| `DELETE /api/v1/git-links/{link_id}` | `delete:git_link` |
+| `POST /api/v1/internal/reaper/tick` | superuser only — `require_superuser()` → 403 `{"detail": "Superuser required"}` |
+
+Also available: `require_role(role)` → 403 `{"detail": "Insufficient role"}`
+(superusers bypass, like the permission gate). No production route is
+role-semantic yet — the factory ships for the first one (decision table
+in `tasks/TASK-0172-rbac-coverage.md`).
+
+Deliberately ungated (any-authenticated, per SPEC-0027 AC2 baseline):
+all reads; routine single-item creates/updates on delivery work items
+(feature/task/subtask/comment); notification read-state (`mark-read`);
+reporting generation/summarization; `POST /api/v1/git-links`. Agent
+workflow mutations (claims/heartbeats/clarifications) live on the agent
+surface and are gated by API-key scopes instead (AC6).
+
 Gate semantics (fail-closed, in order):
 
 1. `UPCP_DISABLE_AUTH=true` → gates inert (hermetic mode — the surface
@@ -198,10 +246,16 @@ Gate semantics (fail-closed, in order):
 5. no matching role permission → **403** (structured log +
    `upcp_rbac_denials_total`).
 
+`require_role`/`require_superuser` follow the same order; their denials
+answer **403** `{"detail": "Insufficient role"}` / `{"detail":
+"Superuser required"}` (metric `upcp_rbac_denials_total` with labels
+`action=role`/`action=superuser`).
+
 Permission resolution is cached in Redis (`rbac:user_perms:{user_id}`,
-TTL 60 s). Phase B (per-CRUD gates on structure/delivery/quality,
-org/project-scoped bindings) is backlog — scoped binding columns exist
-but are not resolved yet.
+TTL 60 s). Per-CRUD gates for dangerous mutations are enforced
+(Phase B, TASK-0172 — table above). Still backlog: org/project-scoped
+bindings (columns exist but are not resolved) and `require_role`
+production usage.
 
 ## 7. Rate limits and lockout
 
@@ -222,8 +276,11 @@ but are not resolved yet.
 - **Refresh reuse detection stops at rejecting the reused token** (401);
   the replacement chain is not family-revoked (no token-family table).
 - **Password reset by email does not exist.**
-- **Phase B permission gates** (structure/delivery/quality CRUD, scoped
-  bindings) are not enforced yet.
+- **Scoped bindings are not resolved yet** (`RoleBinding.org_id`/
+  `project_id` columns exist, every binding resolves globally).
+  Routine single-item creates/updates on delivery work items, notification
+  read-state and reporting mutations stay any-authenticated by decision
+  (TASK-0172 inventory).
 
 ## Related documents
 
