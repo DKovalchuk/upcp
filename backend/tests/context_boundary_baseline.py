@@ -31,10 +31,9 @@ BASELINE: dict[tuple[str, str, str], tuple[str, str]] = {
         "registry assembles context routers",
         "—",
     ),
-    ("api/v1/agent_self.py", "foreign-model", "app.delivery.models"): (
-        "agent-self queries delivery models (audit finding 9)",
-        "TASK-0176",
-    ),
+    # ("api/v1/agent_self.py", "foreign-model", "app.delivery.models")
+    # removed by TASK-0176: agent-self reads delivery data via the owner's
+    # public AgentActivityService — the violation is gone, entry went stale.
     ("api/v1/agent_self.py", "foreign-internal", "app.identity.agent_auth"): (
         "consumes agent-auth dep module (not public surface)",
         "backlog",
@@ -202,14 +201,11 @@ BASELINE: dict[tuple[str, str, str], tuple[str, str]] = {
         "search aggregates via direct model reads",
         "backlog",
     ),
-    ("identity/agent_endpoints.py", "foreign-model", "app.delivery.models"): (
-        "identity routes query delivery models (audit finding 9)",
-        "TASK-0176",
-    ),
-    ("identity/agent_endpoints.py", "foreign-model", "app.quality.models"): (
-        "identity routes query quality models (audit finding 9)",
-        "TASK-0176",
-    ),
+    # ("identity/agent_endpoints.py", "foreign-model", "app.delivery.models") and
+    # ("identity/agent_endpoints.py", "foreign-model", "app.quality.models")
+    # removed by TASK-0176: both tabs read through the owner contexts'
+    # public services (AgentActivityService / EvidenceService /
+    # ReviewRoundService) — violations gone, entries went stale.
     ("identity/denylist.py", "redis", "app.shared.redis"): (
         "denylist caches inline; auth-path redis -> AuthCacheProvider",
         "TASK-0174",
