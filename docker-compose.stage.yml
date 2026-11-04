@@ -51,7 +51,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       UPCP_ENV: stage
       UPCP_LOG_LEVEL: INFO
-      UPCP_SECRET_KEY: REDACTED_STAGE_SECRET
+      # Secret is environment-only (untracked .env.stage locally, masked CI
+      # variable for deploy:stage) — never hardcoded (TASK-0167).
+      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:?UPCP_SECRET_KEY is required - copy .env.stage.example to .env.stage and run openssl rand -base64 48}
       UPCP_DEBUG: "false"
     ports:
       - "127.0.0.1:${UPCP_PORT_BACKEND:-38081}:8080"

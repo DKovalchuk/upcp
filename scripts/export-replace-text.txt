@@ -1,0 +1,4 @@
+literal:REDACTED_STAGE_SECRET==>REDACTED_STAGE_SECRET
+regex:'access_token': '[^']{20,}'==>'access_token': '[REDACTED]'
+regex:'refresh_token': '[^']{20,}'==>'refresh_token': '[REDACTED]'
+regex:eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}==>eyJ_REDACTED.payload_REDACTED.signature_REDACTED

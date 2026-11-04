@@ -679,6 +679,62 @@ stop:stage:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ══════════════════════════════════════════════════════════════
+# CD: PUBLIC MIRROR — push scrubbed main to GitHub (TASK-0167)
+# ══════════════════════════════════════════════════════════════
+#
+# Release-mirror workflow: once the images are built on main, export the
+# full history with secrets scrubbed (git filter-repo replace-text,
+# deterministic) behind a gitleaks baseline gate — see
+# scripts/export-public.sh. The local checkout and GitLab history are
+# never rewritten.
+#
+# Requires the masked CI variable GITHUB_PUB_TOKEN (Settings → CI/CD →
+# Variables) with repo + workflow scope — the export contains
+# .github/workflows/*, and GitHub refuses pushes without `workflow`.
+publish:github:
+  stage: deploy
+  image: python:3.12-slim
+  extends:
+    - .retry-on-system-failure
+  needs:
+    - build:backend
+    - build:frontend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  before_script:
+    # git-filter-repo (upstream single file) + gitleaks release binary.
+    # Bounded retry wraps ONLY the tool downloads — same network policy
+    # as quality:gate (external fetches blipped once there).
+    - |
+      install_tools() {
+        apt-get update -qq &&
+        apt-get install -y -qq git curl ca-certificates tar gzip >/dev/null &&
+        curl -fsSL -o /usr/local/bin/git-filter-repo https://raw.githubusercontent.com/newren/git-filter-repo/v2.47.0/git-filter-repo &&
+        chmod +x /usr/local/bin/git-filter-repo &&
+        GL_VERSION=8.30.1 &&
+        curl -fsSL -o /tmp/gitleaks.tgz https://github.com/gitleaks/gitleaks/releases/download/v${GL_VERSION}/gitleaks_${GL_VERSION}_linux_x64.tar.gz &&
+        tar -xzf /tmp/gitleaks.tgz -C /usr/local/bin gitleaks
+      }
+      for i in 1 2 3; do
+        if install_tools; then echo "tools installed (attempt $i)"; break; fi
+        if [ "$i" = 3 ]; then echo "ERROR: tool install failed after 3 attempts"; exit 1; fi
+        echo "attempt $i failed — retrying in 15s"; sleep 15
+      done
+      git-filter-repo --version
+      gitleaks version
+      [ -n "${GITHUB_PUB_TOKEN:-}" ] || {
+        echo "ERROR: masked CI variable GITHUB_PUB_TOKEN is not set"
+        echo "(Settings → CI/CD → Variables; token needs repo + workflow scope)"
+        exit 1
+      }
+  script:
+    # CI_REPOSITORY_URL carries this job's token for the source clone; the
+    # script redacts userinfo from its own logs and never echoes the push url.
+    - scripts/export-public.sh
+        --source "$CI_REPOSITORY_URL"
+        --to "https://github.com/DKovalchuk/upcp.git"
+
+# ══════════════════════════════════════════════════════════════
 # CD: MAINTENANCE — manual retention sweep (TASK-0136)
 # ══════════════════════════════════════════════════════════════
 

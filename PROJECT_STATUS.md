@@ -4,7 +4,7 @@ Updated: 2026-11-04
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
 Current Task: **ПАЧКА SPEC-0028/0029 DONE 2026-11-04 — Auth rework +
-identity layering (TASK-0168…0177, 10 задач) — MR !105 открыт**:
+identity layering (TASK-0168…0177, 10 задач) — MR !105 merged**:
 default-deny реестр поверхностей + `web_auth`/`agent_auth` зависимости
 (`AuthMiddleware`/`PUBLIC_PATHS` удалены; enumeration AC1 — все ручки
 web+agent отвечают 401 без кредов), principal-binding в MCP
@@ -22,7 +22,42 @@ highs» → **8/8 фиксов в ветке** (`510e958`, `f79eead`, `286b006`)
 medium/low → **TASK-0178** (в очереди). Финальные гейты: **1565 passed,
 coverage 91.40%**, ruff/format/mypy (119) чисто, boundary gate green.
 Evidence: `tasks/TASK-0168…0178`; CHANGELOG [Unreleased] заполнен.
-MR: **!105** (feature/TASK-0168-api-surface-registry → develop).
+MR: **!105 merged** (feature/TASK-0168-api-surface-registry → develop).
+
+**TASK-0179 DONE 2026-11-04 — quality-gate fallout (MR !106 merged)**:
+первый запуск hard-gate на коде пачки (develop **#536 RED** — MR-пайплайны
+gate не запускают): 4 кластера. **authz ×2 + perf ×25**: фикстуры чеканили
+agent-токены без scopes → fail-closed дефолт (FIX-1) → **403** на
+`agent:mcp`/`agent:self` (**ровно TASK-0178 item 5** — locust
+`_ensure_agent_token` со scopes `["agent:self","agent:workflow"]`); **fuzz ×9**: D2-семантика — auth как
+route-dependency даёт 404/405/307 **до** auth на фантомных путях/методах
+(старый middleware отвечал 401 pre-routing) → реальные пути в NO_AUTH_GET +
+method-tricks как отказ `401|405` (никогда 2xx/5xx); **e2e_fe ×2 =
+продуктовая регрессия D5** → решение владельца: split — **только**
+GET claims/heartbeats/clarifications → web surface (`workflow_read_router`,
+registry WEB), writes остаются agent-key-only (domain identity
+`get_current_agent`/`claim.agent_id`; UI release/answer с JWT не работали и
+до батча — follow-up). **D5 amendment** в SPEC-0028; пины: registry
+(reads=web/writes=agent) + agent-surface (web JWT на чтениях → 404 ≠ 401
+через production composition). Верификация: develop **#538 quality:gate
+success — `RCs: e2e=0 e2e_fe=0 chaos=0 security=0 perf=0`, exit 0**
+(+ build/deploy:dev green). Локальные гейты: **1568 passed, coverage
+91.44%**, ruff/format/mypy clean. Evidence: `tasks/TASK-0179-quality-gate-fallout.md`.
+
+**TASK-0167 (MR !104, этот merge) — Public GitHub export**:
+GitLab source of truth → публикуется **только `main`** → CI-job
+`publish:github` (needs build:backend/build:frontend, только main):
+mirror-clone → детерминированный `git filter-repo --replace-text` →
+gitleaks baseline-гейт → push в **https://github.com/DKovalchuk/upcp**
+(история GitLab/локального репо не переписывается). В MR: scrub HEAD
+(compose `${UPCP_SECRET_KEY:?hint}` вместо хардкода, `.env.stage`
+untracked + example, redact протухших JWT) + 5 контракт-тестов; MIT +
+README EN/RU; `scripts/export-public.sh` (shellcheck clean, toy-smoke
+доказательства); `.github/workflows/ci.yml` (backend+frontend CI для
+GitHub Actions-бейджа). Решение владельца 2026-11-04: мерж !104 →
+develop→main релиз → publish:github. Prerequisites: masked CI-переменные
+`UPCP_SECRET_KEY` + `GITHUB_PUB_TOKEN` (repo+**workflow** scope).
+Evidence: `tasks/TASK-0167-public-github-export.md`.
 Prev (TASK-0166): **TASK-0166 DONE 2026-10-31 — dev seed всех механизмов +
 верификация компонентов**: dev-БД наполнена через API + SQL-бэкфил так,
 что каждый механизм покрыт read-back'ом. Новые артефакты: `seed_common.py`
