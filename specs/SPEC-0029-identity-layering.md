@@ -103,10 +103,17 @@ identity/cache_provider.py
 
 ## 4. Acceptance Criteria (Given/When/Then)
 
-- **AC1 (layering):** Given the identity module, When I grep for
-  `SessionLocal`/`db.query`, Then hits exist only in
-  `identity/repositories.py` (and `shared`); for Redis: only
-  `identity/cache_provider.py` + `shared/redis.py` (contract test enforces).
+- **AC1 (layering — amended 2026-11-04 after aspect review, scope made
+  precise):** Given the request-auth hot path — `web_auth`, `agent_auth`,
+  `get_current_user`, `permissions` — When grepping those modules for
+  `SessionLocal`/`db.query`/direct redis access, Then hits exist only in
+  `identity/repositories.py` + `identity/cache_provider.py` (enforced by
+  `tests/test_identity_layering_contract.py`); package-wide `SessionLocal`
+  is enforced by the boundary gate (rule 3). Known remaining violations
+  outside the hot path, tracked in TASK-0178: `token_service.py`,
+  `agent_endpoints.py`, `seed.py` still query directly; `denylist.py`
+  still imports `app.shared.redis`; `permissions.py` still does
+  `db.get(User, …)` for the superuser check.
 - **AC2 (behavior parity):** Given the migrated auth stack, When the full
   backend suite runs, Then all existing auth/RBAC tests pass unchanged in
   semantics (401 shapes, TTL 60s, Redis-outage fail-open on
