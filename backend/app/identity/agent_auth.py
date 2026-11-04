@@ -30,9 +30,10 @@ queries, no local hashing (one sha256, AC5):
   break hermetic bare-router test sites (``create_mcp_router``).
 
 On success the dependency sets ``request.state.agent_id``,
-``agent_name``, ``auth_type="agent"`` and ``api_surface="agent"``
-(parity with the retired middleware + SPEC-0028 S28.3 for TASK-0171/0173).
-Raw header values are never logged (AC11).
+``agent_name`` and ``auth_type="agent"`` (parity with the retired
+middleware + SPEC-0028 S28.3 for TASK-0171); ``api_surface`` and
+``surface_var`` are attributed at the ENTRY so 401 denials carry them
+too (TASK-0173). Raw header values are never logged (AC11).
 """
 
 from collections.abc import Awaitable, Callable
@@ -46,7 +47,7 @@ from app.identity.dependencies import CurrentAgent
 from app.identity.repositories import AgentRepository, AgentTokenRepository
 from app.shared.config import get_settings
 from app.shared.database import get_session
-from app.shared.logging import get_logger
+from app.shared.logging import get_logger, surface_var
 from app.shared.metrics import agent_scope_denials_total
 
 logger = get_logger(__name__)
@@ -96,6 +97,7 @@ def _store(request: Request, agent: CurrentAgent) -> CurrentAgent:
     request.state.agent_name = agent.name
     request.state.auth_type = "agent"
     request.state.api_surface = "agent"
+    surface_var.set("agent")
     return agent
 
 
@@ -128,8 +130,12 @@ async def agent_auth(
     it skips (parity: the retired ``AuthMiddleware`` was not mounted in
     hermetic mode); otherwise the verification pipeline runs in the
     threadpool (no event-loop blocking — S28.2 rule) and ``request.state``
-    is written on the loop after the await.
+    is written on the loop after the await. The surface itself is
+    attributed at the ENTRY (before all of that — TASK-0173).
     """
+    request.state.api_surface = "agent"
+    surface_var.set("agent")  # event loop, in the request's own context
+
     if get_settings().disable_auth:
         return  # hermetic kill switch (AC10, documented test-only)
     if _memo(request) is not None:

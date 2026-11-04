@@ -16,7 +16,9 @@ subject-state cache/DB read) runs in a single ``run_in_threadpool`` call —
 the middleware ran the same I/O inline and blocked the event loop
 (SPEC-0028 finding 6). ``request.state`` is set on the event loop AFTER
 the await; rejection observability also runs on the loop so span
-attributes land on the request's active span.
+attributes land on the request's active span. The surface attribution
+(``api_surface`` + ``surface_var``) is the exception: it happens at the
+dependency's ENTRY so 401 denials are attributed too (TASK-0173).
 
 Test seams preserved by construction: session-less ``SubjectStateService``
 (lazy ``SessionLocal``) and the denylist's lazy ``get_redis_client``;
@@ -34,7 +36,7 @@ from app.identity.auth import _get_subject_state_service, _get_token_service
 from app.identity.denylist import is_token_denied, note_denied_token
 from app.identity.token_service import TokenService
 from app.shared.config import get_settings
-from app.shared.logging import get_logger
+from app.shared.logging import get_logger, surface_var
 from app.shared.metrics import auth_subject_rejections_total
 
 logger = get_logger(__name__)
@@ -113,7 +115,16 @@ async def web_auth(
     so a new web route is denied by default; raises the historical 401
     shapes (missing / invalid / denylisted / dead subject), all with
     ``WWW-Authenticate: Bearer``.
+
+    TASK-0173: the surface is attributed at the ENTRY — before the
+    ``disable_auth`` check and before any verification — so 401 denials
+    (and hermetic no-op runs) carry ``request.state.api_surface`` and
+    ``surface_var`` like successful ones; correlation/spans/metrics read
+    them to split web vs agent traffic.
     """
+    request.state.api_surface = "web"
+    surface_var.set("web")  # event loop, in the request's own context
+
     if get_settings().disable_auth:
         return  # hermetic kill switch (AC10, documented test-only — main.py parity)
 
@@ -141,4 +152,3 @@ async def web_auth(
 
     request.state.user_id = payload["sub"]
     request.state.auth_type = "user"
-    request.state.api_surface = "web"

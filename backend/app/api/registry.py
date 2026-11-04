@@ -5,7 +5,9 @@ Classification data + surface-level auth attachment: the WEB group carries
 ``Depends(web_auth)`` and the AGENT group ``Depends(agent_auth)`` through
 ``include_surfaces`` (TASK-0169/TASK-0170) — SPEC-0028 D2 forbids
 path-string matching anywhere in authentication; the PUBLIC group never
-carries auth dependencies.
+carries auth dependencies. Each auth dependency is followed by its
+per-surface rate policy (TASK-0173) — also composition-time data, not
+path strings.
 
 Surfaces (SPEC-0028 D5):
 
@@ -38,6 +40,7 @@ from app.identity.dependencies import get_agent_auth, get_web_auth
 from app.identity.endpoints import public_router as auth_public_router
 from app.identity.endpoints import router as auth_protected_router
 from app.mcp.server import create_mcp_router
+from app.shared.rate_limit import surface_rate_limit
 
 API_PREFIX = "/api/v1"
 MCP_PREFIX = "/mcp"
@@ -96,9 +99,14 @@ def include_surfaces(app: FastAPI) -> None:
     identity's public surface (``dependencies.get_web_auth`` /
     ``get_agent_auth``) so the composition root never reaches into context
     internals. The PUBLIC group mounts bare: declared no-auth.
+
+    TASK-0173 (AC9, Shape A): each auth dependency is followed by the
+    per-surface rate policy (``shared.rate_limit.surface_rate_limit``) —
+    solved AFTER auth, so it keys on the stored principal; the PUBLIC group
+    stays uncovered (parity with the pre-existing single-floor behavior).
     """
-    web_deps = [Depends(get_web_auth())]
-    agent_deps = [Depends(get_agent_auth())]
+    web_deps = [Depends(get_web_auth()), Depends(surface_rate_limit("web"))]
+    agent_deps = [Depends(get_agent_auth()), Depends(surface_rate_limit("agent"))]
     for group, deps in (
         (WEB_ROUTERS, web_deps),
         (AGENT_ROUTERS, agent_deps),

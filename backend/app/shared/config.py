@@ -55,6 +55,17 @@ class Settings(BaseSettings):
     disable_auth: bool = Field(default=False, alias="UPCP_DISABLE_AUTH")
     disable_rate_limit: bool = Field(default=False, alias="UPCP_DISABLE_RATE_LIMIT")
 
+    # Per-surface rate policies (SPEC-0028 AC9, TASK-0173) — the values the
+    # ``SurfaceRateLimit`` dependency enforces AFTER auth (principal-keyed);
+    # the global pre-auth floor in RateLimitMiddleware keeps the historical
+    # DEFAULT_LIMITS numbers (100/min per IP). Defaults match the historical
+    # "default" bucket so existing deployments keep their effective limits.
+    # Env names follow the UPCP_* contract (TASK-0119 prefix discipline).
+    rate_limit_web_max: int = Field(default=100, alias="UPCP_RATE_LIMIT_WEB_MAX", ge=1)
+    rate_limit_web_window: int = Field(default=60, alias="UPCP_RATE_LIMIT_WEB_WINDOW", ge=1)
+    rate_limit_agent_max: int = Field(default=100, alias="UPCP_RATE_LIMIT_AGENT_MAX", ge=1)
+    rate_limit_agent_window: int = Field(default=60, alias="UPCP_RATE_LIMIT_AGENT_WINDOW", ge=1)
+
     # Agent API-key TTL (SPEC-0028 D1/AC7): every newly issued key gets
     # expires_at = now + agent_token_ttl_days; keys issued before the rule
     # (expires_at NULL) are grandfathered until revoked.

@@ -7,13 +7,16 @@ from prometheus_client import Counter, Gauge, Histogram, Info
 http_requests_total = Counter(
     "upcp_http_requests_total",
     "Total HTTP requests",
-    ["method", "handler", "status"],
+    # ``surface`` (TASK-0173): "web" | "agent" | "public" | "none" — ADDITIVE
+    # label; aggregate queries (sum by method/handler/status) keep working,
+    # exact-label matches must include it and series cardinality grows.
+    ["method", "handler", "status", "surface"],
 )
 
 http_request_duration_seconds = Histogram(
     "upcp_http_request_duration_seconds",
     "HTTP request latency in seconds",
-    ["method", "handler"],
+    ["method", "handler", "surface"],
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
 )
 
