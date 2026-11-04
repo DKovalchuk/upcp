@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     disable_auth: bool = Field(default=False, alias="UPCP_DISABLE_AUTH")
     disable_rate_limit: bool = Field(default=False, alias="UPCP_DISABLE_RATE_LIMIT")
 
+    # Agent API-key TTL (SPEC-0028 D1/AC7): every newly issued key gets
+    # expires_at = now + agent_token_ttl_days; keys issued before the rule
+    # (expires_at NULL) are grandfathered until revoked.
+    agent_token_ttl_days: int = Field(default=90, alias="UPCP_AGENT_TOKEN_TTL_DAYS", ge=1)
+
     # File uploads
     upload_dir: str = Field(default="data/uploads", alias="UPCP_UPLOAD_DIR")
     max_upload_size_bytes: int = Field(default=10 * 1024 * 1024, alias="UPCP_MAX_UPLOAD_SIZE")

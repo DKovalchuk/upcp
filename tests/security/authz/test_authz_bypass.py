@@ -3,8 +3,10 @@
 Parametrized across representative /api/v1 domains (projects, structure,
 delivery, quality, reporting, audit, agents, dashboard, search,
 notifications, analytics) plus /mcp — without a token everything must be
-401, with a valid admin JWT nothing may be 401/403. Public paths from
-PUBLIC_PATHS must stay reachable without credentials.
+401; with credentials nothing may be 401/403. Credential per surface
+(D5, TASK-0170): web endpoints accept the admin JWT, ``/mcp`` is
+agent-key-only and gets a minted ``X-Agent-Token``. Documented-public
+paths must stay reachable without credentials.
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from ..common import SECURITY_BASE_URL
 
 BASE = SECURITY_BASE_URL.rstrip("/")
 _FAKE_UUID = "00000000-0000-0000-0000-000000000000"
+_MCP_PROBE_AGENT = "sec-authz-mcp-probe"
 
 pytestmark = [
     pytest.mark.authz_category("auth-bypass"),
@@ -47,6 +50,45 @@ _PARAM = pytest.mark.parametrize(
 )
 
 
+@pytest.fixture(scope="module")
+def agent_headers(admin_headers: dict[str, str]) -> dict[str, str]:
+    """D5 (TASK-0170): ``/mcp`` accepts agent keys only — mint a probe token.
+
+    Find-or-create a probe agent (test_rbac precedent), then mint one token
+    per run (the raw value is returned exactly once by the API).
+    """
+    resp = httpx.get(
+        f"{BASE}/api/v1/agents",
+        headers=admin_headers,
+        params={"limit": 200},
+        timeout=15.0,
+    )
+    assert resp.status_code == 200, f"list agents -> {resp.status_code}: {resp.text[:200]}"
+    agent_id = next(
+        (i["id"] for i in resp.json().get("items", []) if i.get("name") == _MCP_PROBE_AGENT),
+        None,
+    )
+    if agent_id is None:
+        resp = httpx.post(
+            f"{BASE}/api/v1/agents",
+            headers=admin_headers,
+            json={"name": _MCP_PROBE_AGENT, "description": "TASK-0170 D5 /mcp caller probe"},
+            timeout=15.0,
+        )
+        assert resp.status_code == 201, (
+            f"create probe agent -> {resp.status_code}: {resp.text[:200]}"
+        )
+        agent_id = str(resp.json()["id"])
+    resp = httpx.post(
+        f"{BASE}/api/v1/agents/{agent_id}/tokens",
+        headers=admin_headers,
+        json={"name": "authz-mcp-probe"},
+        timeout=15.0,
+    )
+    assert resp.status_code == 201, f"create token -> {resp.status_code}: {resp.text[:200]}"
+    return {"X-Agent-Token": resp.json()["token"]}
+
+
 @_PARAM
 def test_anonymous_request_rejected(name: str, method: str, path: str) -> None:
     resp = httpx.request(method, f"{BASE}{path}", timeout=15.0)
@@ -57,11 +99,17 @@ def test_anonymous_request_rejected(name: str, method: str, path: str) -> None:
 
 @_PARAM
 def test_valid_token_accepted(
-    name: str, method: str, path: str, admin_headers: dict[str, str]
+    name: str,
+    method: str,
+    path: str,
+    admin_headers: dict[str, str],
+    agent_headers: dict[str, str],
 ) -> None:
-    resp = httpx.request(method, f"{BASE}{path}", headers=admin_headers, timeout=15.0)
+    # D5 (TASK-0170): agent surface is agent-key-only; web surface keeps JWT.
+    headers = agent_headers if name == "mcp-tools" else admin_headers
+    resp = httpx.request(method, f"{BASE}{path}", headers=headers, timeout=15.0)
     assert resp.status_code not in (401, 403), (
-        f"{method} {path} with valid JWT -> {resp.status_code}, auth should pass middleware"
+        f"{method} {path} with valid credentials -> {resp.status_code}, auth should pass"
     )
 
 

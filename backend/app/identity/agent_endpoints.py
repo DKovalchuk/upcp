@@ -22,6 +22,7 @@ from app.identity.auth import get_current_user
 from app.identity.dependencies import CurrentUser
 from app.identity.permissions import require_permission
 from app.quality.models import Evidence, ReviewRound
+from app.shared.config import get_settings
 from app.shared.database import get_session
 from app.shared.text import new_id
 
@@ -43,6 +44,9 @@ class AgentCreate(BaseModel):
 class AgentTokenCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     scopes: list[str] | None = None
+    # AC7 (SPEC-0028 D1): optional explicit expiry — must be in the future;
+    # when omitted, issuance falls back to settings.agent_token_ttl_days.
+    expires_at: datetime | None = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────
@@ -242,10 +246,32 @@ def create_agent_token(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
+    """Issue an agent API key — always with an expiry (AC7, TASK-0170).
+
+    Default TTL comes from ``UPCP_AGENT_TOKEN_TTL_DAYS`` (90); an explicit
+    ``expires_at`` is honored but must be in the future (422 otherwise).
+    Keys issued before this rule (``expires_at IS NULL``) are grandfathered
+    — the verifier only rejects non-null past expiries — until revoked.
+    """
     _require_agent(db, agent_id, user.user_id)
 
     raw_token = secrets.token_urlsafe(48)
     token_hash = _hash_token(raw_token)
+
+    now = datetime.now(UTC)
+    if body.expires_at is None:
+        expires_at = now + timedelta(days=get_settings().agent_token_ttl_days)
+    else:
+        expires_at = (
+            body.expires_at
+            if body.expires_at.tzinfo is not None
+            else body.expires_at.replace(tzinfo=UTC)
+        )
+        if expires_at <= now:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="expires_at must be in the future",
+            )
 
     record = AgentToken(
         id=new_id(),
@@ -253,11 +279,12 @@ def create_agent_token(
         token_hash=token_hash,
         name=body.name,
         scopes=body.scopes,
+        expires_at=expires_at,
     )
     db.add(record)
     db.flush()
     # commit before respond — the client uses the fresh token immediately;
-    # middleware looks the row up in a different session (TASK-0143)
+    # the auth path looks the row up in a different session (TASK-0143)
     db.commit()
 
     return {
@@ -265,6 +292,7 @@ def create_agent_token(
         "name": record.name,
         "token": raw_token,  # Shown once, never stored
         "scopes": record.scopes,
+        "expires_at": expires_at.isoformat(),
         "created_at": record.created_at.isoformat(),
     }
 

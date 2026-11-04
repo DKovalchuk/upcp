@@ -7,12 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.delivery.models import AgentInboxEvent, ClarificationRequest, TaskClaim
-from app.identity.agent_auth import get_current_agent
+from app.identity.agent_auth import get_current_agent, require_agent_scope
 from app.identity.agents import Agent
 from app.identity.dependencies import CurrentAgent
 from app.shared.database import get_session
 
-router = APIRouter(tags=["agent-self"])
+router = APIRouter(tags=["agent-self"], dependencies=[Depends(require_agent_scope("agent:self"))])
 
 _DEFAULT_PLAYBOOK = """# Agent Playbook
 

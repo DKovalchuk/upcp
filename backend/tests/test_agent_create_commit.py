@@ -150,3 +150,86 @@ def _hash_local(token: str) -> str:
 # token_service import kept exercised (parity with auth-commit suite)
 def test_token_service_constructs() -> None:
     assert TokenService(secret_key=SECRET) is not None
+
+
+# ── AC7: newly issued keys always carry expires_at (TASK-0170) ────────────
+
+
+def test_new_token_receives_default_ttl_expiry(db_pair) -> None:
+    """Issuance without an explicit expiry → now + UPCP_AGENT_TOKEN_TTL_DAYS."""
+    from datetime import UTC, datetime, timedelta
+
+    from app.shared.config import get_settings
+
+    engine_a, engine_b = db_pair
+    cu = _seed_user(engine_a)
+    session_a = Session(engine_a, expire_on_commit=False)
+    agent = create_agent(AgentCreate(name="ttl-default"), cu, session_a)
+    session_a.commit()
+
+    result = create_agent_token(agent["id"], AgentTokenCreate(name="ttl-default"), cu, session_a)
+
+    assert result["expires_at"] is not None, "AC7: newly issued keys must get an expires_at"
+    ttl_days = get_settings().agent_token_ttl_days
+    expires = datetime.fromisoformat(result["expires_at"])
+    lo = datetime.now(UTC) + timedelta(days=ttl_days - 1)
+    hi = datetime.now(UTC) + timedelta(days=ttl_days + 1)
+    assert lo <= expires <= hi, f"expires_at {expires} outside now+{ttl_days}d ± 1d"
+    assert _visible(
+        engine_b,
+        "SELECT 1 FROM agent_token WHERE token_hash = :h AND expires_at IS NOT NULL",
+        {"h": hashlib.sha256(result["token"].encode()).hexdigest()},
+    ), "the stored row must carry expires_at too"
+    session_a.close()
+
+
+def test_agent_token_ttl_default_is_90_days() -> None:
+    from app.shared.config import get_settings
+
+    assert get_settings().agent_token_ttl_days == 90
+
+
+def test_explicit_future_expiry_is_honored(db_pair) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    engine_a, engine_b = db_pair
+    cu = _seed_user(engine_a)
+    session_a = Session(engine_a, expire_on_commit=False)
+    agent = create_agent(AgentCreate(name="ttl-explicit"), cu, session_a)
+    session_a.commit()
+    future = datetime.now(UTC) + timedelta(days=30)
+
+    result = create_agent_token(
+        agent["id"], AgentTokenCreate(name="ttl-explicit", expires_at=future), cu, session_a
+    )
+
+    stored = datetime.fromisoformat(result["expires_at"])
+    assert abs((stored - future).total_seconds()) < 60, f"{stored} != {future}"
+    session_a.close()
+
+
+def test_explicit_past_expiry_rejected_422(db_pair) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from fastapi import HTTPException
+
+    engine_a, engine_b = db_pair
+    cu = _seed_user(engine_a)
+    session_a = Session(engine_a, expire_on_commit=False)
+    agent = create_agent(AgentCreate(name="ttl-past"), cu, session_a)
+    session_a.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        create_agent_token(
+            agent["id"],
+            AgentTokenCreate(name="ttl-past", expires_at=datetime.now(UTC) - timedelta(days=1)),
+            cu,
+            session_a,
+        )
+    assert exc.value.status_code == 422, "expires_at in the past is a business-rule 422"
+    assert not _visible(
+        engine_b,
+        "SELECT 1 FROM agent_token WHERE agent_id = :a AND name = :n",
+        {"a": agent["id"], "n": "ttl-past"},
+    ), "a rejected issuance must not persist a row"
+    session_a.close()

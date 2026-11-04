@@ -11,12 +11,14 @@ from sqlalchemy.orm import Session
 from app.delivery.lifecycle import InvalidTransition
 from app.delivery.models import ClarificationRequest, Heartbeat, Task, TaskClaim
 from app.delivery.workflow import WorkflowService
-from app.identity.agent_auth import get_current_agent
+from app.identity.agent_auth import get_current_agent, require_agent_scope
 from app.identity.dependencies import CurrentAgent
 from app.shared.database import get_session
 from app.shared.errors import Conflict, NotFound
 
-router = APIRouter(tags=["workflow"])
+# Scope marking for the whole surface (SPEC-0028 AC6): claim, release,
+# heartbeat, progress, read-backs and clarifications all need agent:workflow.
+router = APIRouter(tags=["workflow"], dependencies=[Depends(require_agent_scope("agent:workflow"))])
 
 
 # ── Schemas ──

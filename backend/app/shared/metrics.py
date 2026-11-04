@@ -61,6 +61,12 @@ rbac_denials_total = Counter(
     ["action", "resource"],
 )
 
+agent_scope_denials_total = Counter(
+    "upcp_agent_scope_denials_total",
+    "Agent API-key scope denials (403) by required scope (SPEC-0028 AC6)",
+    ["scope"],
+)
+
 claims_total = Counter(
     "upcp_claims_total",
     "Total task claim attempts",

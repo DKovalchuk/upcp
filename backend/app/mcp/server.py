@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.identity.dependencies import get_require_agent_scope
 from app.mcp.resources import get_resource_content, get_resources
 from app.mcp.schemas import (
     JSONRPCRequest,
@@ -97,8 +98,15 @@ async def _dispatch_jsonrpc(request: JSONRPCRequest, session: Session) -> JSONRP
 
 
 def create_mcp_router() -> APIRouter:
-    """Create MCP router with endpoints."""
-    router = APIRouter()
+    """Create MCP router with endpoints.
+
+    The router carries the ``agent:mcp`` scope gate (SPEC-0028 AC6,
+    TASK-0170) — agent-key-only surface, resolved through identity's
+    public accessor. The gate is inert under the hermetic
+    ``disable_auth`` flag, so bare test mounts keep working.
+    """
+    require_scope = get_require_agent_scope()
+    router = APIRouter(dependencies=[Depends(require_scope("agent:mcp"))])
 
     @router.get("/")
     def mcp_health() -> dict[str, str]:
