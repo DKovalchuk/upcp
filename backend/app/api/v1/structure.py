@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.identity.permissions import require_permission
 from app.shared.database import get_session
 from app.shared.pagination import PaginationParams, pagination_dependency
 from app.structure.models import Component, Module
@@ -53,6 +54,7 @@ def _mod_resp(m: Module) -> ModuleResponse:
     summary="Create a component",
     description="Create a new component within a project.",
     responses={422: {"description": "Validation error"}},
+    dependencies=[Depends(require_permission("create", "component"))],
 )
 def create_component(
     project_id: str, body: ComponentCreate, session: Session = Depends(get_session)
@@ -92,6 +94,7 @@ def get_component(component_id: str, session: Session = Depends(get_session)) ->
         404: {"description": "Component not found"},
         422: {"description": "Validation error"},
     },
+    dependencies=[Depends(require_permission("update", "component"))],
 )
 def update_component(
     component_id: str, body: ComponentUpdate, session: Session = Depends(get_session)
@@ -107,6 +110,7 @@ def update_component(
     summary="Delete a component",
     description="Delete a component by its identifier.",
     responses={404: {"description": "Component not found"}},
+    dependencies=[Depends(require_permission("delete", "component"))],
 )
 def delete_component(component_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     ComponentService(session).delete(component_id)
@@ -150,6 +154,7 @@ def list_components(
     summary="Create a module",
     description="Create a new module within a component.",
     responses={422: {"description": "Validation error"}},
+    dependencies=[Depends(require_permission("create", "module"))],
 )
 def create_module(
     component_id: str, body: ModuleCreate, session: Session = Depends(get_session)
@@ -188,6 +193,7 @@ def get_module(module_id: str, session: Session = Depends(get_session)) -> Modul
         404: {"description": "Module not found"},
         422: {"description": "Validation error"},
     },
+    dependencies=[Depends(require_permission("update", "module"))],
 )
 def update_module(
     module_id: str, body: ModuleUpdate, session: Session = Depends(get_session)
@@ -203,6 +209,7 @@ def update_module(
     summary="Delete a module",
     description="Delete a module by its identifier.",
     responses={404: {"description": "Module not found"}},
+    dependencies=[Depends(require_permission("delete", "module"))],
 )
 def delete_module(module_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     ModuleService(session).delete(module_id)

@@ -5,6 +5,47 @@ from sqlalchemy.orm import Session
 from app.identity.rbac import Permission, Role, RolePermission
 
 # (action, resource)
+# Phase-B pairs (TASK-0172): dangerous mutations outside the Phase-A CRUD —
+# subtask deletes, quality gates (AC/DoD), evidence/review decisions and
+# integration config (notification channels, git providers/links).
+# Referenced by route gates; see tasks/TASK-0172-rbac-coverage.md inventory.
+PHASE_B_ADMIN_PERMISSIONS = [
+    ("delete", "subtask"),
+    ("create", "acceptance_criteria"),
+    ("update", "acceptance_criteria"),
+    ("delete", "acceptance_criteria"),
+    ("create", "dod_item"),
+    ("update", "dod_item"),
+    ("delete", "dod_item"),
+    ("create", "evidence"),
+    ("update", "evidence"),
+    ("create", "review_round"),
+    ("update", "review_round"),
+    ("create", "review_finding"),
+    ("create", "notification_channel"),
+    ("update", "notification_channel"),
+    ("delete", "notification_channel"),
+    ("create", "git_provider"),
+    ("update", "git_provider"),
+    ("delete", "git_provider"),
+    ("delete", "git_link"),
+]
+
+# Member keeps work-item create/update on quality entities, no deletes
+# (mirrors Member's lack of delete:component/delete:task); integration
+# config (channels, git) stays Owner/Admin — see the inventory table.
+PHASE_B_MEMBER_PERMISSIONS = [
+    ("create", "acceptance_criteria"),
+    ("update", "acceptance_criteria"),
+    ("create", "dod_item"),
+    ("update", "dod_item"),
+    ("create", "evidence"),
+    ("update", "evidence"),
+    ("create", "review_round"),
+    ("update", "review_round"),
+    ("create", "review_finding"),
+]
+
 DEFAULT_PERMISSIONS = [
     ("create", "project"),
     ("read", "project"),
@@ -29,6 +70,7 @@ DEFAULT_PERMISSIONS = [
     ("read", "agent"),
     ("manage", "agent"),
     ("manage", "user"),
+    *PHASE_B_ADMIN_PERMISSIONS,
 ]
 
 # role_name → list of (action, resource)
@@ -57,6 +99,7 @@ ROLE_PERMISSIONS = {
         ("read", "agent"),
         ("manage", "agent"),
         ("manage", "user"),
+        *PHASE_B_ADMIN_PERMISSIONS,
     ],
     "Admin": [  # Everything except user management
         ("create", "project"),
@@ -81,6 +124,7 @@ ROLE_PERMISSIONS = {
         ("delete", "task"),
         ("read", "agent"),
         ("manage", "agent"),
+        *PHASE_B_ADMIN_PERMISSIONS,
     ],
     "Member": [  # CRUD on work items
         ("create", "component"),
@@ -95,6 +139,7 @@ ROLE_PERMISSIONS = {
         ("create", "task"),
         ("read", "task"),
         ("update", "task"),
+        *PHASE_B_MEMBER_PERMISSIONS,
     ],
     "Viewer": [  # Read only
         ("read", "project"),

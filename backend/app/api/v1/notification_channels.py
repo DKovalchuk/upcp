@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.identity.permissions import require_permission
 from app.reporting.channel_service import ChannelService
 from app.reporting.models import NotificationChannel
 from app.shared.database import get_session
@@ -63,6 +64,7 @@ def list_channels(
     "/notification-channels",
     summary="Create a notification channel",
     status_code=201,
+    dependencies=[Depends(require_permission("create", "notification_channel"))],
 )
 def create_channel(
     body: ChannelCreate,
@@ -79,6 +81,7 @@ def create_channel(
 @router.patch(
     "/notification-channels/{channel_id}",
     summary="Update a notification channel",
+    dependencies=[Depends(require_permission("update", "notification_channel"))],
 )
 def update_channel(
     channel_id: str,
@@ -98,6 +101,7 @@ def update_channel(
 @router.delete(
     "/notification-channels/{channel_id}",
     summary="Delete a notification channel",
+    dependencies=[Depends(require_permission("delete", "notification_channel"))],
 )
 def delete_channel(
     channel_id: str,
@@ -114,6 +118,7 @@ def delete_channel(
 @router.post(
     "/notification-channels/{channel_id}/toggle",
     summary="Toggle channel active state",
+    dependencies=[Depends(require_permission("update", "notification_channel"))],
 )
 def toggle_channel(
     channel_id: str,
@@ -130,6 +135,7 @@ def toggle_channel(
 @router.post(
     "/notification-channels/{channel_id}/test",
     summary="Send a test notification through a channel",
+    dependencies=[Depends(require_permission("update", "notification_channel"))],
 )
 def test_channel(
     channel_id: str,

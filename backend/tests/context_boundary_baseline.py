@@ -83,10 +83,9 @@ BASELINE: dict[tuple[str, str, str], tuple[str, str]] = {
         "endpoint consumes SSE manager directly",
         "backlog",
     ),
-    ("api/v1/projects.py", "foreign-internal", "app.identity.permissions"): (
-        "endpoint consumes RBAC gate (internal module)",
-        "backlog",
-    ),
+    # ("api/v1/projects.py", "foreign-internal", "app.identity.permissions")
+    # removed by TASK-0172: `permissions` is whitelisted as the declared
+    # FastAPI Depends public surface (SPEC-0027 §3.1) — the entry went stale.
     ("api/v1/reaper.py", "foreign-internal", "app.delivery.stale_reaper"): (
         "endpoint drives reaper tick directly",
         "backlog",

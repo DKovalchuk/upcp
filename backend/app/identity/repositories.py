@@ -28,7 +28,7 @@ from sqlalchemy.orm import Session
 
 from app.identity.agents import Agent, AgentToken
 from app.identity.models import User
-from app.identity.rbac import Permission, RoleBinding, RolePermission
+from app.identity.rbac import Permission, Role, RoleBinding, RolePermission
 
 
 class UserRepository:
@@ -178,3 +178,33 @@ class PermissionRepository:
             .all()
         )
         return [[action, resource] for action, resource in rows]
+
+    def holds_role(self, user_id: str, role_name: str) -> bool:
+        """Whether any of the user's RoleBindings names ``role_name`` (TASK-0172).
+
+        Data access for ``require_role`` lives here, not in the gate —
+        SPEC-0029 D1 (presentation does zero data access); the gate may
+        only call repository/provider methods. Cold path: no production
+        route applies ``require_role`` yet, so this is uncached like
+        ``granted_pairs``-on-miss (TTL policy stays in the caller if a
+        hot route ever needs it).
+        """
+        if self._session is not None:
+            return self._holds_role(self._session, user_id, role_name)
+        from app.shared.database import SessionLocal  # lazy — test seam (D3)
+
+        db = SessionLocal()
+        try:
+            return self._holds_role(db, user_id, role_name)
+        finally:
+            db.close()
+
+    @staticmethod
+    def _holds_role(db: Session, user_id: str, role_name: str) -> bool:
+        row = (
+            db.query(Role.name)
+            .join(RoleBinding, RoleBinding.role_id == Role.id)
+            .filter(RoleBinding.user_id == user_id, Role.name == role_name)
+            .first()
+        )
+        return row is not None

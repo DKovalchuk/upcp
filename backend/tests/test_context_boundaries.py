@@ -11,7 +11,11 @@ Rules (foreign-* compare against the module's own top-level context; ``shared``
 and the context's own code are always allowed):
   foreign-model    ``app.<ctx>.models`` imported from outside ``<ctx>``
   foreign-internal another context's non-public module (public surface =
-                   ``service``/``schemas``/``dependencies``/``__init__`` allowed)
+                   ``service``/``schemas``/``dependencies``/``__init__``/``permissions``
+                   allowed — ``permissions`` added by TASK-0172: its gates
+                   (``require_permission``/``require_role``/``require_superuser``)
+                   are designed as a public FastAPI ``Depends`` contract that
+                   routes in other contexts consume, SPEC-0027 §3.1)
   session-local    ``SessionLocal`` outside ``app/shared/`` + ``identity/repositories.py``
   redis            ``app.shared.redis``/``get_redis_client`` outside ``shared/redis.py``
                    + ``identity/cache_provider.py`` (identity files tolerated if
@@ -30,7 +34,12 @@ import pytest
 from tests.context_boundary_baseline import BASELINE
 
 APP_DIR = Path(__file__).resolve().parents[1] / "app"
-PUBLIC_SURFACE = frozenset({"service", "schemas", "dependencies", "__init__"})
+# ``permissions`` is a declared public contract: the RBAC gate factories are
+# consumed by other contexts via FastAPI ``Depends`` only — designed and
+# documented that way since SPEC-0027 §3.1; Phase-B gate wiring (TASK-0172)
+# across api/v1 routers made the whitelist the honest rule instead of N
+# baseline entries.
+PUBLIC_SURFACE = frozenset({"service", "schemas", "dependencies", "__init__", "permissions"})
 SESSION_ALLOWED = ("shared/", "identity/repositories.py")  # prefix, exact file
 REDIS_ALLOWED = frozenset({"shared/redis.py", "identity/cache_provider.py"})
 
@@ -172,6 +181,9 @@ def test_foreign_model_rule(source: str, own: str | None, expected: list[str]) -
         ("from app.delivery.schemas import TaskCreate", "identity", []),
         ("from app.delivery.dependencies import get_task", "identity", []),
         ("from app.delivery import TaskService", "identity", []),
+        # negative — RBAC gate factories are a declared Depends contract (TASK-0172)
+        ("from app.identity.permissions import require_permission", "structure", []),
+        ("from app.identity.permissions import require_superuser", "reaper", []),
         # negative — own context, shared, rule-1 territory
         ("from app.delivery.lifecycle import validate_transition", "delivery", []),
         ("from app.shared.config import get_settings", "identity", []),
