@@ -2,10 +2,12 @@
 
 **EN** | [RU](auth-rbac.ru.md)
 
-> Scope: `auth` | Owner: security-team | Version: 3.0.0
-> Rewritten 2026-10-24 against the real code (SPEC-0027 §3.4, findings 4-5).
+> Scope: `auth` | Owner: security-team | Version: 3.1.0
+> Rewritten 2026-10-24 against the real code (SPEC-0027 §3.4, findings 4-5);
+> auth reworked to dependency-based surface guards 2026-11-04
+> (SPEC-0028, TASK-0169/TASK-0170).
 > Every endpoint path below is contract-tested against the OpenAPI schema
-> (`backend/tests/test_public_paths.py`).
+> (`backend/tests/test_auth_docs_contract.py`).
 
 ## Table of contents
 
@@ -21,14 +23,23 @@
 
 ## 1. Overview
 
-- JWT access tokens + rotating refresh tokens.
-- `AuthMiddleware` authenticates every `/api/v1/*` and `/mcp/*` request
-  except `PUBLIC_PATHS`; `/auth/*` routes rely on the `get_current_user`
-  dependency.
-- `PUBLIC_PATHS`: `/health`, `/api/v1/health`, `/auth/setup`,
-  `/auth/login`, `/auth/refresh`, `/docs`, `/redoc`, `/openapi.json` —
-  every entry is regression-tested to be a registered route
-  (the dead `/mcp/health` entry was removed in TASK-0148).
+- JWT access tokens + rotating refresh tokens for users; static API keys
+  for the agent surface (see [Agent API key](#23-agent-api-key-x-agent-token)).
+- Authentication is implemented as FastAPI route dependencies, not
+  middleware (SPEC-0028 D2). The surface registry
+  (`app/api/registry.py`) attaches a default-deny blanket to every
+  surface: `web_auth` (Bearer JWT) on all web routes under `/api/v1`
+  and `/auth`, `agent_auth` (`X-Agent-Token`) on the agent routes
+  (agent self-service, workflow claims/heartbeats, everything under
+  `/mcp`). Public routes (`/auth/setup`, `/auth/login`, `/auth/refresh`,
+  `/health`, `/api/v1/health`, `/metrics`, docs) are declared public in
+  the registry — there is no runtime path dictionary
+  (`AuthMiddleware`/`PUBLIC_PATHS` retired in TASK-0170). Coverage:
+  `backend/tests/test_api_surface_registry.py` (classification) and
+  `backend/tests/test_auth_enumeration.py` (every web/agent route
+  answers 401 without credentials).
+- Agent routes additionally enforce per-key scopes (AC6 — see
+  [Agent API key](#23-agent-api-key-x-agent-token)).
 - Authorization: route-level `require_permission(action, resource)` gates
   (see [RBAC](#6-rbac)); ungated reads require any authenticated user.
 
@@ -66,6 +77,35 @@
 - Chain (token-family) revocation on reuse is **not** implemented —
   see [Known limitations](#8-known-limitations).
 
+### 2.3 Agent API key (`X-Agent-Token`)
+
+- Transport: static API key in the `X-Agent-Token` header, valid for the
+  whole agent surface (agent self-service, workflow, `/mcp`). Web JWTs
+  are rejected there with 401 — `/mcp` is agent-key-only (SPEC-0028 D5,
+  caller inventory in TASK-0170).
+- Storage: SHA-256 hash at rest; the plaintext is returned exactly once
+  by the issuing endpoint.
+- Issuance: every newly issued key gets an `expires_at` — default TTL
+  **90 days** (`UPCP_AGENT_TOKEN_TTL_DAYS`); an explicit `expires_at`
+  must be in the future (422 otherwise). Keys issued before TASK-0170
+  may carry `expires_at=NULL` and stay valid until revoked
+  (grandfathered).
+- Revocation: immediate (`revoked_at`) — an expired or revoked key
+  fails the very next request with 401 (`Agent token has expired` /
+  `Agent token has been revoked`).
+- Scopes (AC6): a per-key `scopes` list gates the surface —
+  `agent:self` (agent profile, inbox, playbook), `agent:workflow`
+  (claims, heartbeats, progress, clarifications) and `agent:mcp`
+  (everything under `/mcp`). A key missing the required scope →
+  **403** `{"detail": "Insufficient scope"}` (metric
+  `upcp_agent_scope_denials_total`, span attribute
+  `upcp.auth.scope_denied`). Legacy keys with `scopes=null` are
+  grandfathered and pass every scope gate until reissued.
+- Hermetic test mode (`UPCP_DISABLE_AUTH=true`, test-only): the surface
+  blankets and scope gates short-circuit, mirroring the retired
+  middleware's conditional mounting (AC10).
+- Issuing endpoint: `POST /api/v1/agents/{agent_id}/tokens`.
+
 ## 3. Endpoints
 
 Mounted at prefix `/auth` (not `/api/v1/auth`):
@@ -93,7 +133,7 @@ Password reset by email (`/auth/password/reset/*`) is **not implemented**
 2. writes `auth:deny:{sha256(access_token)}` to Redis with TTL
    `exp − now` (self-expiring, no cleanup job).
 
-The denylist is enforced in `AuthMiddleware` (domain routes) and in
+The denylist is enforced in the `web_auth` dependency (web routes) and in
 `get_current_user` (`/auth/*`): a denylisted access token gets **401**
 with `WWW-Authenticate`, the same shape as an invalid token
 (`action=auth.token_denied`, metric `upcp_auth_token_denials_total`).
@@ -104,9 +144,10 @@ availability over a revocation window of at most 15 minutes
 (SPEC-0027 AC5). Writes degrade the same way; the refresh revocation in
 the database is unaffected.
 
-Additionally, after signature verification the middleware checks that
-the subject **exists and is active** (`auth:user:{sub}` cache, 60 s) —
-an unknown or disabled subject gets 401 even with a valid signature.
+Additionally, after signature verification the `web_auth` dependency
+checks that the subject **exists and is active** (`auth:user:{sub}` cache,
+60 s) — an unknown or disabled subject gets 401 even with a valid
+signature.
 
 ## 5. Password change
 
@@ -148,8 +189,8 @@ Enforced today (Phase A — admin-dangerous mutations):
 
 Gate semantics (fail-closed, in order):
 
-1. `UPCP_DISABLE_AUTH=true` → gates inert (hermetic mode; the middleware
-   is not mounted either);
+1. `UPCP_DISABLE_AUTH=true` → gates inert (hermetic mode — the surface
+   auth dependencies short-circuit the same way);
 2. no identity → **401**;
 3. unknown or inactive subject → **401**;
 4. `is_superuser=True` → bypass (covers `/auth/setup` owner and seeder

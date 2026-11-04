@@ -2,10 +2,12 @@
 
 [EN](auth-rbac.md) | **RU**
 
-> Область: `auth` | Владелец: security-team | Версия: 3.0.0
-> Переписано 2026-10-24 по фактическому коду (SPEC-0027 §3.4, находки 4-5).
+> Область: `auth` | Владелец: security-team | Версия: 3.1.0
+> Переписано 2026-10-24 по фактическому коду (SPEC-0027 §3.4, находки 4-5);
+> auth переведён на dependency-гарды поверхностей 2026-11-04
+> (SPEC-0028, TASK-0169/TASK-0170).
 > Каждый путь ниже проверен контрактным тестом против OpenAPI-схемы
-> (`backend/tests/test_public_paths.py`).
+> (`backend/tests/test_auth_docs_contract.py`).
 
 ## Содержание
 
@@ -21,14 +23,24 @@
 
 ## 1. Обзор
 
-- JWT access-токены + вращаемые refresh-токены.
-- `AuthMiddleware` аутентифицирует каждый запрос `/api/v1/*` и `/mcp/*`,
-  кроме `PUBLIC_PATHS`; маршруты `/auth/*` полагаются на dependency
-  `get_current_user`.
-- `PUBLIC_PATHS`: `/health`, `/api/v1/health`, `/auth/setup`,
-  `/auth/login`, `/auth/refresh`, `/docs`, `/redoc`, `/openapi.json` —
-  каждый пункт регрессионно проверен на наличие зарегистрированного
-  маршрута (мёртвая запись `/mcp/health` удалена в TASK-0148).
+- JWT access-токены + вращаемые refresh-токены для пользователей;
+  статические API-ключи для агентской поверхности (см.
+  [Agent API key](#23-agent-api-key-x-agent-token)).
+- Аутентификация реализована FastAPI route-dependencies, а не
+  middleware (SPEC-0028 D2). Реестр поверхностей
+  (`app/api/registry.py`) вешает default-deny blanket на каждую
+  поверхность: `web_auth` (Bearer JWT) — на все веб-маршруты под
+  `/api/v1` и `/auth`, `agent_auth` (`X-Agent-Token`) — на агентские
+  маршруты (agent self-service, claims/heartbeats workflow, всё под
+  `/mcp`). Публичные маршруты (`/auth/setup`, `/auth/login`,
+  `/auth/refresh`, `/health`, `/api/v1/health`, `/metrics`, docs)
+  объявлены публичными в реестре — runtime-словаря путей больше нет
+  (`AuthMiddleware`/`PUBLIC_PATHS` удалены в TASK-0170). Покрытие:
+  `backend/tests/test_api_surface_registry.py` (классификация) и
+  `backend/tests/test_auth_enumeration.py` (каждый web/agent-маршрут
+  отвечает 401 без кредов).
+- Агентские маршруты дополнительно проверяют scopes ключа (AC6 — см.
+  [Agent API key](#23-agent-api-key-x-agent-token)).
 - Авторизация: гейты уровня маршрута `require_permission(action, resource)`
   (см. [RBAC](#6-rbac)); незагейтнутые чтения требуют любого
   аутентифицированного пользователя.
@@ -65,6 +77,34 @@
 - Ревокация «цепочки» (token family) при повторном использовании
   **не реализована** — см. [Известные ограничения](#8-известные-ограничения).
 
+### 2.3 Agent API key (`X-Agent-Token`)
+
+- Транспорт: статический API-ключ в заголовке `X-Agent-Token`, действует
+  на всей агентской поверхности (agent self-service, workflow, `/mcp`).
+  Веб-JWT там отклоняется с 401 — `/mcp` обслуживается только
+  агентскими ключами (SPEC-0028 D5, инвентарь вызывающих в TASK-0170).
+- Хранение: SHA-256-хэш; plaintext возвращается ровно один раз в ответе
+  выпускающего эндпоинта.
+- Выпуск: каждый новый ключ обязан получить `expires_at` — TTL по
+  умолчанию **90 дней** (`UPCP_AGENT_TOKEN_TTL_DAYS`); явный
+  `expires_at` должен быть в будущем (иначе 422). Ключи, выпущенные до
+  TASK-0170, могут иметь `expires_at=NULL` и действуют до отзыва
+  (grandfathered).
+- Отзыв: мгновенный (`revoked_at`) — протухший или отозванный ключ
+  падает на самом следующем запросе с 401 (`Agent token has expired` /
+  `Agent token has been revoked`).
+- Scopes (AC6): список `scopes` ключа гейтит поверхность —
+  `agent:self` (профиль, inbox, playbook), `agent:workflow` (claims,
+  heartbeats, progress, clarifications) и `agent:mcp` (всё под `/mcp`).
+  Ключу не хватает нужного scope → **403** `{"detail": "Insufficient scope"}`
+  (метрика `upcp_agent_scope_denials_total`, span-атрибут
+  `upcp.auth.scope_denied`). Legacy-ключи с `scopes=null` проходят все
+  scope-гейты до переиздания (grandfathered).
+- Hermetic-тестовый режим (`UPCP_DISABLE_AUTH=true`, только тесты):
+  surface-blankets и scope-гейты отключаются — как и middleware при
+  выключенном флаге (AC10).
+- Эндпоинт выпуска: `POST /api/v1/agents/{agent_id}/tokens`.
+
 ## 3. Эндпоинты
 
 Префикс монтирования `/auth` (не `/api/v1/auth`):
@@ -92,7 +132,7 @@
 2. пишет в Redis `auth:deny:{sha256(access_token)}` с TTL
    `exp − now` (самоистекающий, без cleanup-джобы).
 
-Денайлист проверяется в `AuthMiddleware` (доменные маршруты) и в
+Денайлист проверяется в dependency `web_auth` (веб-маршруты) и в
 `get_current_user` (`/auth/*`): денайлистнутый access-токен получает
 **401** с `WWW-Authenticate` — ту же форму, что и невалидный токен
 (`action=auth.token_denied`, метрика `upcp_auth_token_denials_total`).
@@ -103,9 +143,10 @@
 15 минут (SPEC-0027 AC5). Запись деградирует тем же образом; отзыв
 refresh в БД не затрагивается.
 
-Кроме того, после проверки подписи middleware проверяет, что subject
-**существует и активен** (кэш `auth:user:{sub}`, 60 с) — неизвестный или
-отключённый subject получает 401 даже при валидной подписи.
+Кроме того, после проверки подписи dependency `web_auth` проверяет, что
+subject **существует и активен** (кэш `auth:user:{sub}`, 60 с) —
+неизвестный или отключённый subject получает 401 даже при валидной
+подписи.
 
 ## 5. Смена пароля
 
@@ -146,8 +187,8 @@ Enforced сегодня (Phase A — опасные админ-мутации):
 
 Семантика гейта (fail-closed, по порядку):
 
-1. `UPCP_DISABLE_AUTH=true` → гейты инертны (hermetic-режим; middleware
-   тогда вообще не монтируется);
+1. `UPCP_DISABLE_AUTH=true` → гейты инертны (hermetic-режим —
+   surface-dependencies отключаются так же);
 2. нет identity → **401**;
 3. неизвестный или неактивный subject → **401**;
 4. `is_superuser=True` → bypass (покрывает владельца `/auth/setup` и
