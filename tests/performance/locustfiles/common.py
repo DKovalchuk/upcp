@@ -125,7 +125,13 @@ class UPCPBaseUser(_BASE_CLASS):  # type: ignore[misc]
         agent_id = resp.json()["id"]
         resp = self.client.post(
             f"/api/v1/agents/{agent_id}/tokens",
-            json={"name": "perf-token"},
+            # FIX-1 (TASK-0175 / TASK-0178 item 5): scopeless keys default
+            # to deny-all — the scenarios hit /agent/* (agent:self) and
+            # claim/heartbeat/release (agent:workflow), so mint with both.
+            json={
+                "name": "perf-token",
+                "scopes": ["agent:self", "agent:workflow"],
+            },
             headers=self.auth_headers(),
             name="/api/v1/agents/{id}/tokens [POST]",
         )

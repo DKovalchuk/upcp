@@ -105,7 +105,9 @@ def test_revoked_agent_token_rejected(probe_agent: str, admin_headers: dict[str,
     created = httpx.post(
         f"{BASE}/api/v1/agents/{probe_agent}/tokens",
         headers=admin_headers,
-        json={"name": "authz-lifecycle"},
+        # FIX-1 (TASK-0175): scopeless keys default to deny-all —
+        # GET /api/v1/agent/me is gated with agent:self.
+        json={"name": "authz-lifecycle", "scopes": ["agent:self"]},
         timeout=15.0,
     )
     assert created.status_code == 201, f"create lifecycle token -> {created.status_code}"
