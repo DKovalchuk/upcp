@@ -16,9 +16,14 @@ from app.identity.dependencies import CurrentAgent
 from app.shared.database import get_session
 from app.shared.errors import Conflict, NotFound
 
-# Scope marking for the whole surface (SPEC-0028 AC6): claim, release,
-# heartbeat, progress, read-backs and clarifications all need agent:workflow.
+# Scope marking for the AGENT write surface (SPEC-0028 AC6): claim, release,
+# heartbeat, progress and clarification writes all need agent:workflow.
 router = APIRouter(tags=["workflow"], dependencies=[Depends(require_agent_scope("agent:workflow"))])
+
+# Web read surface (SPEC-0028 D5 amendment, TASK-0179): the UI's Execution /
+# Clarifications tabs list claims/heartbeats/clarifications with a JWT — the
+# read-backs move to the web surface; every write stays agent-key-only.
+workflow_read_router = APIRouter(tags=["workflow"])
 
 
 # ── Schemas ──
@@ -182,7 +187,7 @@ def _require_task(session: Session, task_id: str) -> None:
         raise HTTPException(status_code=404, detail=f"task '{task_id}' not found")
 
 
-@router.get(
+@workflow_read_router.get(
     "/tasks/{task_id}/claims",
     summary="List claims for a task",
     description="List all claim records for a task including active and released claims.",
@@ -215,7 +220,7 @@ def list_claims(
     return {"items": items}
 
 
-@router.get(
+@workflow_read_router.get(
     "/tasks/{task_id}/heartbeats",
     summary="List heartbeats for a task",
     description="List all heartbeat records for a task across all claims.",
@@ -251,7 +256,7 @@ def list_heartbeats(
     return {"items": items}
 
 
-@router.get(
+@workflow_read_router.get(
     "/tasks/{task_id}/clarifications",
     summary="List clarifications for a task",
     description="List all clarification requests for a task including open and answered ones.",

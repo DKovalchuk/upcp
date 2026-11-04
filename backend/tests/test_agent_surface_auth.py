@@ -40,7 +40,10 @@ from sqlalchemy.orm import Session
 _FAKE = "00000000-0000-0000-0000-000000000000"
 MCP_TOOLS = "/mcp/tools"
 AGENT_ME = "/api/v1/agent/me"
-WORKFLOW_CLAIMS = f"/api/v1/tasks/{_FAKE}/claims"
+# Agent-surface workflow probe: the read-backs (GET .../claims) moved to the
+# web surface (D5 amendment, TASK-0179), so the blanket/scope pins below use
+# the claim WRITE — same router, same agent:workflow gate.
+WORKFLOW_CLAIM = f"/api/v1/tasks/{_FAKE}/claim"
 PAST = datetime(2020, 1, 1, tzinfo=UTC)
 
 CANONICAL: dict[str, str] = {
@@ -118,8 +121,8 @@ def test_missing_header_canonical_401_on_every_agent_route(
     auth_enabled: None, db_session: Session
 ) -> None:
     client = TestClient(_surface_app(db_session))
-    for path in (MCP_TOOLS, AGENT_ME, WORKFLOW_CLAIMS):
-        resp = client.get(path)
+    for method, path in (("GET", MCP_TOOLS), ("GET", AGENT_ME), ("POST", WORKFLOW_CLAIM)):
+        resp = client.request(method, path)
         assert resp.status_code == 401, f"{path} -> {resp.status_code}: {resp.text[:160]}"
         assert resp.json()["detail"] == CANONICAL["missing"], path
 
@@ -175,7 +178,7 @@ def test_scope_present_allows_each_router(auth_enabled: None, db_session: Sessio
     ok_self = _seed_token(db_session, scopes=["agent:self"])
     assert client.get(AGENT_ME, headers={"X-Agent-Token": ok_self}).status_code == 200
     ok_wf = _seed_token(db_session, scopes=["agent:workflow"])
-    resp = client.get(WORKFLOW_CLAIMS, headers={"X-Agent-Token": ok_wf})
+    resp = client.post(WORKFLOW_CLAIM, headers={"X-Agent-Token": ok_wf})
     assert resp.status_code == 404, "workflow scope passes the auth stage (lookup follows)"
 
 
@@ -187,7 +190,7 @@ def test_wrong_scope_denied_per_router(auth_enabled: None, db_session: Session) 
     resp = client.get(AGENT_ME, headers={"X-Agent-Token": wf_only})
     assert resp.status_code == 403
     assert resp.json()["detail"] == CANONICAL["scope"]
-    resp = client.get(WORKFLOW_CLAIMS, headers={"X-Agent-Token": cross})
+    resp = client.post(WORKFLOW_CLAIM, headers={"X-Agent-Token": cross})
     assert resp.status_code == 403, resp.text
 
 
@@ -401,6 +404,38 @@ def test_web_bearer_jwt_is_rejected_on_agent_surface(
     )
     assert resp.status_code == 401, resp.text
     assert resp.json()["detail"] == CANONICAL["missing"]
+
+
+def test_web_bearer_jwt_is_accepted_on_workflow_reads(
+    auth_enabled: None, db_session: Session
+) -> None:
+    """D5 amendment (TASK-0179): the UI's read-backs accept a web JWT.
+
+    Regression net for the red e2e gate: claims/heartbeats/clarifications
+    were agent-only, so the Execution tab's JWT requests 401'd into a
+    refresh → logout cascade and the sheet vanished mid-test. 404 (not
+    401) here proves the auth stage passed and only the fake-task lookup
+    failed — the exact production composition (registry web blanket).
+    """
+    from app.identity.models import User
+    from app.identity.token_service import TokenService
+
+    user = User(
+        email=f"wf-read-{uuid4().hex[:10]}@workflow.local",
+        password_hash="x" * 60,
+        display_name="WF Reader",
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+    web_jwt = TokenService().create_access_token(str(user.id))
+    resp = TestClient(_surface_app(db_session)).get(
+        f"/api/v1/tasks/{_FAKE}/claims", headers={"Authorization": f"Bearer {web_jwt}"}
+    )
+    assert resp.status_code == 404, (
+        f"workflow reads must accept a web JWT (D5 amendment), got {resp.status_code}: "
+        f"{resp.text[:200]}"
+    )
 
 
 # ── AC11: raw X-Agent-Token values never reach log records ────────────────

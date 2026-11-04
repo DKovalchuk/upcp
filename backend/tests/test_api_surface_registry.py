@@ -90,3 +90,61 @@ def test_unregistered_endpoint_is_detected_as_unclassified() -> None:
         return None
 
     assert route_surface(api.routes[0]) is None
+
+
+# ── D5 amendment (TASK-0179): workflow read-backs are a UI feature ────────
+# The e2e gate caught the classification gap: the Execution/Clarifications
+# tabs list these with a JWT, so they belong to the web surface — while
+# every workflow WRITE stays agent-key-only.
+
+
+_WORKFLOW_READS = (
+    "GET /api/v1/tasks/{task_id}/claims",
+    "GET /api/v1/tasks/{task_id}/heartbeats",
+    "GET /api/v1/tasks/{task_id}/clarifications",
+)
+_WORKFLOW_WRITES = (
+    "POST /api/v1/tasks/{task_id}/claim",
+    "POST /api/v1/tasks/{task_id}/release",
+    "POST /api/v1/tasks/{task_id}/heartbeat",
+    "POST /api/v1/tasks/{task_id}/progress",
+    "POST /api/v1/tasks/{task_id}/clarifications",
+    "POST /api/v1/clarifications/{clarification_id}/answer",
+)
+
+
+def _path_surface(method: str, path: str) -> str | None:
+    """Surface of ``METHOD path`` from the registry group composition.
+
+    ``app.routes`` holds lazy ``_IncludedRouter`` wrappers (FastAPI >= 0.139)
+    whose inner routes carry no mount prefix — the group tuples ARE the
+    classification source of truth, so the split contract is checked there.
+    """
+    for surface, routers in (
+        ("web", WEB_ROUTERS),
+        ("agent", AGENT_ROUTERS),
+        ("public", PUBLIC_ROUTERS),
+    ):
+        for router, prefix in routers:
+            for route in router.routes:
+                if not isinstance(route, APIRoute):
+                    continue
+                if prefix + route.path == path and method in (route.methods or set()):
+                    return surface
+    return None
+
+
+def test_workflow_reads_classify_as_web() -> None:
+    """UI read-backs authenticate with a JWT (the e2e regression net)."""
+    for target in _WORKFLOW_READS:
+        method, path = target.split(" ", 1)
+        surface = _path_surface(method, path)
+        assert surface == "web", f"{target} must be web-surface, got {surface!r}"
+
+
+def test_workflow_writes_stay_agent() -> None:
+    """Workflow mutations stay agent-key-only + agent:workflow scope (AC6)."""
+    for target in _WORKFLOW_WRITES:
+        method, path = target.split(" ", 1)
+        surface = _path_surface(method, path)
+        assert surface == "agent", f"{target} must be agent-surface, got {surface!r}"
