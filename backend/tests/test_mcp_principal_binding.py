@@ -261,7 +261,18 @@ def test_mismatch_emits_warning_and_span_attrs(
     import opentelemetry.trace as otel_trace
 
     span = _RecordingSpan()
-    monkeypatch.setattr(otel_trace, "get_current_span", lambda: span)
+    real_get_current_span = otel_trace.get_current_span
+
+    def _get_current_span(*args: object, **kwargs: object) -> object:
+        # fastapi>=0.160 native telemetry resolves parents via the SDK, which
+        # calls get_current_span(context) with an argument — pass those through
+        # to the real span; only the app's no-arg lookup (the subject of this
+        # test) must see the spy.
+        if args or kwargs:
+            return real_get_current_span(*args, **kwargs)
+        return span
+
+    monkeypatch.setattr(otel_trace, "get_current_span", _get_current_span)
 
     raw, principal = _seed_agent(db_session)
     _other_raw, other = _seed_agent(db_session)

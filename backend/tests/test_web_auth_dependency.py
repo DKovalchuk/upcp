@@ -257,7 +257,18 @@ def test_unknown_subject_401_observability(
     import opentelemetry.trace as otel_trace
 
     span = _RecordingSpan()
-    monkeypatch.setattr(otel_trace, "get_current_span", lambda: span)
+    real_get_current_span = otel_trace.get_current_span
+
+    def _get_current_span(*args: object, **kwargs: object) -> object:
+        # fastapi>=0.160 native telemetry resolves parents via the SDK, which
+        # calls get_current_span(context) with an argument — pass those through
+        # to the real span; only the app's no-arg lookup (the subject of this
+        # test) must see the spy.
+        if args or kwargs:
+            return real_get_current_span(*args, **kwargs)
+        return span
+
+    monkeypatch.setattr(otel_trace, "get_current_span", _get_current_span)
 
     sub = str(uuid4())
     token = TS.create_access_token(sub)

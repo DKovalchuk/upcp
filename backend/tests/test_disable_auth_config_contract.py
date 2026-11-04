@@ -26,8 +26,16 @@ _TRUTHY = frozenset({"true", "1", "yes", "on"})
 def _config_files() -> list[Path]:
     """Root-level TRACKED config examples (git-ls-files — untracked local
     ``.env`` copies are developer state, not shipped examples)."""
+    # CI's shared /builds checkout carries mixed ownership (quality:gate chowns
+    # `.`/frontend/tests to uid 1000, .git stays root) → git's dubious-ownership
+    # guard exits 128. Command-line safe.directory scopes the bypass to this
+    # one read-only ls-files call.
     proc = subprocess.run(
-        ["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True, check=True
+        ["git", "-c", "safe.directory=*", "ls-files"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
     )
     names = [
         line
