@@ -32,6 +32,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -40,10 +41,11 @@ from app.identity.dependencies import get_agent_auth
 from app.mcp.server import create_mcp_router
 from app.mcp.tools import get_tools
 from app.shared.config import get_settings
-from app.shared.database import get_session
+from app.shared.database import Base, get_session
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import Session, sessionmaker
 
 from tests.conftest import _override_session
 
@@ -278,29 +280,79 @@ def test_mismatch_emits_warning_and_span_attrs(
 # ── Isolation: concurrent clients as different agents ─────────────────────
 
 
-def test_principal_isolation_between_concurrent_clients(
-    auth_enabled: None, db_session: Session
-) -> None:
+def _file_sessionmaker(db_path: Path) -> tuple[sessionmaker, object]:
+    """FILE-backed sqlite engine: separate connections per request.
+
+    The suite's shared StaticPool in-memory connection cannot serve
+    concurrent writers (sqlite3 ``InterfaceError: API misuse`` — a
+    test-infra limitation of the hermetic harness, not product behavior),
+    so genuine concurrency for the auth + binding path needs its own
+    engine with one connection per session.
+    """
+    engine = create_engine(
+        f"sqlite:///{db_path}",
+        connect_args={"check_same_thread": False, "timeout": 5.0},
+    )
+
+    @event.listens_for(engine, "connect")
+    def _enable_fk(dbapi_conn, _record):  # noqa: ANN001 — pysqlite connection
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    Base.metadata.create_all(bind=engine)
+    return sessionmaker(bind=engine), engine
+
+
+def test_principal_isolation_between_concurrent_clients(auth_enabled: None, tmp_path: Path) -> None:
     """Per-request state: each concurrent client sees only its own principal."""
-    app = _binding_app()
-    a_raw, a_id = _seed_agent(db_session)
-    b_raw, b_id = _seed_agent(db_session)
-    cases: list[tuple[str, str, bool]] = [
-        (a_raw, a_id, True),  # A as A → accepted
-        (b_raw, b_id, True),  # B as B → accepted
-        (a_raw, b_id, False),  # A as B → refused
-        (b_raw, a_id, False),  # B as A → refused
-    ]
+    maker, engine = _file_sessionmaker(tmp_path / "binding.db")
+    app = FastAPI()
+    app.include_router(
+        create_mcp_router(),
+        prefix="/mcp",
+        dependencies=[Depends(get_agent_auth())],
+    )
 
-    def run(case: tuple[str, str, bool]):  # noqa: ANN202
-        token, agent_arg, _should_pass = case
-        client = TestClient(app)
-        return _tools_call(
-            client, {"X-Agent-Token": token}, "get_agent_inbox", {"agent_id": agent_arg}
-        )
+    def _session_override():
+        s = maker()
+        try:
+            yield s
+            s.commit()
+        except Exception:
+            s.rollback()
+            raise
+        finally:
+            s.close()
 
-    with ThreadPoolExecutor(max_workers=len(cases)) as pool:
-        results = [f.result() for f in [pool.submit(run, c) for c in cases]]
+    app.dependency_overrides[get_session] = _session_override
+
+    db = maker()
+    try:
+        a_raw, a_id = _seed_agent(db)
+        b_raw, b_id = _seed_agent(db)
+    finally:
+        db.close()
+
+    try:
+        cases: list[tuple[str, str, bool]] = [
+            (a_raw, a_id, True),  # A as A → accepted
+            (b_raw, b_id, True),  # B as B → accepted
+            (a_raw, b_id, False),  # A as B → refused
+            (b_raw, a_id, False),  # B as A → refused
+        ]
+
+        def run(case: tuple[str, str, bool]):
+            token, agent_arg, _should_pass = case
+            client = TestClient(app)
+            return _tools_call(
+                client, {"X-Agent-Token": token}, "get_agent_inbox", {"agent_id": agent_arg}
+            )
+
+        with ThreadPoolExecutor(max_workers=len(cases)) as pool:
+            results = [f.result() for f in [pool.submit(run, c) for c in cases]]
+    finally:
+        engine.dispose()
 
     for case, resp in zip(cases, results, strict=True):
         _token, agent_arg, should_pass = case
