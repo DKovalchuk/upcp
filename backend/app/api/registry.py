@@ -35,6 +35,7 @@ from app.api.v1.reporting import router as reporting_router
 from app.api.v1.search import router as search_router
 from app.api.v1.structure import router as structure_router
 from app.api.v1.task_workflow import router as workflow_router
+from app.api.v1.task_workflow import workflow_read_router as workflow_read_router
 from app.identity.agent_endpoints import router as agent_admin_router
 from app.identity.dependencies import get_agent_auth, get_web_auth
 from app.identity.endpoints import public_router as auth_public_router
@@ -64,6 +65,10 @@ WEB_ROUTERS: tuple[tuple[APIRouter, str], ...] = (
     (analytics_router, API_PREFIX),
     # agent MANAGEMENT is an admin web-UI feature (D5): JWT surface
     (agent_admin_router, API_PREFIX),
+    # workflow READ-BACKS are UI features (D5 amendment, TASK-0179): the
+    # Execution/Clarifications tabs list claims/heartbeats/clarifications
+    # with a JWT — the writes on `workflow_router` stay agent-key-only.
+    (workflow_read_router, API_PREFIX),
     (reaper_router, API_PREFIX),
     (auth_protected_router, AUTH_PREFIX),
 )

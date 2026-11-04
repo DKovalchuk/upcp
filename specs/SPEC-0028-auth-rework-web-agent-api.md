@@ -71,6 +71,19 @@ regression-proofed by route-enumeration tests.
   inventories actual MCP callers first — AuthMiddleware accepts Bearer JWT
   on `/mcp` today; if internal callers rely on it, dual-accept temporarily
   with a tracked tightening.
+  - **Amendment (Dmitry, 2026-11-04 — TASK-0179, red e2e gate on
+    develop):** the workflow READ-BACKS are a UI feature —
+    `GET /tasks/{id}/claims|heartbeats|clarifications` moved to the
+    *web* surface on their own router (`workflow_read_router`,
+    registry WEB group): the Execution/Clarifications tabs request them
+    with a JWT and401'd into a refresh → logout cascade under the
+    initial classification (the spec had inventoried MCP/REST callers,
+    not the browser). Every workflow WRITE (`claim`, `release`,
+    `heartbeat`, `progress`, clarification create/answer) stays
+    *agent* (key + `agent:workflow` scope) — they carry agent identity
+    in the domain (`get_current_agent`, `claim.agent_id` checks) and the
+    UI's release/answer buttons did not work with a JWT before the batch
+    either (tracked separately). No dual-accept on workflow.
 - **D6 — Test process:** before implementing each task, jointly pin down
   behavior / boundaries / conditions / AC / test matrix (Dmitry
   2026-11-02). «Tests exist» is never evidence of completeness (§6).

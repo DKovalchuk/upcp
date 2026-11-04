@@ -82,7 +82,9 @@ def agent_headers(admin_headers: dict[str, str]) -> dict[str, str]:
     resp = httpx.post(
         f"{BASE}/api/v1/agents/{agent_id}/tokens",
         headers=admin_headers,
-        json={"name": "authz-mcp-probe"},
+        # FIX-1 (TASK-0175): keys minted without scopes default to deny-all
+        # — /mcp/tools is scope-gated with agent:mcp, so ask for it here.
+        json={"name": "authz-mcp-probe", "scopes": ["agent:mcp"]},
         timeout=15.0,
     )
     assert resp.status_code == 201, f"create token -> {resp.status_code}: {resp.text[:200]}"

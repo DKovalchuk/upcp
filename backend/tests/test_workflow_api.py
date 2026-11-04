@@ -11,7 +11,7 @@ import app.identity.rbac  # noqa: F401
 import app.quality.models  # noqa: F401
 import app.reporting.models  # noqa: F401
 import pytest
-from app.api.v1.task_workflow import router
+from app.api.v1.task_workflow import router, workflow_read_router
 from app.delivery.models import (
     ClarificationRequest,
     Feature,
@@ -38,6 +38,9 @@ def _make_app():
     _app = FastAPI()
     register_error_handlers(_app)
     _app.include_router(router, prefix="/api/v1")
+    # read-backs live on the web surface router (D5 amendment, TASK-0179);
+    # this bare unit app attaches no blankets, handler logic is under test.
+    _app.include_router(workflow_read_router, prefix="/api/v1")
     _app.dependency_overrides[get_session] = _override_session
     return _app
 

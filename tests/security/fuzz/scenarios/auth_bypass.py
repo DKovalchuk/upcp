@@ -1,8 +1,10 @@
 """Fuzz scenario: auth_bypass (SPEC-0024 Phase 4).
 
 Probes anonymous and tampered-credential access to protected surfaces:
-- no token on /api/v1/* and /mcp (expect 401)
-- HTTP method tricks without auth (expect 401, not 405/500)
+- no token on existing protected paths (expect 401)
+- HTTP method tricks without auth (never 2xx/5xx — 401 on a routed
+  method, 405 when the method is not routed at all; SPEC-0028 D2 moved
+  auth into route dependencies, so dispatch decisions happen first)
 - malformed / tampered / wrong-scheme Authorization headers
 - agent self-service endpoints without a valid X-Agent-Token
 """
@@ -23,19 +25,24 @@ from tests.security.fuzz.harness import (
 TIMEOUT = 15.0
 CATEGORY = "auth_bypass"
 
-# Protected read surfaces (domain API, agent registry, admin-ish, MCP).
+# Protected read surfaces — REAL existing paths only: since SPEC-0028 D2
+# auth lives in route dependencies, so a phantom path answers 404 before
+# auth runs (the retired AuthMiddleware answered 401 pre-routing and
+# masked dead probes). /mcp carries a trailing slash to skip the 307.
 NO_AUTH_GET = (
     "/api/v1/projects",
     "/api/v1/agents",
-    "/api/v1/audit/logs",
-    "/api/v1/tasks",
-    "/api/v1/dashboard",
+    "/api/v1/audit/export",
+    "/api/v1/tasks/00000000-0000-0000-0000-000000000000",
+    "/api/v1/dashboard/stats",
     "/api/v1/agent/me",
-    "/mcp",
+    "/mcp/",
 )
 
-# Method tricks: unauthenticated writes must be rejected with 401 before any
-# method-based dispatch (never 405/500, never success).
+# Method tricks: an unauthenticated write must never succeed. Since D2 the
+# refusal is 401 (route exists, auth denies) or 405 (method not routed —
+# no handler runs either; the route inventory is public via /openapi.json
+# anyway). Never 2xx/5xx is the invariant that matters.
 METHOD_TRICKS = (
     ("POST", "/api/v1/projects"),
     ("PUT", "/api/v1/projects"),
@@ -45,6 +52,9 @@ METHOD_TRICKS = (
     ("DELETE", "/api/v1/projects/11111111-1111-1111-1111-111111111111"),
     ("POST", "/api/v1/search"),
 )
+
+# Denials accepted for method tricks under D2 (see METHOD_TRICKS).
+_METHOD_TRICK_DENIALS = (401, 405)
 
 
 def _expect_401(
@@ -63,6 +73,23 @@ def _expect_401(
     )
 
 
+def _expect_denied(
+    checks: list[dict], name: str, resp: httpx.Response, allowed: tuple[int, ...]
+) -> None:
+    """Refused, never successful: status in ``allowed`` and below 500."""
+    checks.append(
+        check(
+            name,
+            CATEGORY,
+            resp.status_code in allowed and resp.status_code < 500,
+            expected=f"{'/'.join(str(s) for s in allowed)} (never 2xx/5xx)",
+            actual=str(resp.status_code),
+            detail=f"-> {resp.status_code} {snippet(resp.text)}",
+            severity="high",
+        )
+    )
+
+
 def run(base_url: str) -> list[dict]:
     """Run auth bypass probes against a live target; return check records."""
     base = base_url.rstrip("/")
@@ -77,10 +104,10 @@ def run(base_url: str) -> list[dict]:
         # 2. Anonymous write attempts via assorted HTTP methods.
         for method, path in METHOD_TRICKS:
             resp = anon.request(method, path)
-            _expect_401(checks, f"no-token {method} {path}", resp)
+            _expect_denied(checks, f"no-token {method} {path}", resp, _METHOD_TRICK_DENIALS)
 
-        # 3. Anonymous MCP JSON-RPC POST.
-        _expect_401(checks, "no-token POST /mcp", anon.post("/mcp", json={}))
+        # 3. Anonymous MCP JSON-RPC POST (slash form — no 307 redirect).
+        _expect_401(checks, "no-token POST /mcp/", anon.post("/mcp/", json={}))
 
         # 4. Malformed / tampered credentials on a protected endpoint.
         bad_credentials = (
