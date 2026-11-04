@@ -44,7 +44,7 @@ One collected test = one check. Written only when `SECURITY_RESULT_OUT` is set.
 | Tokens | valid JWT → `/auth/me` 200; minted JWT accepted (secret wiring) | missing/garbage bearer, wrong signature, `type=refresh`, nonexistent subject → 401 | expired-but-signed JWT → 401 |
 | Refresh | rotation issues new pair; chain hop 2 works | reused old refresh → 401; garbage → 401 | — |
 | Logout | — | logout → refresh 401 **and** access 401 (denylist); logout requires auth | — |
-| Auth bypass | 12 endpoints × valid JWT → not 401/403 | same 12 × anonymous → 401; malformed `Authorization`, garbage `X-Agent-Token` → 401 | documented-public `/health`, `/api/v1/health` → 200 |
+| Auth bypass | 11 web endpoints × valid JWT + `/mcp/tools` × agent key (D5, TASK-0170) → not 401/403 | same 12 × anonymous → 401; malformed `Authorization`, garbage `X-Agent-Token` → 401 | documented-public `/health`, `/api/v1/health` → 200 |
 | RBAC | owner creates/revokes agent token (201/200); member reads agents; fresh agent token → `/api/v1/agent/me` 200 | member create/revoke token → 403; revoked agent token → 401 | Member `update:project` → 403 (route gates, TASK-0145) |
 | Password | — | wrong current → 400; unauthenticated → 401 | weak new password → 422 |
 | Lockout | — | **skipped** (see below) | — |
@@ -59,7 +59,7 @@ One collected test = one check. Written only when `SECURITY_RESULT_OUT` is set.
 3. Seeded RBAC roles never enforced → fixed by **TASK-0145** (route gates);
    `test_member_update_project_enforces_role` strict-passes.
 4. Dead `PUBLIC_PATHS` entry `/mcp/health` → fixed by **TASK-0148** (entry
-   removed; regression in `backend/tests/test_public_paths.py`).
+   removed; regression in `backend/tests/test_auth_docs_contract.py`).
 
 ## Limitations
 
@@ -74,4 +74,5 @@ One collected test = one check. Written only when `SECURITY_RESULT_OUT` is set.
   branch is covered by the nonexistent-subject check).
 - Rate-limit `429` is out of scope: `UPCP_DISABLE_RATE_LIMIT=true` on this stack.
 - The former dead `PUBLIC_PATHS` entry `/mcp/health` was removed in
-  TASK-0148 (regression-tested in `backend/tests/test_public_paths.py`).
+  TASK-0148; `PUBLIC_PATHS` itself retired with `AuthMiddleware` in
+  TASK-0170 (docs↔routes regression: `backend/tests/test_auth_docs_contract.py`).

@@ -1,8 +1,19 @@
 import logging
+from collections.abc import Sequence
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.delivery.models import Comment, Feature, Subtask, Task
+from app.delivery.models import (
+    AgentInboxEvent,
+    ClarificationRequest,
+    Comment,
+    Feature,
+    Heartbeat,
+    Subtask,
+    Task,
+    TaskClaim,
+)
 from app.shared.errors import Conflict, NotFound, ValidationError
 from app.shared.events import event_bus
 from app.shared.text import slugify
@@ -337,3 +348,110 @@ class CommentService:
             .order_by(Comment.created_at.asc())
             .all()
         )
+
+
+class AgentActivityService:
+    """Read-only agent activity views over delivery-owned data — TASK-0176.
+
+    Public read surface consumed by ``identity/agent_endpoints.py`` and
+    ``api/v1/agent_self.py``: claims, heartbeats, tasks, inbox events and
+    clarification requests of a single agent. Every query stays inside the
+    delivery context; consumers use this service instead of importing
+    ``delivery.models`` (AGENTS §5). Pure reads — no auth/ownership
+    semantics (that stays with the consuming route's gates).
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def count_claims(self, agent_id: str, *, state: str | None = None) -> int:
+        """Count task claims of an agent, optionally filtered by claim state."""
+        q = self._session.query(TaskClaim).filter(TaskClaim.agent_id == agent_id)
+        if state is not None:
+            q = q.filter(TaskClaim.state == state)
+        return q.count()
+
+    def get_active_claim(self, agent_id: str) -> TaskClaim | None:
+        """The agent's current active claim, if any."""
+        return (
+            self._session.query(TaskClaim)
+            .filter(TaskClaim.agent_id == agent_id, TaskClaim.state == "active")
+            .first()
+        )
+
+    def last_claimed_at(self, agent_id: str) -> datetime | None:
+        """Most recent claim time of the agent (activity marker), if any."""
+        row = (
+            self._session.query(TaskClaim.claimed_at)
+            .filter(TaskClaim.agent_id == agent_id)
+            .order_by(TaskClaim.claimed_at.desc())
+            .first()
+        )
+        return row[0] if row is not None else None
+
+    def list_claims(self, agent_id: str, *, limit: int = 100) -> list[TaskClaim]:
+        """Claims of an agent, newest first."""
+        return (
+            self._session.query(TaskClaim)
+            .filter(TaskClaim.agent_id == agent_id)
+            .order_by(TaskClaim.claimed_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_latest_heartbeat(self, claim_id: str) -> Heartbeat | None:
+        """Most recent heartbeat of a claim, if any."""
+        return (
+            self._session.query(Heartbeat)
+            .filter(Heartbeat.claim_id == claim_id)
+            .order_by(Heartbeat.created_at.desc())
+            .first()
+        )
+
+    def list_tasks_by_ids(self, task_ids: Sequence[str]) -> list[Task]:
+        """Batch task lookup (no N+1); unknown ids are simply absent."""
+        if not task_ids:
+            return []
+        return self._session.query(Task).filter(Task.id.in_(list(task_ids))).all()
+
+    def list_inbox_events(
+        self, agent_id: str, *, unread_only: bool = False, limit: int = 50
+    ) -> list[AgentInboxEvent]:
+        """Inbox events of an agent, newest first."""
+        q = self._session.query(AgentInboxEvent).filter(AgentInboxEvent.agent_id == agent_id)
+        if unread_only:
+            q = q.filter(AgentInboxEvent.is_read.is_(False))
+        return q.order_by(AgentInboxEvent.created_at.desc()).limit(limit).all()
+
+    def list_clarifications(
+        self, author_id: str, *, limit: int = 100
+    ) -> list[ClarificationRequest]:
+        """Clarification requests authored by one agent/user, newest first.
+
+        No ``author_type`` filter — parity with the agent detail tab, which
+        lists every clarification the author id matches.
+        """
+        return (
+            self._session.query(ClarificationRequest)
+            .filter(ClarificationRequest.author_id == author_id)
+            .order_by(ClarificationRequest.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def count_clarifications(
+        self,
+        author_id: str,
+        *,
+        author_type: str | None = None,
+        state: str | None = None,
+    ) -> int:
+        """Count clarification requests authored by one agent/user."""
+        q = self._session.query(ClarificationRequest).filter(
+            ClarificationRequest.author_id == author_id
+        )
+        if author_type is not None:
+            q = q.filter(ClarificationRequest.author_type == author_type)
+        if state is not None:
+            q = q.filter(ClarificationRequest.state == state)
+        return q.count()

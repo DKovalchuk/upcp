@@ -11,17 +11,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.delivery.models import (
-    AgentInboxEvent,
-    ClarificationRequest,
-    Task,
-    TaskClaim,
-)
+from app.delivery.service import AgentActivityService
 from app.identity.agents import Agent, AgentToken
 from app.identity.auth import get_current_user
 from app.identity.dependencies import CurrentUser
 from app.identity.permissions import require_permission
-from app.quality.models import Evidence, ReviewRound
+from app.quality.service import EvidenceService, ReviewRoundService
+from app.shared.config import get_settings
 from app.shared.database import get_session
 from app.shared.text import new_id
 
@@ -43,6 +39,9 @@ class AgentCreate(BaseModel):
 class AgentTokenCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     scopes: list[str] | None = None
+    # AC7 (SPEC-0028 D1): optional explicit expiry — must be in the future;
+    # when omitted, issuance falls back to settings.agent_token_ttl_days.
+    expires_at: datetime | None = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────
@@ -119,24 +118,15 @@ def get_agent(
     tokens = db.query(AgentToken).filter_by(agent_id=agent_id).all()
 
     # ── Metrics (B5) ──
-    completed = (
-        db.query(TaskClaim)
-        .filter(TaskClaim.agent_id == agent_id, TaskClaim.state == "completed")
-        .count()
-    )
-    expired = (
-        db.query(TaskClaim)
-        .filter(TaskClaim.agent_id == agent_id, TaskClaim.state == "expired")
-        .count()
-    )
+    # Cross-context reads go through delivery's public AgentActivityService
+    # (TASK-0176 / AGENTS §5) — identity never queries delivery models.
+    activity = AgentActivityService(db)
+    completed = activity.count_claims(agent_id, state="completed")
+    expired = activity.count_claims(agent_id, state="expired")
     total_finished = completed + expired
     success_rate = round(completed / total_finished * 100, 1) if total_finished > 0 else None
 
-    active_claim = (
-        db.query(TaskClaim)
-        .filter(TaskClaim.agent_id == agent_id, TaskClaim.state == "active")
-        .first()
-    )
+    active_claim = activity.get_active_claim(agent_id)
 
     current_task_id: str | None = None
     current_task_title: str | None = None
@@ -146,7 +136,8 @@ def get_agent(
 
     if active_claim is not None:
         current_task_id = active_claim.task_id
-        task = db.get(Task, active_claim.task_id)
+        tasks = activity.list_tasks_by_ids([active_claim.task_id])
+        task = tasks[0] if tasks else None
         if task is not None:
             current_task_title = task.title
 
@@ -161,14 +152,7 @@ def get_agent(
             is_stale = hb_dt < stale_cutoff
 
             # Get latest heartbeat for progress
-            from app.delivery.models import Heartbeat
-
-            latest_hb = (
-                db.query(Heartbeat)
-                .filter(Heartbeat.claim_id == active_claim.id)
-                .order_by(Heartbeat.created_at.desc())
-                .first()
-            )
+            latest_hb = activity.get_latest_heartbeat(active_claim.id)
             if latest_hb is not None:
                 current_progress = latest_hb.progress_percent
         else:
@@ -187,15 +171,10 @@ def get_agent(
         agent_status = "stale"
     else:
         # Check last activity
-        last_activity = (
-            db.query(TaskClaim.claimed_at)
-            .filter(TaskClaim.agent_id == agent_id)
-            .order_by(TaskClaim.claimed_at.desc())
-            .first()
-        )
-        if last_activity is not None and last_activity[0] is not None:
+        last_activity_at = activity.last_claimed_at(agent_id)
+        if last_activity_at is not None:
             offline_cutoff = datetime.now(UTC) - timedelta(hours=1)
-            agent_status = "idle" if last_activity[0] > offline_cutoff else "offline"
+            agent_status = "idle" if last_activity_at > offline_cutoff else "offline"
         else:
             agent_status = "idle"
 
@@ -242,22 +221,50 @@ def create_agent_token(
     user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_session),
 ) -> dict[str, object]:
+    """Issue an agent API key — always with an expiry (AC7, TASK-0170).
+
+    Default TTL comes from ``UPCP_AGENT_TOKEN_TTL_DAYS`` (90); an explicit
+    ``expires_at`` is honored but must be in the future (422 otherwise).
+    Keys issued before this rule (``expires_at IS NULL``) are grandfathered
+    — the verifier only rejects non-null past expiries — until revoked.
+
+    Scopes are FAIL-CLOSED at issuance (SPEC-0028 AC6, review fix): a body
+    without ``scopes`` stores ``[]`` (deny-all), never NULL — the scope gate
+    grandfathers only legacy ``NULL`` rows, so omission must never mint a key
+    that inherits the grandfather. An explicit list is stored as-is.
+    """
     _require_agent(db, agent_id, user.user_id)
 
     raw_token = secrets.token_urlsafe(48)
     token_hash = _hash_token(raw_token)
+
+    now = datetime.now(UTC)
+    if body.expires_at is None:
+        expires_at = now + timedelta(days=get_settings().agent_token_ttl_days)
+    else:
+        expires_at = (
+            body.expires_at
+            if body.expires_at.tzinfo is not None
+            else body.expires_at.replace(tzinfo=UTC)
+        )
+        if expires_at <= now:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="expires_at must be in the future",
+            )
 
     record = AgentToken(
         id=new_id(),
         agent_id=agent_id,
         token_hash=token_hash,
         name=body.name,
-        scopes=body.scopes,
+        scopes=body.scopes if body.scopes is not None else [],
+        expires_at=expires_at,
     )
     db.add(record)
     db.flush()
     # commit before respond — the client uses the fresh token immediately;
-    # middleware looks the row up in a different session (TASK-0143)
+    # the auth path looks the row up in a different session (TASK-0143)
     db.commit()
 
     return {
@@ -265,6 +272,7 @@ def create_agent_token(
         "name": record.name,
         "token": raw_token,  # Shown once, never stored
         "scopes": record.scopes,
+        "expires_at": expires_at.isoformat(),
         "created_at": record.created_at.isoformat(),
     }
 
@@ -307,17 +315,12 @@ def agent_claims(
 ) -> dict[str, object]:
     _require_agent(db, agent_id)
 
-    claims = (
-        db.query(TaskClaim)
-        .filter(TaskClaim.agent_id == agent_id)
-        .order_by(TaskClaim.claimed_at.desc())
-        .limit(100)
-        .all()
-    )
+    activity = AgentActivityService(db)
+    claims = activity.list_claims(agent_id, limit=100)
 
     # Batch-load tasks to avoid N+1
     task_ids = [c.task_id for c in claims if c.task_id]
-    tasks = db.query(Task).filter(Task.id.in_(task_ids)).all() if task_ids else []
+    tasks = activity.list_tasks_by_ids(task_ids)
     task_map = {t.id: t for t in tasks}
 
     items = []
@@ -348,13 +351,7 @@ def agent_activity(
 ) -> dict[str, object]:
     _require_agent(db, agent_id)
 
-    events = (
-        db.query(AgentInboxEvent)
-        .filter(AgentInboxEvent.agent_id == agent_id)
-        .order_by(AgentInboxEvent.created_at.desc())
-        .limit(100)
-        .all()
-    )
+    events = AgentActivityService(db).list_inbox_events(agent_id, limit=100)
 
     return {
         "items": [
@@ -379,13 +376,7 @@ def agent_evidence(
 ) -> dict[str, object]:
     _require_agent(db, agent_id)
 
-    items = (
-        db.query(Evidence)
-        .filter(Evidence.created_by_id == agent_id)
-        .order_by(Evidence.created_at.desc())
-        .limit(100)
-        .all()
-    )
+    items = EvidenceService(db).list_by_creator(agent_id, limit=100)
 
     return {
         "items": [
@@ -410,13 +401,7 @@ def agent_reviews(
 ) -> dict[str, object]:
     _require_agent(db, agent_id)
 
-    items = (
-        db.query(ReviewRound)
-        .filter(ReviewRound.reviewer_id == agent_id)
-        .order_by(ReviewRound.created_at.desc())
-        .limit(100)
-        .all()
-    )
+    items = ReviewRoundService(db).list_by_reviewer(agent_id, limit=100)
 
     return {
         "items": [
@@ -441,13 +426,7 @@ def agent_clarifications(
 ) -> dict[str, object]:
     _require_agent(db, agent_id)
 
-    items = (
-        db.query(ClarificationRequest)
-        .filter(ClarificationRequest.author_id == agent_id)
-        .order_by(ClarificationRequest.created_at.desc())
-        .limit(100)
-        .all()
-    )
+    items = AgentActivityService(db).list_clarifications(agent_id, limit=100)
 
     return {
         "items": [

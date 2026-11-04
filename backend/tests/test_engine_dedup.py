@@ -12,6 +12,10 @@ TASK-0112 разбор «dedup vs зафиксированные исключе�
   cross-connection commit visibility of agent creation.
 - ``test_auth_commit_before_respond.py`` — same pattern for the auth
   commit-before-respond contract.
+- ``test_mcp_principal_binding.py`` — the principal-isolation test runs
+  four requests concurrently; the shared StaticPool connection cannot
+  serve parallel writers (sqlite3 ``InterfaceError: API misuse``), so
+  it needs a file-backed engine with one connection per session.
 
 Live suites (root ``tests/security/``, ``tests/performance/``) run
 against real databases and are out of this invariant's scope.
@@ -29,6 +33,7 @@ ALLOWED_OWN_ENGINES = frozenset(
     {
         "test_agent_create_commit.py",
         "test_auth_commit_before_respond.py",
+        "test_mcp_principal_binding.py",
     }
 )
 

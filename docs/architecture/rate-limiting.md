@@ -4,6 +4,19 @@
 
 UPCP uses a Redis sliding window rate limiter to protect the API from abuse and ensure fair use. Limits vary by route class and user type.
 
+### Two-layer design (SPEC-0028 / TASK-0173)
+
+1. **IP floor** (`RateLimitMiddleware`) — applies to every path except an
+   exact public skip set (`/health`, `/api/v1/health`, `/metrics`,
+   `/docs`, `/redoc`, `/openapi.json`, `/docs/oauth2-redirect`).
+   There is **no prefix matching**: unknown/future paths are limited by
+   default (default-deny).
+2. **Per-surface policy** (`SurfaceRateLimit`, attached after the auth
+   dependency in `include_surfaces`) — keyed `user:{id}` / `agent:{id}`
+   with IP fallback; limits from `UPCP_RATE_LIMIT_WEB_MAX/_WINDOW` and
+   `UPCP_RATE_LIMIT_AGENT_MAX/_WINDOW` (defaults 100 req / 60 s).
+   `UPCP_DISABLE_RATE_LIMIT` disables both layers.
+
 ---
 
 ## Algorithm: Sliding Window
@@ -72,6 +85,12 @@ class SlidingWindowRateLimiter:
 ---
 
 ## Route Classes
+
+> **Note (TASK-0173):** enforcement no longer classifies paths by
+> `startswith` — the rate-limit modules contain zero path-prefix strings
+> (pinned by `test_rate_limit_modules_contain_no_path_hardcodes`). The
+> classes below remain as conceptual granularity; the enforced scheme is
+> the two-layer design from the Overview.
 
 ### Definition
 

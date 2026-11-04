@@ -3,15 +3,16 @@
 Finding 3: logout revoked only the refresh token — the access JWT kept
 working on every route until exp. New semantics: logout writes
 ``auth:deny:{sha256(raw)}`` with TTL = exp − now (self-expiring); the
-middleware (domain routes) and ``get_current_user`` (/auth/*) reject the
-token 401 — same shape as an invalid token, distinguishable in
-logs/metric via reason=logout.
+domain-route guard (``web_auth`` since TASK-0169 — migrated off
+``AuthMiddleware`` in the harness migration) and ``get_current_user``
+(/auth/*) reject the token 401 — same shape as an invalid token,
+distinguishable in logs/metric via reason=logout.
 
 Redis is faked through ``app.shared.redis.get_redis_client`` (the
-denylist imports it lazily — test seam per the ``_fetch_user_state``
-precedent); Redis-down tests pin the documented fail-open tradeoff
-(AC5). No denylist symbols are imported at module level, so the file
-collects before the implementation exists.
+denylist and ``AuthCacheProvider`` import it lazily — test seam per the
+repositories' lazy-session precedent); Redis-down tests pin the
+documented fail-open tradeoff (AC5). No denylist symbols are imported at
+module level, so the file collects before the implementation exists.
 """
 
 from __future__ import annotations
@@ -24,10 +25,11 @@ from uuid import uuid4
 
 import app.shared.redis as shared_redis
 import pytest
-from app.identity.middleware import AuthMiddleware
 from app.identity.models import User
 from app.identity.token_service import TokenService
-from fastapi import FastAPI
+from app.identity.web_auth import web_auth
+from app.shared.config import get_settings
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -68,26 +70,35 @@ def fake_redis(monkeypatch: pytest.MonkeyPatch) -> Iterator[_MemRedis]:
 
 
 @pytest.fixture()
-def logged_in(db_session: Session, fake_redis: _MemRedis) -> Iterator[SimpleNamespace]:
-    """Auth router + middleware-guarded domain route, logged-in token pair.
+def logged_in(
+    db_session: Session, fake_redis: _MemRedis, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[SimpleNamespace]:
+    """Auth router (public part) + web_auth-guarded domain route, logged-in token pair.
 
     One TokenService instance signs the login JWTs and verifies them in
-    the middleware, mirroring production wiring with a test secret.
+    ``web_auth``, mirroring production wiring with a test secret. The
+    blanket covers ONLY the protected part — setup/login/refresh stay
+    reachable (mixed app, harness migration pattern (c)).
     """
     import bcrypt
     from app.identity.auth import _get_token_service
+    from app.identity.endpoints import public_router
     from app.identity.endpoints import router as auth_router
     from app.shared.database import get_session
 
+    monkeypatch.setattr(get_settings(), "disable_auth", False)  # web_auth must be ON
     ts = TokenService(secret_key="test-secret-key-for-denylist-tests")
     app = FastAPI()
+    app.include_router(public_router, prefix="/auth")
     app.include_router(auth_router, prefix="/auth")
 
-    @app.get("/api/v1/projects")
+    protected = APIRouter()
+
+    @protected.get("/api/v1/projects")
     async def list_projects() -> dict:
         return {"items": []}
 
-    app.add_middleware(AuthMiddleware, token_service=ts)
+    app.include_router(protected, dependencies=[Depends(web_auth)])
 
     def override_session():
         yield db_session
@@ -151,7 +162,7 @@ def _purge_user(db_session: Session, user_id: str) -> None:
 
 
 def test_domain_route_rejects_access_token_after_logout(logged_in: SimpleNamespace) -> None:
-    """Middleware-protected domain route → 401 for the logged-out access token."""
+    """web_auth-guarded domain route → 401 for the logged-out access token."""
     h = {"Authorization": f"Bearer {logged_in.access}"}
     assert logged_in.client.get("/api/v1/projects", headers=h).status_code == 200  # precondition
 
@@ -219,20 +230,25 @@ def test_redis_down_fails_open_and_warns(
     """Redis refused → authenticated requests still succeed (availability over ≤15-min window)."""
     import bcrypt
     from app.identity.auth import _get_token_service
+    from app.identity.endpoints import public_router
     from app.identity.endpoints import router as auth_router
     from app.shared.database import get_session
 
     monkeypatch.setattr(shared_redis, "get_redis_client", lambda: _BrokenRedis())
+    monkeypatch.setattr(get_settings(), "disable_auth", False)  # web_auth must be ON
 
     ts = TokenService(secret_key="test-secret-key-for-denylist-tests")
     app = FastAPI()
+    app.include_router(public_router, prefix="/auth")
     app.include_router(auth_router, prefix="/auth")
 
-    @app.get("/api/v1/projects")
+    protected = APIRouter()
+
+    @protected.get("/api/v1/projects")
     async def list_projects() -> dict:
         return {"items": []}
 
-    app.add_middleware(AuthMiddleware, token_service=ts)
+    app.include_router(protected, dependencies=[Depends(web_auth)])
 
     def override_session():
         yield db_session

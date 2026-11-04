@@ -3,15 +3,15 @@
 Finding 3: logout revoked only the refresh token — the access JWT kept
 working on every route until exp. Logout now writes
 ``auth:deny:{sha256(raw)}`` with TTL = exp − now (self-expiring, no
-cleanup job); :func:`is_token_denied` is checked in ``AuthMiddleware``
-(domain routes) and ``get_current_user`` (/auth/*).
+cleanup job); :func:`is_token_denied` is checked in ``web_auth``
+(web-surface routes) and ``get_current_user`` (/auth/*).
 
 Redis outage fails OPEN on read (availability over a ≤15-min
 revocation window — AC5, rate-limiter precedent) with a structured
 warning; write failures degrade the same way (logout still revokes the
 refresh token and commits the audit). The Redis client is imported
 lazily so tests can patch ``app.shared.redis.get_redis_client`` (test
-seam per ``_fetch_user_state``).
+seam per the lazy-session precedent).
 """
 
 import hashlib

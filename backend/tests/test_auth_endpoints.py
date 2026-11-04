@@ -16,10 +16,11 @@ def token_service() -> TokenService:
 @pytest.fixture()
 def auth_app(db_session: Session, token_service: TokenService) -> FastAPI:
     from app.identity.auth import _get_token_service
-    from app.identity.endpoints import router
+    from app.identity.endpoints import public_router, router
     from app.shared.database import get_session
 
     app = FastAPI()
+    app.include_router(public_router, prefix="/auth")
     app.include_router(router, prefix="/auth")
 
     def override_session():

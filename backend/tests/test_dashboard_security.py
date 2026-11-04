@@ -23,11 +23,11 @@ from app.api.v1.delivery import router as delivery_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.structure import router as structure_router  # noqa: F401
 from app.delivery.models import Feature, Task
-from app.identity.middleware import AuthMiddleware
+from app.identity.auth import _get_token_service
 from app.identity.token_service import TokenService
 from app.projects.models import Project
 from app.shared import rate_limit as rate_limit_mod
-from app.shared.config import Settings
+from app.shared.config import Settings, get_settings
 from app.shared.rate_limit_middleware import RateLimitMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -90,9 +90,10 @@ def client() -> TestClient:
 
 
 @pytest.fixture()
-def auth_client() -> TestClient:
-    app = make_test_app(dashboard_router, analytics_router)
-    app.add_middleware(AuthMiddleware)
+def auth_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """web_auth-protected app (TASK-0169): the guard must be ON."""
+    monkeypatch.setattr(get_settings(), "disable_auth", False)
+    app = make_test_app(dashboard_router, analytics_router, protect=True)
     return TestClient(app)
 
 
@@ -113,11 +114,12 @@ def test_e1_e4_invalid_token_returns_401(auth_client: TestClient, endpoint: str)
     assert "detail" in resp.json()
 
 
-def test_valid_token_reaches_dashboard_stats(seed_subject) -> None:
+def test_valid_token_reaches_dashboard_stats(seed_subject, monkeypatch: pytest.MonkeyPatch) -> None:
     """Control: 401 comes from the auth guard — a valid JWT for a live subject → 200."""
+    monkeypatch.setattr(get_settings(), "disable_auth", False)
     ts = TokenService()
-    app = make_test_app(dashboard_router, analytics_router)
-    app.add_middleware(AuthMiddleware, token_service=ts)
+    app = make_test_app(dashboard_router, analytics_router, protect=True)
+    app.dependency_overrides[_get_token_service] = lambda: ts
     client = TestClient(app)
     seed_subject("user-123")
     token = ts.create_access_token("user-123")

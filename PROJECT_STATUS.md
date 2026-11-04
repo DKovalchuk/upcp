@@ -1,33 +1,63 @@
 # PROJECT_STATUS
 
-Updated: 2026-11-01
+Updated: 2026-11-04
 Version: 0.22.0 (see `VERSIONING.md` for scheme)
 Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
-Current Task: **TASK-0167 IN PROGRESS 2026-11-01 — Public GitHub export
-(release-mirror workflow)**: UPCP опубликован в паблик как портфолио —
-**https://github.com/DKovalchuk/upcp** (public; seed = scrubbed текущий
-`main` 2026-08-17, 382 коммита; независимый gitleaks по свежему clone:
-ровно 7 baseline-фикстур, extras 0, `-S`-поиск stage-секрета по истории —
-пусто). Workflow согласован: GitLab source of truth → публикуется **только
-main** → CI-job `publish:github` после сборки образов: mirror-clone →
-детерминированный `git filter-repo --replace-text` → gitleaks baseline
-гейт → push (история GitLab/локальный репо не переписываются). Сделано в
-MR: scrub HEAD (compose `${UPCP_SECRET_KEY:?hint}` вместо хардкода,
-`.env.stage` untracked + `.env.stage.example`, redact протухших JWT в
-security-отчётах) + **5 контракт-тестов red→green**; MIT + README EN/RU
-(без копирайт-строк, ссылки проверены); `scripts/export-public.sh`
-(shellcheck clean; toy-smoke: scrub-доказательство, детерминизм hash,
-negative-гейт exit 1 без push); `.github/workflows/ci.yml`
-(backend ruff/mypy/pytest + postgres service, frontend oxlint/tsc/vitest).
-Полный прогон **1102 passed**, coverage 89.53%, ruff/format/mypy 114 —
-чисто; compose config позитив/негатив подтверждены. Delivery: 3 атомарных
-коммита (`a64a6d4`, `dca76c2`, `b57137b`) → **MR !104 открыт** (ждёт
-ревью; auto-merge не ставился). Prerequisites (вне MR, GitLab CI/CD
-Variables): masked `UPCP_SECRET_KEY` (иначе deploy:stage fail-fast на
-`:?`) и masked `GITHUB_PUB_TOKEN` (repo+**workflow** — экспорт содержит
-`.github/workflows/*`). Первый релизный мерж develop→main — после ревью
-Дмитрия (тогда на GitHub приедут LICENSE/README/CI). Evidence:
-`tasks/TASK-0167-public-github-export.md`.
+Current Task: **ПАЧКА SPEC-0028/0029 DONE 2026-11-04 — Auth rework +
+identity layering (TASK-0168…0177, 10 задач) — MR !105 merged**:
+default-deny реестр поверхностей + `web_auth`/`agent_auth` зависимости
+(`AuthMiddleware`/`PUBLIC_PATHS` удалены; enumeration AC1 — все ручки
+web+agent отвечают 401 без кредов), principal-binding в MCP
+(`agent_id`/`answered_by`/`created_by_id` == принципал, spoofing →
+`-32001`), обязательный TTL ключей + fail-closed scopes (новый ключ без
+scopes → `[]`), RBAC **43 гейта** + 19 пар в seed, layering-пилот
+(repositories + cache provider + SubjectState/AgentToken сервисы;
+`get_current_user`/`get_current_agent`/кеш прав — на них), cross-context
+чистка (AgentActivityService и др. — чужих моделей в identity/api нет),
+boundary-контракт exact-set (mutation-tested), surface observability
+(корреляция `web:`/`agent:` с санитизацией, span/metrics labels) +
+двухслойный rate-limit **без path-хардкодов** (fail-open + threadpool).
+Aspect-review (независимый read-only): вердикт «merge after fixing
+highs» → **8/8 фиксов в ветке** (`510e958`, `f79eead`, `286b006`);
+medium/low → **TASK-0178** (в очереди). Финальные гейты: **1565 passed,
+coverage 91.40%**, ruff/format/mypy (119) чисто, boundary gate green.
+Evidence: `tasks/TASK-0168…0178`; CHANGELOG [Unreleased] заполнен.
+MR: **!105 merged** (feature/TASK-0168-api-surface-registry → develop).
+
+**TASK-0179 DONE 2026-11-04 — quality-gate fallout (MR !106 merged)**:
+первый запуск hard-gate на коде пачки (develop **#536 RED** — MR-пайплайны
+gate не запускают): 4 кластера. **authz ×2 + perf ×25**: фикстуры чеканили
+agent-токены без scopes → fail-closed дефолт (FIX-1) → **403** на
+`agent:mcp`/`agent:self` (**ровно TASK-0178 item 5** — locust
+`_ensure_agent_token` со scopes `["agent:self","agent:workflow"]`); **fuzz ×9**: D2-семантика — auth как
+route-dependency даёт 404/405/307 **до** auth на фантомных путях/методах
+(старый middleware отвечал 401 pre-routing) → реальные пути в NO_AUTH_GET +
+method-tricks как отказ `401|405` (никогда 2xx/5xx); **e2e_fe ×2 =
+продуктовая регрессия D5** → решение владельца: split — **только**
+GET claims/heartbeats/clarifications → web surface (`workflow_read_router`,
+registry WEB), writes остаются agent-key-only (domain identity
+`get_current_agent`/`claim.agent_id`; UI release/answer с JWT не работали и
+до батча — follow-up). **D5 amendment** в SPEC-0028; пины: registry
+(reads=web/writes=agent) + agent-surface (web JWT на чтениях → 404 ≠ 401
+через production composition). Верификация: develop **#538 quality:gate
+success — `RCs: e2e=0 e2e_fe=0 chaos=0 security=0 perf=0`, exit 0**
+(+ build/deploy:dev green). Локальные гейты: **1568 passed, coverage
+91.44%**, ruff/format/mypy clean. Evidence: `tasks/TASK-0179-quality-gate-fallout.md`.
+
+**TASK-0167 (MR !104, этот merge) — Public GitHub export**:
+GitLab source of truth → публикуется **только `main`** → CI-job
+`publish:github` (needs build:backend/build:frontend, только main):
+mirror-clone → детерминированный `git filter-repo --replace-text` →
+gitleaks baseline-гейт → push в **https://github.com/DKovalchuk/upcp**
+(история GitLab/локального репо не переписывается). В MR: scrub HEAD
+(compose `${UPCP_SECRET_KEY:?hint}` вместо хардкода, `.env.stage`
+untracked + example, redact протухших JWT) + 5 контракт-тестов; MIT +
+README EN/RU; `scripts/export-public.sh` (shellcheck clean, toy-smoke
+доказательства); `.github/workflows/ci.yml` (backend+frontend CI для
+GitHub Actions-бейджа). Решение владельца 2026-11-04: мерж !104 →
+develop→main релиз → publish:github. Prerequisites: masked CI-переменные
+`UPCP_SECRET_KEY` + `GITHUB_PUB_TOKEN` (repo+**workflow** scope).
+Evidence: `tasks/TASK-0167-public-github-export.md`.
 Prev (TASK-0166): **TASK-0166 DONE 2026-10-31 — dev seed всех механизмов +
 верификация компонентов**: dev-БД наполнена через API + SQL-бэкфил так,
 что каждый механизм покрыт read-back'ом. Новые артефакты: `seed_common.py`
@@ -114,6 +144,18 @@ Queued (2026-10-31): ~~**Incident 2026-10-31** — schedule quality gate **#515*
 (develop@185f1b8c) `e2e_fe=1`: attention-e2e strict-mode (заголовок vs
 empty-state, data-dependent флаки) → **TASK-0165**~~ — **закрыт 2026-10-31**
 (develop #519 gate success, e2e_fe=0);
+**Auth/layering batch (SPEC-0028 + SPEC-0029) — ВСЁ DONE 2026-11-04,
+MR !105:** ~~TASK-0168 (реестр поверхностей), TASK-0169 (web_auth +
+enumeration + миграция харнесса), TASK-0170 (agent surface + TTL/scopes +
+retirement AuthMiddleware), TASK-0171 (MCP principal binding),
+TASK-0172 (RBAC 43 гейта), TASK-0173 (surface observability + rate без
+хардкодов), TASK-0174 (layering foundation), TASK-0175 (unification),
+TASK-0176 (cross-context cleanup), TASK-0177 (boundary contract)~~ —
+все 10 закрыты с evidence (red→green + per-task multi-factor);
+aspect-review пачки → 8 фиксов в ветке. **В очереди: TASK-0178**
+(follow-ups: сканер `db.query` на весь identity, denylist → cache
+provider, RBAC subject → сервис, MCP tools → threadpool, locust
+scopes-fix).
 **TASK-0161** (e2e coverage audit + gap closure),
 **TASK-0162** (deployment guide), **TASK-0163** (performance baselines),
 **TASK-0164** (notifications API contract: user_id bucket + envelope —
@@ -129,7 +171,7 @@ underscore-словаря), bare-`pytest` ломает сбор bootstrap-тес
 `.venv/bin/python -m pytest` рабочая — см. TASK-0161).
 Blockers: none
 Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
-Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5)
+Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5), SPEC-0028 (AuthN/AuthZ rework: Web API vs Agent API, **ЗАКРЫТ 2026-11-04** — TASK-0168…0173 все DONE, MR !105), SPEC-0029 (Identity layering: services → repository + cache provider, **ЗАКРЫТ 2026-11-04** — TASK-0174-0177 все DONE, MR !105; AC1 amended после aspect-review)
 
 ## Status-аудит 2026-10-24 (Этап 0, evidence-based)
 

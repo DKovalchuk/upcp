@@ -8,6 +8,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
+from app.shared.correlation import resolve_surface
 from app.shared.logging import request_id_var
 
 tracer = trace.get_tracer("upcp.http")
@@ -39,12 +40,20 @@ class TracingMiddleware(BaseHTTPMiddleware):
 
             try:
                 response = await call_next(request)
+                # TASK-0173: surface attribution post-routing — the auth
+                # blankets set request.state before verification, so even
+                # 401 responses land web/agent on the request span.
+                span.set_attribute("upcp.auth.surface", resolve_surface(request))
+                auth_type = getattr(request.state, "auth_type", None)
+                if isinstance(auth_type, str) and auth_type:
+                    span.set_attribute("upcp.auth.principal_type", auth_type)
                 span.set_attribute("http.status_code", response.status_code)
                 span.set_status(
                     trace.StatusCode.OK if response.status_code < 400 else trace.StatusCode.ERROR
                 )
                 return response
             except Exception as e:
+                span.set_attribute("upcp.auth.surface", resolve_surface(request))
                 span.set_status(trace.StatusCode.ERROR, str(e))
                 span.record_exception(e)
                 raise

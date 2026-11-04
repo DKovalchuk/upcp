@@ -17,6 +17,7 @@ from app.delivery.schemas import (
     TaskUpdate,
 )
 from app.delivery.service import CommentService, FeatureService, SubtaskService, TaskService
+from app.identity.permissions import require_permission
 from app.shared.database import get_session
 from app.shared.errors import NotFound, ValidationError
 from app.shared.pagination import PaginationParams, pagination_dependency
@@ -133,6 +134,7 @@ def update_feature(
     summary="Delete a feature",
     description="Delete a feature by its identifier.",
     responses={404: {"description": "Feature not found"}},
+    dependencies=[Depends(require_permission("delete", "feature"))],
 )
 def delete_feature(feature_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     FeatureService(session).delete(feature_id)
@@ -205,6 +207,7 @@ def create_task(
     "/tasks/bulk",
     summary="Bulk update tasks",
     description="Update multiple tasks at once with status, priority, or assignee changes.",
+    dependencies=[Depends(require_permission("update", "task"))],
 )
 def bulk_update_tasks(
     body: BulkTaskUpdate,
@@ -267,6 +270,7 @@ def update_task(
     summary="Delete a task",
     description="Delete a task by its identifier.",
     responses={404: {"description": "Task not found"}},
+    dependencies=[Depends(require_permission("delete", "task"))],
 )
 def delete_task(task_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     TaskService(session).delete(task_id)
@@ -398,6 +402,7 @@ def update_subtask(
     summary="Delete a subtask",
     description="Delete a subtask by its identifier.",
     responses={404: {"description": "Subtask not found"}},
+    dependencies=[Depends(require_permission("delete", "subtask"))],
 )
 def delete_subtask(subtask_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     SubtaskService(session).delete(subtask_id)
