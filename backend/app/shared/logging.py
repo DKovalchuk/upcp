@@ -11,6 +11,10 @@ from typing import Any
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
 user_id_var: ContextVar[str | None] = ContextVar("user_id", default=None)
 agent_id_var: ContextVar[str | None] = ContextVar("agent_id", default=None)
+# API surface ("web" | "agent") set by the auth blankets (SPEC-0028 S28.6);
+# unset on public/unattributed requests — the correlation middleware clears
+# it in its finally alongside the other request-scoped vars.
+surface_var: ContextVar[str | None] = ContextVar("surface", default=None)
 
 
 class JSONFormatter(logging.Formatter):
@@ -36,6 +40,10 @@ class JSONFormatter(logging.Formatter):
         agent_id = agent_id_var.get()
         if agent_id:
             log_entry["agent_id"] = agent_id
+
+        surface = surface_var.get()
+        if surface:
+            log_entry["surface"] = surface
 
         # Add source location for DEBUG
         if record.levelno == logging.DEBUG:

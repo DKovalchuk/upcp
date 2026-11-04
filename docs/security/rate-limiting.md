@@ -8,17 +8,39 @@ Rate limiting is implemented at the middleware level using Redis for distributed
 
 ## 2. Architecture
 
+Two layers (SPEC-0028 §3.6 / TASK-0173):
+
 ```
-Request → RateLimitMiddleware → Sliding Window Counter (Redis) → Handler
-                                    ↓
-                              429 Too Many Requests
+Request
+  → RateLimitMiddleware  — IP floor: every path except the exact public
+                           skip set (/health, /api/v1/health, /metrics,
+                           /docs, /redoc, /openapi.json,
+                           /docs/oauth2-redirect); no prefix matching —
+                           unknown/future paths are limited by default
+  → auth dependency      — resolves the request surface (web | agent | public)
+  → SurfaceRateLimit     — per-surface policy, key user:{id} / agent:{id}
+                           (IP fallback), attached in include_surfaces
+  → Handler
+            ↳ 429 Too Many Requests
 ```
 
 - Algorithm: Sliding Window Counter
 - Storage: Redis with TTL
 - Response headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`
+- `UPCP_DISABLE_RATE_LIMIT=true` disables both layers
+
+### Surface policies (effective)
+
+| Surface | Limit env | Window env | Default |
+|---------|-----------|------------|---------|
+| web | `UPCP_RATE_LIMIT_WEB_MAX` | `UPCP_RATE_LIMIT_WEB_WINDOW` | 100 req / 60 s |
+| agent | `UPCP_RATE_LIMIT_AGENT_MAX` | `UPCP_RATE_LIMIT_AGENT_WINDOW` | 100 req / 60 s |
 
 ## 3. Limits
+
+The tables below describe the target per-endpoint granularity; the
+enforced limits today are the two layers from §2 (defaults match the
+historical `default` bucket, so existing deployments keep their limits).
 
 ### 3.1 Public Endpoints (no authentication)
 

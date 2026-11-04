@@ -8,13 +8,18 @@ from app.gitread.service import (
     GitLinkService,
     GitProviderService,
 )
+from app.identity.permissions import require_permission
 from app.shared.database import get_session
 from app.shared.errors import ValidationError
 
 router = APIRouter(tags=["gitread"])
 
 
-@router.post("/projects/{project_id}/git-providers", status_code=201)
+@router.post(
+    "/projects/{project_id}/git-providers",
+    status_code=201,
+    dependencies=[Depends(require_permission("create", "git_provider"))],
+)
 def create_provider(
     project_id: str, body: GitProviderCreate, session: Session = Depends(get_session)
 ) -> dict[str, str]:  # noqa: B008
@@ -60,7 +65,11 @@ def list_providers(
     ]
 
 
-@router.delete("/git-providers/{provider_id}", status_code=204)
+@router.delete(
+    "/git-providers/{provider_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete", "git_provider"))],
+)
 def delete_provider(provider_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     GitProviderService(session).delete(provider_id)
 
@@ -69,6 +78,7 @@ def delete_provider(provider_id: str, session: Session = Depends(get_session)) -
     "/git-providers/{provider_id}",
     summary="Update a git provider",
     description="Partially update a git provider by ID. Only provided fields are updated.",
+    dependencies=[Depends(require_permission("update", "git_provider"))],
 )
 def update_provider(
     provider_id: str, body: GitProviderUpdate, session: Session = Depends(get_session)
@@ -160,6 +170,10 @@ def list_links(
     ]
 
 
-@router.delete("/git-links/{link_id}", status_code=204)
+@router.delete(
+    "/git-links/{link_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete", "git_link"))],
+)
 def delete_link(link_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     GitLinkService(session).delete(link_id)

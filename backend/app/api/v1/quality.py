@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.delivery.service import TaskService
+from app.identity.permissions import require_permission
 from app.quality.schemas import (
     AcceptanceCriterionCreate,
     AcceptanceCriterionUpdate,
@@ -40,6 +41,7 @@ router = APIRouter(tags=["quality"])
     summary="Create an acceptance criterion",
     description="Create a new acceptance criterion for a task.",
     responses={422: {"description": "Validation error"}},
+    dependencies=[Depends(require_permission("create", "acceptance_criteria"))],
 )
 def create_ac(
     task_id: str, body: AcceptanceCriterionCreate, session: Session = Depends(get_session)
@@ -68,6 +70,7 @@ def get_ac(ac_id: str, session: Session = Depends(get_session)) -> dict[str, str
         404: {"description": "Acceptance criterion not found"},
         422: {"description": "Validation error"},
     },
+    dependencies=[Depends(require_permission("update", "acceptance_criteria"))],
 )
 def update_ac(
     ac_id: str, body: AcceptanceCriterionUpdate, session: Session = Depends(get_session)
@@ -82,6 +85,7 @@ def update_ac(
     summary="Delete an acceptance criterion",
     description="Delete an acceptance criterion by its identifier.",
     responses={404: {"description": "Acceptance criterion not found"}},
+    dependencies=[Depends(require_permission("delete", "acceptance_criteria"))],
 )
 def delete_ac(ac_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     AcceptanceCriterionService(session).delete(ac_id)
@@ -117,6 +121,7 @@ def list_acs(
     summary="Create a DoD item",
     description="Create a new Definition of Done item for a task.",
     responses={422: {"description": "Validation error"}},
+    dependencies=[Depends(require_permission("create", "dod_item"))],
 )
 def create_dod(
     task_id: str, body: DoDItemCreate, session: Session = Depends(get_session)
@@ -145,6 +150,7 @@ def get_dod(item_id: str, session: Session = Depends(get_session)) -> dict[str, 
         404: {"description": "DoD item not found"},
         422: {"description": "Validation error"},
     },
+    dependencies=[Depends(require_permission("update", "dod_item"))],
 )
 def update_dod(
     item_id: str, body: DoDItemUpdate, session: Session = Depends(get_session)
@@ -159,6 +165,7 @@ def update_dod(
     summary="Delete a DoD item",
     description="Delete a DoD item by its identifier.",
     responses={404: {"description": "DoD item not found"}},
+    dependencies=[Depends(require_permission("delete", "dod_item"))],
 )
 def delete_dod(item_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     DoDItemService(session).delete(item_id)
@@ -192,6 +199,7 @@ def list_dods(
     summary="Mark a task as complete",
     description="Mark a task as complete, updating its status to done.",
     responses={404: {"description": "Task not found"}},
+    dependencies=[Depends(require_permission("update", "task"))],
 )
 def complete_task(task_id: str, session: Session = Depends(get_session)) -> dict[str, str]:  # noqa: B008
     task = TaskService(session).complete(task_id)
@@ -207,6 +215,7 @@ def complete_task(task_id: str, session: Session = Depends(get_session)) -> dict
         404: {"description": "Task not found"},
         400: {"description": "Task not eligible for review"},
     },
+    dependencies=[Depends(require_permission("create", "review_round"))],
 )
 def submit_task_for_review(
     task_id: str,
@@ -303,6 +312,7 @@ def list_evidence(
     summary="Create evidence",
     description="Attach a new evidence item to a task for DoD verification.",
     responses={422: {"description": "Validation error"}},
+    dependencies=[Depends(require_permission("create", "evidence"))],
 )
 def create_evidence(
     task_id: str, body: EvidenceCreate, session: Session = Depends(get_session)
@@ -331,6 +341,7 @@ def create_evidence(
         404: {"description": "Evidence not found"},
         409: {"description": "Evidence already verified"},
     },
+    dependencies=[Depends(require_permission("update", "evidence"))],
 )
 def agent_verify_evidence(
     evidence_id: str,
@@ -355,6 +366,7 @@ def agent_verify_evidence(
         404: {"description": "Evidence not found"},
         409: {"description": "Evidence already accepted"},
     },
+    dependencies=[Depends(require_permission("update", "evidence"))],
 )
 def human_accept_evidence(
     evidence_id: str,
@@ -378,6 +390,7 @@ def human_accept_evidence(
         404: {"description": "Evidence not found"},
         409: {"description": "Evidence already rejected"},
     },
+    dependencies=[Depends(require_permission("update", "evidence"))],
 )
 def reject_evidence(
     evidence_id: str,
@@ -400,6 +413,7 @@ def reject_evidence(
     summary="Upload file as evidence",
     description="Upload a file attachment as evidence for a task.",
     responses={422: {"description": "Validation error"}},
+    dependencies=[Depends(require_permission("create", "evidence"))],
 )
 async def upload_evidence_file(
     task_id: str,
@@ -511,6 +525,7 @@ def list_review_rounds(
     summary="Create a review round",
     description="Create a new review round for a task with a specified reviewer.",
     responses={404: {"description": "Task not found"}},
+    dependencies=[Depends(require_permission("create", "review_round"))],
 )
 def create_review_round(
     task_id: str,
@@ -539,6 +554,7 @@ def create_review_round(
         404: {"description": "Review round not found"},
         409: {"description": "Review round not in valid state"},
     },
+    dependencies=[Depends(require_permission("update", "review_round"))],
 )
 def start_review_round(
     round_id: str, session: Session = Depends(get_session)
@@ -562,6 +578,7 @@ def start_review_round(
         404: {"description": "Review round not found"},
         409: {"description": "Review round not in valid state"},
     },
+    dependencies=[Depends(require_permission("create", "review_finding"))],
 )
 def create_review_finding(
     round_id: str,
@@ -594,6 +611,7 @@ def create_review_finding(
         404: {"description": "Review round not found"},
         409: {"description": "Review round not in valid state"},
     },
+    dependencies=[Depends(require_permission("update", "review_round"))],
 )
 def submit_verdict(
     round_id: str,

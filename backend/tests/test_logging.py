@@ -113,7 +113,9 @@ class TestCorrelationMiddleware:
 
         client = TestClient(app)
         resp = client.get("/test", headers={"X-Request-ID": "my-custom-id"})
-        assert resp.headers["X-Request-ID"] == "my-custom-id"
+        # TASK-0173: the client id is preserved but carries the surface
+        # prefix (no surface state on this bare app → "public").
+        assert resp.headers["X-Request-ID"] == "public:my-custom-id"
 
     def test_request_id_in_response_header(self) -> None:
         app = FastAPI()

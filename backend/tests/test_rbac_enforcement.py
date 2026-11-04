@@ -5,7 +5,8 @@ admin-dangerous project mutations; Owner passes; superusers bypass gates
 (seeder/setup admins hold no RoleBinding by design); unknown subjects are
 rejected 401 on mutations; ungated reads stay any-authenticated; and the
 gates are inert when ``UPCP_DISABLE_AUTH=true`` (hermetic test mode —
-mirrors main.py not mounting AuthMiddleware then).
+mirrors ``web_auth``'s early return and main.py not mounting the guard
+then).
 
 New symbols are imported inside tests so the file collects before the
 implementation exists.
@@ -17,7 +18,7 @@ from types import SimpleNamespace
 
 import pytest
 from app.api.v1.projects import router as projects_router
-from app.identity.middleware import AuthMiddleware
+from app.identity.auth import _get_token_service
 from app.identity.models import User
 from app.identity.rbac import Role, RoleBinding
 from app.identity.seed import seed_roles
@@ -50,9 +51,9 @@ def _add_user(db, email: str, role_name: str | None) -> User:
 
 
 def _client_with_identity() -> SimpleNamespace:
-    """App with the auth middleware mounted; gates follow the caller's flag."""
-    app = make_test_app(projects_router)
-    app.add_middleware(AuthMiddleware, token_service=TS)
+    """App with the web_auth blanket (TASK-0169); gates follow the caller's flag."""
+    app = make_test_app(projects_router, protect=True)
+    app.dependency_overrides[_get_token_service] = lambda: TS
     return SimpleNamespace(app=app, client=TestClient(app))
 
 
@@ -233,9 +234,9 @@ def test_gates_inert_when_auth_disabled() -> None:
     """conftest sets UPCP_DISABLE_AUTH=true — anonymous mutations keep working.
 
     No settings monkeypatch here: this pins the default hermetic contract
-    that hundreds of existing tests (open clients, no middleware) rely on.
+    that hundreds of existing tests (open clients, no auth guard) rely on.
     """
-    app = make_test_app(projects_router)  # no AuthMiddleware, auth flag on
+    app = make_test_app(projects_router)  # no auth blanket, auth flag on
     assert get_settings().disable_auth is True, "test precond: hermetic auth off"
     resp = TestClient(app).post("/api/v1/projects", json={"name": "Open-Proj"})
     assert resp.status_code in (200, 201), (

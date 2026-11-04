@@ -114,6 +114,20 @@ class EvidenceService:
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
 
+    def list_by_creator(self, created_by_id: str, *, limit: int = 100) -> list[Evidence]:
+        """Evidence rows created by one agent/user, newest first — TASK-0176.
+
+        Public read surface for the agent detail tab; filters on
+        ``created_by_id`` only (parity with the identity endpoint).
+        """
+        return (
+            self._session.query(Evidence)
+            .filter(Evidence.created_by_id == created_by_id)
+            .order_by(Evidence.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
     def upload_file(
         self,
         *,
@@ -261,6 +275,20 @@ class ReviewRoundService:
         q = self._session.query(ReviewRound).filter_by(task_id=task_id)
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
+
+    def list_by_reviewer(self, reviewer_id: str, *, limit: int = 100) -> list[ReviewRound]:
+        """Review rounds assigned to one reviewer, newest first — TASK-0176.
+
+        Public read surface for the agent detail tab; rows with a NULL
+        reviewer are never returned.
+        """
+        return (
+            self._session.query(ReviewRound)
+            .filter(ReviewRound.reviewer_id == reviewer_id)
+            .order_by(ReviewRound.created_at.desc())
+            .limit(limit)
+            .all()
+        )
 
     def start(self, round_id: str) -> ReviewRound:
         rr = self.get(round_id)

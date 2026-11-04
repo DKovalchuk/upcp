@@ -8,6 +8,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
+from app.shared.correlation import resolve_surface
 from app.shared.metrics import (
     http_request_duration_seconds,
     http_requests_in_progress,
@@ -59,13 +60,23 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
         except Exception:
             status = "500"
-            http_requests_total.labels(method=method, handler=handler, status=status).inc()
+            surface = resolve_surface(request)
+            http_requests_total.labels(
+                method=method, handler=handler, status=status, surface=surface
+            ).inc()
             raise
         else:
             status = str(response.status_code)
-            http_requests_total.labels(method=method, handler=handler, status=status).inc()
+            # TASK-0173: post-call_next the auth blankets have attributed
+            # the request (401 denials included); unattributed → public/none.
+            surface = resolve_surface(request)
+            http_requests_total.labels(
+                method=method, handler=handler, status=status, surface=surface
+            ).inc()
             return response
         finally:
             duration = time.perf_counter() - start
-            http_request_duration_seconds.labels(method=method, handler=handler).observe(duration)
+            http_request_duration_seconds.labels(
+                method=method, handler=handler, surface=resolve_surface(request)
+            ).observe(duration)
             http_requests_in_progress.labels(method=method).dec()

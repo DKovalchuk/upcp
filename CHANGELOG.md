@@ -7,6 +7,22 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+### Security — AuthN/AuthZ rework (SPEC-0028, TASK-0168–0173)
+- FastAPI-native authentication: `web_auth`/`agent_auth` router dependencies replace the path-string `AuthMiddleware` (deleted) and `PUBLIC_PATHS`; default-deny via the surface registry + AC1 route-enumeration contract (every route answers 401 without credentials)
+- Split surfaces: web API (JWT) vs agent API (agent key, incl. `/mcp`); MCP `tools/call` principal binding — `agent_id`/`answered_by`/`created_by_id` must equal the authenticated principal (`-32001`), spoofing matrix + class guard for future tools
+- Agent keys: mandatory TTL on issuance (`UPCP_AGENT_TOKEN_TTL_DAYS`, default 90), fail-closed scopes (new keys without scopes get `[]`), per-route scope gates (`agent:self|workflow|mcp` → 403 + metric/log/span)
+- RBAC Phase B: 36 new `require_permission` gates (43 total), new `require_role`/`require_superuser`, 19 seed permission pairs, EN/RU gate table
+- Rate limiting: two layers — IP floor over every path (zero prefix hardcodes, default-deny) + per-surface policy (`UPCP_RATE_LIMIT_WEB/AGENT_MAX/WINDOW`), fail-open on Redis outage, threadpool execution
+
+### Architecture — identity layering (SPEC-0029, TASK-0174–0177)
+- `identity/repositories.py` + `cache_provider.py` + `SubjectStateService`/`AgentTokenService`/`verify_detailed` — presentation does zero direct DB/Redis in the request-auth hot path (contract-tested); permission cache behind the provider
+- Cross-context cleanup: `agent_endpoints`/`agent_self` consume delivery/quality public services (`AgentActivityService`, …); DDD context-boundary contract gate (exact-set baseline, mutation-tested)
+- Surface-aware observability: `X-Request-ID` prefixed `web:`/`agent:` (sanitized), `surface` field in JSON logs, span attrs `upcp.auth.surface`, additive metrics label `surface`
+- Aspect-review (independent) → 8 findings fixed in-branch (`fail-closed scopes`, rate fail-open+threadpool, MCP identity args, JWT memo, AC gaps); medium/low → TASK-0178
+
+### Docs
+- `docs/security/auth-rbac` (EN/RU) rewritten for dependency-based auth + agent key TTL/scopes; rate-limit docs describe the two-layer scheme; `.env.example` +4 rate vars + agent TTL
+
 ## [0.22.0] — 2026-10-17 — M20 — Extended Features
 
 ### S22.1: Real-Time Notifications via SSE (TASK-0115)
