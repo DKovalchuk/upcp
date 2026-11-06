@@ -38,7 +38,10 @@ def upgrade() -> None:
         ("ix_git_link_entity", "git_link", ["entity_type", "entity_id"]),
     ]
     for name, table, cols in _ix:
-        op.create_index(name, table, cols, unique=False)
+        # if_not_exists: 0008 already created some of these indexes on any DB
+        # that passed it (stage/test sit at 0017) — unconditional create made
+        # 0019 fail with DuplicateTable and crash-loop every `upgrade head`.
+        op.create_index(name, table, cols, unique=False, if_not_exists=True)
 
     # ── ondelete clauses — drop old FK, re-add with ON DELETE ────
     _fk = [

@@ -7,8 +7,22 @@ from sqlalchemy.orm import Session
 
 from app.reporting.analytics import AnalyticsService
 from app.shared.database import get_session
+from app.shared.pagination import PaginationParams, pagination_dependency
 
 router = APIRouter(tags=["analytics"])
+
+
+@router.get(
+    "/analytics/velocity",
+    summary="Global tasks completed per week",
+)
+def global_velocity(
+    weeks: int = Query(default=8, ge=1, le=52),
+    project_id: str | None = Query(default=None),
+    session: Session = Depends(get_session),
+) -> dict[str, list[dict[str, Any]]]:
+    svc = AnalyticsService(session)
+    return {"items": svc.get_global_velocity(weeks, project_id)}
 
 
 @router.get(
@@ -67,7 +81,14 @@ def agent_performance(
     summary="All agents summary",
 )
 def agents_overview(
+    pagination: PaginationParams = Depends(pagination_dependency),  # noqa: B008
     session: Session = Depends(get_session),
-) -> dict[str, list[dict[str, Any]]]:
+) -> dict[str, Any]:
     svc = AnalyticsService(session)
-    return {"items": svc.get_agents_overview()}
+    items, total = svc.get_agents_overview(limit=pagination.limit, offset=pagination.offset)
+    return {
+        "items": items,
+        "total": total,
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }

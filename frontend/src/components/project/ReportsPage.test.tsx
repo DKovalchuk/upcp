@@ -22,7 +22,7 @@ const mockUseCreateReport = vi.mocked(useCreateReport);
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  mockUseCreateReport.mockReturnValue({ mutateAsync: vi.fn() } as any);
+  mockUseCreateReport.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useCreateReport>);
   return render(
     <QueryClientProvider client={qc}>
       <ReportsPage />
@@ -42,7 +42,7 @@ describe('ReportsPage', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('renders date range filter inputs', () => {
-    mockUseReports.mockReturnValue({ data: { items: [], total: 0 }, isLoading: false, error: null } as any);
+    mockUseReports.mockReturnValue({ data: { items: [], total: 0 }, isLoading: false, error: null } as ReturnType<typeof useReports>);
     renderPage();
     expect(screen.getByLabelText('Filter from date')).toBeInTheDocument();
     expect(screen.getByLabelText('Filter to date')).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe('ReportsPage', () => {
       },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useReports>);
     renderPage();
 
     // All three reports should be visible initially
@@ -85,7 +85,7 @@ describe('ReportsPage', () => {
       },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useReports>);
     renderPage();
 
     fireEvent.change(screen.getByLabelText('Filter from date'), { target: { value: '2026-12-01' } });
@@ -94,19 +94,19 @@ describe('ReportsPage', () => {
   });
 
   it('shows empty state when no reports exist', () => {
-    mockUseReports.mockReturnValue({ data: { items: [], total: 0 }, isLoading: false, error: null } as any);
+    mockUseReports.mockReturnValue({ data: { items: [], total: 0 }, isLoading: false, error: null } as ReturnType<typeof useReports>);
     renderPage();
     expect(screen.getByText('No reports yet')).toBeInTheDocument();
   });
 
   it('renders Reports heading', () => {
-    mockUseReports.mockReturnValue({ data: { items: [], total: 0 }, isLoading: false, error: null } as any);
+    mockUseReports.mockReturnValue({ data: { items: [], total: 0 }, isLoading: false, error: null } as ReturnType<typeof useReports>);
     renderPage();
     expect(screen.getByText('Reports')).toBeInTheDocument();
   });
 
   it('renders loading state', () => {
-    mockUseReports.mockReturnValue({ data: undefined, isLoading: true } as any);
+    mockUseReports.mockReturnValue({ data: undefined, isLoading: true } as ReturnType<typeof useReports>);
     const { container } = renderPage();
     expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
   });

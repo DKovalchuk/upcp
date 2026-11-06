@@ -38,17 +38,17 @@ describe('AgentCenterPage', () => {
     mockUseAgents.mockReturnValue({
       data: undefined,
       isLoading: true,
-    } as any);
+    } as ReturnType<typeof useAgents>);
     const { container } = renderPage();
     // PageSkeleton renders div elements with skeleton class
     expect(container.querySelector('.animate-pulse')).toBeDefined();
   });
 
   it('renders empty state when no agents', () => {
-    mockUseAgents.mockReturnValue({
+     mockUseAgents.mockReturnValue({
       data: { items: [], total: 0, offset: 0, limit: 20 },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useAgents>);
     renderPage();
     expect(screen.getByText('No agents')).toBeDefined();
   });
@@ -77,17 +77,17 @@ describe('AgentCenterPage', () => {
         limit: 20,
       },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useAgents>);
     renderPage();
     expect(screen.getByText('claude-builder')).toBeDefined();
     expect(screen.getByText('gpt-reviewer')).toBeDefined();
   });
 
   it('renders page title', () => {
-    mockUseAgents.mockReturnValue({
+     mockUseAgents.mockReturnValue({
       data: { items: [], total: 0, offset: 0, limit: 20 },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useAgents>);
     renderPage();
     expect(screen.getByText('Agents')).toBeDefined();
   });

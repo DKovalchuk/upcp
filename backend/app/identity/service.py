@@ -1,12 +1,20 @@
-"""Auth service — business logic for authentication flows."""
+"""Auth service — business logic for authentication flows.
+
+Commit invariant: every state-mutating success path commits explicitly
+before returning. `get_session`'s teardown commit runs AFTER the response
+is sent, so flush-only mutations race with the client's next request
+(immediate /auth/refresh after login → 401 — TASK-0142).
+"""
 
 from datetime import UTC, datetime
+from typing import cast
 
 import bcrypt
 from sqlalchemy.orm import Session
 
-from app.identity.models import LoginAudit, Membership, Organization, User
-from app.identity.token_service import TokenService
+from app.identity.denylist import deny_access_token
+from app.identity.models import LoginAudit, Membership, Organization, RefreshToken, User
+from app.identity.token_service import ACCESS_TOKEN_EXPIRY, TokenService
 
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 30
@@ -66,6 +74,8 @@ class AuthService:
         refresh = self._tokens.create_refresh_token(user.id, self._db)
 
         self._log_audit(user.id, email, "login_success")
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
 
         return {
             "user": {"id": user.id, "email": user.email, "display_name": user.display_name},
@@ -122,6 +132,8 @@ class AuthService:
         refresh = self._tokens.create_refresh_token(user.id, self._db)
 
         self._log_audit(user.id, email, "login_success", ip_address)
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
 
         return {
             "access_token": access,
@@ -131,10 +143,28 @@ class AuthService:
 
     # ── Logout ─────────────────────────────────────────────────────
 
-    def logout(self, refresh_token: str, user_id: str) -> None:
-        """Revoke refresh token."""
+    def logout(self, refresh_token: str, user_id: str, access_token: str) -> None:
+        """Revoke refresh token + denylist the access token (SPEC-0027 §3.3).
+
+        The denylist entry self-expires with the token (TTL = exp − now);
+        a Redis failure degrades best-effort — refresh revocation and
+        audit still commit.
+        """
         self._tokens.revoke_refresh_token(refresh_token, self._db)
+        deny_access_token(access_token, self._access_ttl(access_token))
         self._log_audit(user_id, "", "logout")
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
+
+    def _access_ttl(self, access_token: str) -> int:
+        """Remaining access-token lifetime: exp − now, at least 1 second."""
+        try:
+            payload = self._tokens.verify_access_token(access_token)
+            exp = int(cast(int | float, payload["exp"]))
+        except (KeyError, TypeError, ValueError):
+            # unreachable via the endpoint (dependency verified it) — bounded default
+            return int(ACCESS_TOKEN_EXPIRY.total_seconds())
+        return max(exp - int(datetime.now(UTC).timestamp()), 1)
 
     # ── Refresh ────────────────────────────────────────────────────
 
@@ -143,6 +173,8 @@ class AuthService:
         record = self._tokens.verify_refresh_token(refresh_token, self._db)
         new_refresh = self._tokens.rotate_refresh_token(refresh_token, self._db)
         access = self._tokens.create_access_token(record.user_id)
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
 
         return {
             "access_token": access,
@@ -187,7 +219,14 @@ class AuthService:
     # ── Password change ────────────────────────────────────────────
 
     def change_password(self, user_id: str, current_password: str, new_password: str) -> None:
-        """Change user password."""
+        """Change the password and revoke every refresh token (SPEC-0027 §3.4).
+
+        Closes finding 4: the docs promised "all refresh tokens invalidated"
+        — the hash swap alone left every issued refresh token rotating for
+        up to 7 days. Revocation lands in the same commit; other sessions'
+        access JWTs stay valid until exp (<=15 min — killing those earlier
+        needs a jti claim; documented limitation in docs/security/auth-rbac.md).
+        """
         user = self._db.query(User).filter_by(id=user_id).first()
         if user is None:
             raise ValueError("USER_NOT_FOUND")
@@ -199,7 +238,13 @@ class AuthService:
             new_password.encode(), bcrypt.gensalt(rounds=12)
         ).decode()
         user.password_changed_at = datetime.now(UTC)
-        self._db.flush()
+        (
+            self._db.query(RefreshToken)
+            .filter(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+            .update({"revoked_at": datetime.now(UTC)}, synchronize_session=False)
+        )
+        # commit before respond — teardown runs after the response (TASK-0142)
+        self._db.commit()
 
         self._log_audit(user_id, user.email, "password_change")
 

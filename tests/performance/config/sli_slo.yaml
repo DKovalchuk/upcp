@@ -1,0 +1,69 @@
+# SLI/SLO definitions for UPCP Test Environment
+# These define what "healthy" looks like for performance monitoring.
+
+slis:
+  - name: api_availability
+    description: "Percentage of successful (non-5xx) responses"
+    source: locust  # Computed from Locust results
+    formula: "1 - (failed_requests / total_requests)"
+
+  - name: api_latency_p50
+    description: "50th percentile request latency"
+    source: locust
+
+  - name: api_latency_p95
+    description: "95th percentile request latency"
+    source: locust
+
+  - name: api_latency_p99
+    description: "99th percentile request latency"
+    source: locust
+
+  - name: throughput_rps
+    description: "Requests per second sustained"
+    source: locust
+
+  - name: error_rate
+    description: "Percentage of failed requests"
+    source: locust
+
+slos:
+  # ── Availability ──
+  - sli: api_availability
+    target: 0.999    # 99.9% — three nines
+    window: "30d"
+    severity: critical
+    description: "99.9% of requests must succeed (excluding expected 4xx)"
+
+  # ── Latency ──
+  - sli: api_latency_p95
+    target: 1.0      # 1 second
+    window: "30d"
+    severity: warning
+    description: "P95 latency must stay under 1 second"
+
+  - sli: api_latency_p99
+    target: 2.0      # 2 seconds
+    window: "30d"
+    severity: warning
+    description: "P99 latency must stay under 2 seconds"
+
+  # ── Throughput ──
+  - sli: throughput_rps
+    target: 50       # 50 req/s minimum under normal load
+    window: "30d"
+    severity: warning
+    description: "Sustained throughput must be at least 50 req/s"
+
+  # ── Error Budget ──
+  - sli: error_rate
+    target: 1.0      # 1% error budget
+    window: "30d"
+    severity: critical
+    description: "Error rate must not exceed 1% under normal load"
+
+# Regression detection thresholds (relative to baseline)
+regression:
+  latency_increase_pct: 20    # p95 increased by >20% from baseline
+  error_rate_increase_pct: 50 # error rate increased by >50% from baseline
+  throughput_drop_pct: 15     # throughput dropped by >15% from baseline

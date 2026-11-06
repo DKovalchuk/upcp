@@ -7,6 +7,72 @@ Versioning: [SemVer 2.0](https://semver.org/) — 0.x.y for pre-1.0 development,
 
 ## [Unreleased]
 
+### Security — AuthN/AuthZ rework (SPEC-0028, TASK-0168–0173)
+- FastAPI-native authentication: `web_auth`/`agent_auth` router dependencies replace the path-string `AuthMiddleware` (deleted) and `PUBLIC_PATHS`; default-deny via the surface registry + AC1 route-enumeration contract (every route answers 401 without credentials)
+- Split surfaces: web API (JWT) vs agent API (agent key, incl. `/mcp`); MCP `tools/call` principal binding — `agent_id`/`answered_by`/`created_by_id` must equal the authenticated principal (`-32001`), spoofing matrix + class guard for future tools
+- Agent keys: mandatory TTL on issuance (`UPCP_AGENT_TOKEN_TTL_DAYS`, default 90), fail-closed scopes (new keys without scopes get `[]`), per-route scope gates (`agent:self|workflow|mcp` → 403 + metric/log/span)
+- RBAC Phase B: 36 new `require_permission` gates (43 total), new `require_role`/`require_superuser`, 19 seed permission pairs, EN/RU gate table
+- Rate limiting: two layers — IP floor over every path (zero prefix hardcodes, default-deny) + per-surface policy (`UPCP_RATE_LIMIT_WEB/AGENT_MAX/WINDOW`), fail-open on Redis outage, threadpool execution
+
+### Architecture — identity layering (SPEC-0029, TASK-0174–0177)
+- `identity/repositories.py` + `cache_provider.py` + `SubjectStateService`/`AgentTokenService`/`verify_detailed` — presentation does zero direct DB/Redis in the request-auth hot path (contract-tested); permission cache behind the provider
+- Cross-context cleanup: `agent_endpoints`/`agent_self` consume delivery/quality public services (`AgentActivityService`, …); DDD context-boundary contract gate (exact-set baseline, mutation-tested)
+- Surface-aware observability: `X-Request-ID` prefixed `web:`/`agent:` (sanitized), `surface` field in JSON logs, span attrs `upcp.auth.surface`, additive metrics label `surface`
+- Aspect-review (independent) → 8 findings fixed in-branch (`fail-closed scopes`, rate fail-open+threadpool, MCP identity args, JWT memo, AC gaps); medium/low → TASK-0178
+
+### Docs
+- `docs/security/auth-rbac` (EN/RU) rewritten for dependency-based auth + agent key TTL/scopes; rate-limit docs describe the two-layer scheme; `.env.example` +4 rate vars + agent TTL
+
+## [0.22.0] — 2026-10-17 — M20 — Extended Features
+
+### S22.1: Real-Time Notifications via SSE (TASK-0115)
+- Backend SSE endpoint `GET /api/v1/notifications/stream` (StreamingResponse, keepalive 15s)
+- `sse_manager` broadcast wired to event bus in `shared/event_setup.py`
+- Frontend `use-sse.ts`: fetch-based stream reader with Authorization header, reconnect 3s→30s backoff, invalidates notifications/dashboard queries
+- Critical-event toasts; NotificationBell falls back to 30s polling
+- `tests/test_sse.py` (6 tests)
+
+### S22.2: File Uploads for Evidence (TASK-0116)
+- Evidence attachments with file upload (was URLs only)
+
+### S22.3: Bulk Task Operations (TASK-0117)
+- Bulk task status/assignee operations
+
+### S22.4: Task Comments + Audit Export (TASK-0118)
+- Task comments, audit export
+
+### S22.5: Port Externalization (TASK-0119)
+- All host-published compose ports under `${UPCP_PORT_*:-default}` (dev/test/stage)
+- `.env.example` port block renamed to `UPCP_PORT_*`; scripts + e2e read ports from env
+
+### Dashboard Redesign (SPEC-0025, TASK-0120–0128)
+- KPI drill-down with status filters, task-distribution donut, velocity chart
+- Clickable attention sections with "View all", PortfolioTable (status column, row click, Show more), project selector with URL `?project_id` scoping
+- Attention endpoint accepts `project_id`; sticky project selector
+- 37 dashboard unit tests; TASK-0128 e2e/a11y/security matrix remains
+
+### Universal Filtering (SPEC-0026)
+- Backend + shared FilterBar with URL-synced filters, StructurePage filters, AgentCenter status fix (spec still DRAFT)
+
+### Sprint Polish
+- Sprint 5: task editing + password change; Sprint 6: git-links in TaskDetailSheet; Sprint 7: Quality tab CRUD + dead code cleanup
+
+### CI/CD
+- **TASK-0136 retention**: registry expiration policy (keep_n=10 SHA-only, dev/stage/latest protected), per-build local cleanup, manual `maintenance:cleanup` job, docs `docs/ops/ci-retention.md`
+- **Deploy tag mismatch fixed**: compose images via `UPCP_BACKEND_IMAGE`/`UPCP_FRONTEND_IMAGE`, per-branch `FLOAT_TAG` (`:dev` develop / `:stage` main), main no longer overwrites `:dev`
+- `frontend/package-lock.json` re-synced with recharts tree (`npm ci` was failing in CI)
+
+### Test Environment — Phase 1: Foundation (SPEC-0024)
+- **docker-compose.test.yml**: Expanded with Redis, Locust (master+workers), OWASP ZAP, Kali Linux, test data seeder, full observability stack (Prometheus, Grafana, Loki, Tempo, OTel Collector)
+- **Metrics**: New `shared/metrics.py` with 11 Prometheus metrics (HTTP, business, infra) + `metrics_middleware.py` for automatic HTTP instrumentation
+- **/metrics endpoint**: Added to `main.py` for Prometheus scraping
+- **Observability configs**: `prometheus-test.yml`, `loki-config.yaml`, `tempo-config.yaml`, `otel-collector-config.yaml`
+- **Grafana**: Provisioning for datasources + dashboards, test/overview.json dashboard
+- **Test data seeder**: `tests/infrastructure/seeder.py` with small/medium/large profiles, clean-slate + seed pattern
+- **Locust**: `tests/performance/locustfiles/common.py` (UPCPBaseUser) + `scenario_mixed.py` (mixed workload across all API endpoints)
+- **.env.test**: 14 ports for core, perf, security, and observability services
+- **SPEC-0024**: Full specification in `specs/SPEC-0024-test-environment.md`
+
 ## [0.21.0] — 2026-08-12 — M19 — Test Quality & Architecture
 
 ### S21.1: Test Infrastructure (TASK-0112)

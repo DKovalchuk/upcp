@@ -41,8 +41,11 @@ exporters:
     endpoint: "0.0.0.0:8889"
     namespace: upcp
 
-  otlp/loki:
-    endpoint: loki:3100/otlp
+  otlphttp/loki:
+    # Native OTLP = HTTP on Loki's MAIN port (/otlp → /v1/logs); the
+    # gRPC-4317 receiver does not exist in grafana/loki:3.4.2 and a
+    # top-level `otlp:` config key fails -verify-config (TASK-0151).
+    endpoint: http://loki:3100/otlp
 
   otlp/tempo:
     endpoint: tempo:4317
@@ -73,7 +76,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch, attributes]
-      exporters: [otlp/loki]
+      exporters: [otlphttp/loki]
 ```
 
 ### 2.2 Docker Compose
@@ -136,6 +139,43 @@ prometheus:
     - observability
 ```
 
+### 3.3 Pushgateway (security results)
+
+Security suite runs are published to a Pushgateway and scraped into
+Prometheus/Grafana (TASK-0158 — backlog §8-B, «Sec→Grafana»). Test stack:
+
+```yaml
+pushgateway:
+  image: prom/pushgateway:latest
+  ports:
+    - "127.0.0.1:${UPCP_PORT_PUSHGATEWAY:-39092}:9091"
+  profiles:
+    - observability
+```
+
+Scrape job in `observability/prometheus-test.yml`:
+
+```yaml
+  - job_name: upcp-security
+    static_configs:
+      - targets: ["pushgateway:9091"]
+```
+
+`tests/security/runner.py` PUTs after **every** run (grouping key
+`/metrics/job/upcp_security/suite/<suite>`, last push wins):
+
+| Metric | Labels | Meaning |
+|--------|--------|---------|
+| `upcp_security_pass` | `suite` | 1 = no failed checks (0 = findings/infra) |
+| `upcp_security_findings` | `suite`, `severity` | counts, all four severities always present |
+| `upcp_security_duration_seconds` | `suite` | only when the result carries it |
+| `upcp_security_timestamp` | `suite` | unix time of the push |
+
+Push is best-effort (`PUSHGATEWAY_URL`, default
+`http://127.0.0.1:39092`) — an unreachable gateway never changes the
+suite exit code. Grafana dashboard: `dashboards/test/security.json`
+(uid `upcp-test-security`).
+
 ## 4. Grafana
 
 ### 4.1 Datasource provisioning
@@ -174,16 +214,48 @@ File: `observability/grafana/provisioning/dashboards/dashboards.yaml`
 apiVersion: 1
 
 providers:
-  - name: UPCP
+  - name: UPCP Test
     orgId: 1
-    folder: UPCP
+    folder: UPCP Test Environment
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30
     options:
-      path: /etc/grafana/provisioning/dashboards
-      foldersFromFilesStructure: true
+      path: /etc/grafana/dashboards/test
+      foldersFromFilesStructure: false
+
+  - name: UPCP Production
+    orgId: 1
+    folder: UPCP Production
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards/production
+      foldersFromFilesStructure: false
 ```
+
+Both `dashboards/test/` and `dashboards/production/` must exist on disk
+(`observability/grafana/dashboards/…`, bind-mounted to
+`/etc/grafana/dashboards`) — otherwise Grafana logs
+`failed to walk provisioned dashboards` every update interval. The
+folders are kept with `.gitkeep` placeholders; contract-tested in
+`backend/tests/test_observability_configs.py` (TASK-0152).
+
+### 4.3 Admin access
+
+- UI: `http://localhost:<UPCP_PORT_GRAFANA>` (test env: **33001**),
+  user `admin`.
+- **Password is seeded once** into the grafana volume from
+  `GF_SECURITY_ADMIN_PASSWORD` at first start (init-once). **Compose
+  precedence: process (shell) env > `--env-file` > default** — a shell
+  carrying `GRAFANA_ADMIN_PASSWORD=admin_change_me` (root `.env` loaded
+  by the launcher) overrides `.env.test`'s `admin_test` at
+  interpolation; both paths probed live (TASK-0152): leak-seeded →
+  `admin_change_me` 200, clean env (`env -u …` + volume reset) →
+  `admin_test` 200. Reset:
+  `docker volume rm <compose-project>_grafana-test-data` (grafana
+  restarts, re-seeds, dashboards re-provision from the files above).
 
 ## 5. Loki
 
@@ -340,6 +412,7 @@ curl http://localhost:3200/ready                   # Tempo
 | OTel Collector | 4318 | HTTP receiver |
 | OTel Collector | 8889 | Prometheus metrics |
 | Prometheus | 39090 | UI + API |
+| Pushgateway | 39092 | Security run results ingest (test) |
 | Grafana | 33000 | UI |
 | Loki | 3100 | Log API |
 | Tempo | 3200 | Trace API |

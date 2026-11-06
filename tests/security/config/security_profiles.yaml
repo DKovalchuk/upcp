@@ -1,0 +1,20 @@
+# Security suite profiles — SPEC-0024 Phase 4 (TASK-0142)
+# Suites:
+#   authz  — pytest auth/RBAC integration suite vs live stack (tests/security/authz)
+#   fuzz   — API fuzzer scenarios (tests/security/fuzz)
+#   zap    — ZAP DAST baseline scan via docker compose (tests/security/dast)
+#   kali   — Kali pentest agent via docker compose (tests/security/kali)
+
+profiles:
+  baseline:
+    description: Fast quality gate — auth suite + API fuzzer + ZAP baseline
+    suites: [authz, fuzz, zap]
+  full:
+    description: Full gate — baseline + Kali pentest agent
+    suites: [authz, fuzz, zap, kali]
+
+config:
+  # ZAP scan level for the baseline profile
+  zap_mode: baseline
+  # Fail the run if any suite fails (runner exit code)
+  fail_on_findings: false

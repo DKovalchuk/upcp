@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.identity.permissions import require_permission
 from app.reporting.channel_service import ChannelService
 from app.reporting.models import NotificationChannel
 from app.shared.database import get_session
@@ -18,6 +19,11 @@ class ChannelCreate(BaseModel):
     channel_type: str
     name: str
     config: dict[str, Any] = {}
+
+
+class ChannelUpdate(BaseModel):
+    name: str | None = None
+    config: dict[str, Any] | None = None
 
 
 class ChannelResponse(BaseModel):
@@ -58,6 +64,7 @@ def list_channels(
     "/notification-channels",
     summary="Create a notification channel",
     status_code=201,
+    dependencies=[Depends(require_permission("create", "notification_channel"))],
 )
 def create_channel(
     body: ChannelCreate,
@@ -71,9 +78,30 @@ def create_channel(
     return _to_response(ch)
 
 
+@router.patch(
+    "/notification-channels/{channel_id}",
+    summary="Update a notification channel",
+    dependencies=[Depends(require_permission("update", "notification_channel"))],
+)
+def update_channel(
+    channel_id: str,
+    body: ChannelUpdate,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    svc = ChannelService(session)
+    try:
+        ch = svc.update(channel_id, name=body.name, config=body.config)
+    except NotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    return _to_response(ch)
+
+
 @router.delete(
     "/notification-channels/{channel_id}",
     summary="Delete a notification channel",
+    dependencies=[Depends(require_permission("delete", "notification_channel"))],
 )
 def delete_channel(
     channel_id: str,
@@ -90,6 +118,7 @@ def delete_channel(
 @router.post(
     "/notification-channels/{channel_id}/toggle",
     summary="Toggle channel active state",
+    dependencies=[Depends(require_permission("update", "notification_channel"))],
 )
 def toggle_channel(
     channel_id: str,
@@ -106,6 +135,7 @@ def toggle_channel(
 @router.post(
     "/notification-channels/{channel_id}/test",
     summary="Send a test notification through a channel",
+    dependencies=[Depends(require_permission("update", "notification_channel"))],
 )
 def test_channel(
     channel_id: str,

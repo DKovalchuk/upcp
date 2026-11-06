@@ -1,0 +1,12 @@
+export const PieChart = ({ children }: any) => children;
+export const Pie = () => null;
+export const Cell = () => null;
+export const ResponsiveContainer = ({ children }: any) => children;
+export const Tooltip = () => null;
+export const LineChart = ({ children }: any) => children;
+export const Line = () => null;
+export const XAxis = () => null;
+export const YAxis = () => null;
+export const CartesianGrid = () => null;
+export const AreaChart = ({ children }: any) => children;
+export const Area = () => null;

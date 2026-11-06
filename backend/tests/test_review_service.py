@@ -23,6 +23,12 @@ def _db():
     import app.reporting.models  # noqa: F401
     import app.structure.models  # noqa: F401
 
+    # Shared engine is process-wide (TASK-0112): other tests COMMIT rows
+    # (e.g. Project slug='test' via test_analytics) whose residue survives
+    # their teardown — create_all alone is a no-op on live tables, so the
+    # canonical inserts below hit UNIQUE collisions under CI's xdist
+    # ordering. Fresh schema per test: drop then create (setup side).
+    Base.metadata.drop_all(bind=_test_engine)
     Base.metadata.create_all(bind=_test_engine)
     yield
     Base.metadata.drop_all(bind=_test_engine)

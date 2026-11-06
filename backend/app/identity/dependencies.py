@@ -1,6 +1,8 @@
-"""Auth dependency dataclasses — CurrentUser, CurrentAgent."""
+"""Auth dependency dataclasses + public dependency accessors — CurrentUser, CurrentAgent, get_web_auth."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,3 +18,45 @@ class CurrentAgent:
     agent_id: str
     name: str
     scopes: dict[str, object] | None = None
+
+
+def get_web_auth() -> Callable[..., Any]:
+    """The web-surface auth dependency (SPEC-0028 D2, TASK-0169).
+
+    The function lives in ``app.identity.web_auth`` (it must bind
+    ``auth._get_token_service`` at module level for the test override
+    seam), but the composition root ``app.api.registry`` consumes it only
+    through this public-surface module: reaching into ``identity.web_auth``
+    from another context would be a boundary violation, and a module-level
+    import here would create the ``auth → dependencies → web_auth → auth``
+    cycle — hence the lazy import inside the accessor.
+    """
+    from app.identity.web_auth import web_auth  # lazy — acyclic by construction
+
+    return web_auth
+
+
+def get_agent_auth() -> Callable[..., Any]:
+    """The agent-surface auth blanket (SPEC-0028 D2, TASK-0170).
+
+    Same access pattern as :func:`get_web_auth`: ``app.api.registry``
+    attaches ``Depends(get_agent_auth())`` to the AGENT group without
+    reaching into ``identity.agent_auth`` internals (boundary gate,
+    TASK-0177) — the lazy import keeps the composition root acyclic.
+    """
+    from app.identity.agent_auth import agent_auth  # lazy — acyclic by construction
+
+    return agent_auth
+
+
+def get_require_agent_scope() -> Callable[[str], Callable[..., Any]]:
+    """The agent scope-gate factory (SPEC-0028 AC6, TASK-0170).
+
+    ``mcp.server`` consumes ``require_agent_scope`` through this public
+    accessor: ``app.identity.agent_auth`` is a foreign-internal module for
+    the ``mcp`` context, while ``identity.dependencies`` is its declared
+    public surface.
+    """
+    from app.identity.agent_auth import require_agent_scope  # lazy — acyclic
+
+    return require_agent_scope

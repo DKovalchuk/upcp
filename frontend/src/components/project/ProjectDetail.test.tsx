@@ -55,7 +55,7 @@ describe('ProjectDetail', () => {
       data: undefined,
       isLoading: true,
       error: null,
-    } as any);
+    } as ReturnType<typeof useProject>);
 
     const { container } = renderProjectDetail();
     const skeletons = container.querySelectorAll('[data-slot="skeleton"]');
@@ -67,7 +67,7 @@ describe('ProjectDetail', () => {
       data: undefined,
       isLoading: false,
       error: new Error('Not found'),
-    } as any);
+    } as ReturnType<typeof useProject>);
 
     renderProjectDetail();
     expect(screen.getByText('Not found')).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('ProjectDetail', () => {
       },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useProject>);
 
     renderProjectDetail();
     // Name appears in header and in overview table
@@ -110,7 +110,7 @@ describe('ProjectDetail', () => {
       },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useProject>);
 
     renderProjectDetail();
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe('ProjectDetail', () => {
       },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useProject>);
 
     renderProjectDetail();
     // Status badge appears in header (capitalized)
@@ -155,7 +155,7 @@ describe('ProjectDetail', () => {
       },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useProject>);
 
     renderProjectDetail();
     expect(screen.getByText('Project Details')).toBeInTheDocument();
@@ -179,7 +179,7 @@ describe('ProjectDetail', () => {
       },
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useProject>);
 
     renderProjectDetail();
     // Edit (pencil) and Delete (trash) buttons

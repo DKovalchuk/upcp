@@ -5,26 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from app.api.v1.agent_self import router as agent_self_router
-from app.api.v1.analytics import router as analytics_router
-from app.api.v1.audit import router as audit_router
-from app.api.v1.dashboard import router as dashboard_router
-from app.api.v1.delivery import router as delivery_router
-from app.api.v1.gitread import router as gitread_router
-from app.api.v1.notification_channels import router as notification_channels_router
-from app.api.v1.notifications import router as notifications_router
-from app.api.v1.projects import router as projects_router
-from app.api.v1.quality import router as quality_router
-from app.api.v1.reaper import router as reaper_router
-from app.api.v1.reporting import router as reporting_router
-from app.api.v1.search import router as search_router
-from app.api.v1.structure import router as structure_router
-from app.api.v1.task_workflow import router as workflow_router
-from app.identity.agent_endpoints import router as agent_router
-from app.identity.endpoints import router as auth_router
-from app.identity.middleware import AuthMiddleware
-from app.mcp.server import create_mcp_router
+from app.api.registry import include_surfaces
 from app.shared.config import get_settings
 from app.shared.correlation import CorrelationMiddleware
 from app.shared.database import check_db_health
@@ -62,7 +45,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
 
 app = FastAPI(
     title="UPCP Backend",
-    version="0.1.0",
+    version="0.22.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "projects", "description": "Project CRUD operations"},
@@ -95,6 +78,14 @@ except ImportError:
 # Correlation middleware — adds request_id to all logs
 app.add_middleware(CorrelationMiddleware)
 
+# Metrics middleware — Prometheus HTTP request instrumentation
+try:
+    from app.shared.metrics_middleware import MetricsMiddleware
+
+    app.add_middleware(MetricsMiddleware)
+except ImportError:
+    pass
+
 # Rate limiting middleware — Redis sliding window (lazy import)
 try:
     from app.shared.rate_limit_middleware import RateLimitMiddleware
@@ -104,9 +95,10 @@ try:
 except ImportError:
     pass
 
-# Auth middleware — protects all /api/v1/ and /mcp/ routes except public ones
-if not settings.disable_auth:
-    app.add_middleware(AuthMiddleware)
+# Auth — per-surface dependencies (SPEC-0028 D2): the WEB and AGENT groups
+# carry their auth dependency through include_surfaces(); the PUBLIC group
+# and the app-level routes are declared no-auth. No path-string guard and
+# no auth middleware (TASK-0170 retired AuthMiddleware/PUBLIC_PATHS).
 
 # CORS — configured via UPCP_CORS_ORIGINS and UPCP_CORS_ALLOW_HEADERS env vars
 app.add_middleware(
@@ -134,27 +126,8 @@ async def security_headers(request: Request, call_next: object) -> Response:
     return response
 
 
-# API routers
-app.include_router(projects_router, prefix="/api/v1")
-app.include_router(structure_router, prefix="/api/v1")
-app.include_router(workflow_router, prefix="/api/v1")
-app.include_router(delivery_router, prefix="/api/v1")
-app.include_router(quality_router, prefix="/api/v1")
-app.include_router(gitread_router, prefix="/api/v1")
-app.include_router(reporting_router, prefix="/api/v1")
-app.include_router(dashboard_router, prefix="/api/v1")
-app.include_router(audit_router, prefix="/api/v1")
-app.include_router(search_router, prefix="/api/v1")
-app.include_router(agent_self_router, prefix="/api/v1")
-app.include_router(notifications_router, prefix="/api/v1")
-app.include_router(notification_channels_router, prefix="/api/v1")
-app.include_router(analytics_router, prefix="/api/v1")
-app.include_router(agent_router, prefix="/api/v1")
-app.include_router(reaper_router, prefix="/api/v1")
-app.include_router(auth_router, prefix="/auth")
-
-# MCP server
-app.include_router(create_mcp_router(), prefix="/mcp")
+# API routers — every surface declared in app/api/registry.py (SPEC-0028 §3.1)
+include_surfaces(app)
 
 
 @app.get("/health")
@@ -190,3 +163,18 @@ def health() -> dict[str, object]:
 @app.get("/api/v1/health")
 def api_health() -> dict[str, object]:
     return health()
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    """Prometheus metrics endpoint."""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+# Initialize app_info metric with version and environment
+try:
+    from app.shared.metrics import app_info
+
+    app_info.info({"version": "0.22.0", "environment": settings.env})
+except Exception:
+    pass

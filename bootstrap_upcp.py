@@ -1087,11 +1087,11 @@ External ports are intentionally non-standard.
 
 | Service | Internal Port | External Default | Env Variable |
 |---|---:|---:|---|
-| App/API/UI | 8080 | 38080 | `UPCP_HTTP_PORT` |
-| PostgreSQL | 5432 | 35432 | `UPCP_POSTGRES_PORT` |
-| Prometheus | 9090 | 39090 | `UPCP_PROMETHEUS_PORT` |
-| Grafana | 3000 | 33000 | `UPCP_GRAFANA_PORT` |
-| Frontend dev | 5173 | 35173 | `UPCP_FRONTEND_DEV_PORT` |
+| App/API/UI | 8080 | 38080 | `UPCP_PORT_BACKEND` |
+| PostgreSQL | 5432 | 35432 | `UPCP_PORT_POSTGRES` |
+| Prometheus | 9090 | 39090 | `UPCP_PORT_PROMETHEUS` |
+| Grafana | 3000 | 33000 | `UPCP_PORT_GRAFANA` |
+| Frontend dev | 5173 | 35173 | `UPCP_PORT_FRONTEND_DEV` |
 
 Rules:
 
@@ -1691,11 +1691,11 @@ FILES[".env.example"] = r'''
 # UPCP local environment
 
 # External ports
-UPCP_HTTP_PORT=38080
-UPCP_POSTGRES_PORT=35432
-UPCP_PROMETHEUS_PORT=39090
-UPCP_GRAFANA_PORT=33000
-UPCP_FRONTEND_DEV_PORT=35173
+UPCP_PORT_BACKEND=38080
+UPCP_PORT_POSTGRES=35432
+UPCP_PORT_PROMETHEUS=39090
+UPCP_PORT_GRAFANA=33000
+UPCP_PORT_FRONTEND_DEV=35173
 
 # Postgres
 POSTGRES_USER=upcp
@@ -1714,7 +1714,8 @@ UPCP_DEBUG=false
 UPCP_SECRET_KEY=change_me_local_only
 UPCP_SESSION_TTL_HOURS=24
 UPCP_PAT_MAX_AGE_DAYS=365
-UPCP_AGENT_TOKEN_MAX_AGE_DAYS=90
+# Agent API-key TTL: every new key expires in N days (SPEC-0028 AC7)
+UPCP_AGENT_TOKEN_TTL_DAYS=90
 
 # LLM optional
 UPCP_LLM_ENABLED=false
@@ -1757,7 +1758,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upcp_local_change_me}
       POSTGRES_DB: ${POSTGRES_DB:-upcp}
     ports:
-      - "127.0.0.1:${UPCP_POSTGRES_PORT:-35432}:5432"
+      - "127.0.0.1:${UPCP_PORT_POSTGRES:-35432}:5432"
     volumes:
       - upcp_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -1781,7 +1782,7 @@ services:
       UPCP_DEBUG: ${UPCP_DEBUG:-false}
       UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-change_me_local_only}
     ports:
-      - "127.0.0.1:${UPCP_HTTP_PORT:-38080}:8080"
+      - "127.0.0.1:${UPCP_PORT_BACKEND:-38080}:8080"
     volumes:
       - ./backend/app:/app/app
     depends_on:
@@ -1804,7 +1805,7 @@ services:
     profiles:
       - observability
     ports:
-      - "127.0.0.1:${UPCP_PROMETHEUS_PORT:-39090}:9090"
+      - "127.0.0.1:${UPCP_PORT_PROMETHEUS:-39090}:9090"
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
 
@@ -1814,7 +1815,7 @@ services:
     profiles:
       - observability
     ports:
-      - "127.0.0.1:${UPCP_GRAFANA_PORT:-33000}:3000"
+      - "127.0.0.1:${UPCP_PORT_GRAFANA:-33000}:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_change_me}
     volumes:

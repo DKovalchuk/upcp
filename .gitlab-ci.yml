@@ -9,6 +9,7 @@
 # CD (continuous delivery):
 #   develop   → build → deploy:dev    (automatic)
 #   main      → build → deploy:stage  (manual)
+#   (manual)  maintenance:cleanup     → retention sweep on runner host
 #
 # Stage ordering: lint → test → build → deploy
 # Pipeline stops at first failed stage.
@@ -16,6 +17,7 @@
 stages:
   - lint
   - test
+  - quality
   - build
   - deploy
 
@@ -26,6 +28,8 @@ workflow:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
+    # nightly quality-gate runs (pipeline schedule on develop, TASK-0143)
+    - if: $CI_PIPELINE_SOURCE == "schedule"
 
 default:
   tags:
@@ -173,6 +177,33 @@ backend:test:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"
 
+backend:migrations:
+  stage: test
+  extends:
+    - .python-base
+    - .retry-on-system-failure
+  needs:
+    - backend:lint
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_USER: upcp_mig
+    POSTGRES_PASSWORD: upcp_mig_ci
+    POSTGRES_DB: upcp_mig
+    DATABASE_URL: "postgresql+psycopg://upcp_mig:upcp_mig_ci@postgres:5432/upcp_mig"
+    UPCP_ENV: ci
+    UPCP_SECRET_KEY: ci-test-only-secure-key-for-testing-32b
+  script:
+    # Fresh empty DB: the whole migration chain must apply cleanly. Catches
+    # broken/non-idempotent migrations in CI instead of crash-looping a
+    # deployed container (incident 2026-10-17: 0019/0023).
+    - alembic upgrade head
+    - alembic current
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
 frontend:test:
   stage: test
   extends:
@@ -278,36 +309,249 @@ container:scan:backend:
     - if: $CI_COMMIT_BRANCH == "main"
 
 # ══════════════════════════════════════════════════════════════
-# CD: BUILD — stage 3 (only on develop push and main push)
+# CI: QUALITY GATE — stage 3 (SPEC-0024 Phase 5, TASK-0143)
+# ══════════════════════════════════════════════════════════════
+#
+# Ephemeral hermetic test stack (upcp-test-ci via .env.ci); suites run
+# INSIDE its network — job containers cannot reach host loopback (the
+# deploy-probe incident).
+#
+# Phase B ACTIVE (since 2026-10-18): HARD GATE — allow_failure: false,
+# a red gate fails the pipeline and blocks build/deploy. Policy
+# prerequisites were met first: >=2 green develop gate runs (jobs 3330 /
+# 3371, pipelines 460 / 463) + >=1 green schedule run (job 3345,
+# pipeline 461, full profile); the Phase A history (red->green rounds
+# !71-!75) is recorded in tasks/TASK-0143-spec0024-phase5-integration.md.
+# Nightly `perf load` never gates (honest red SLO — TASK-0140 findings).
+
+quality:gate:
+  stage: quality
+  image: python:3.12-slim
+  extends:
+    - .retry-on-system-failure
+  timeout: 1 hour 30 minutes
+  resource_group: quality-gate
+  # Phase B hard gate (TASK-0143): red gate = red pipeline = no deploy
+  allow_failure: false
+  needs:
+    - job: backend:test
+    - job: backend:migrations
+  variables:
+    # COMPOSE_FILE pins every compose invocation (incl. nested ones inside
+    # suite wrappers) to the test stack — without it compose would pick
+    # docker-compose.yml (the dev stack) from the repo root
+    COMPOSE_FILE: docker-compose.test.yml
+    COMPOSE_PROJECT_NAME: upcp-test-ci
+    DOCKER_HOST: unix:///var/run/docker.sock
+    DOCKER_TLS_CERTDIR: ""
+    QUALITY_PROFILE: "quick"
+    E2E_BASE_URL: "http://nginx"
+    CHAOS_BASE_URL: "http://app:8080"
+    CHAOS_COMPOSE_PROJECT: "upcp-test-ci"
+    SECURITY_BASE_URL: "http://app:8080"
+    # authz RBAC fixtures discover the second user via a direct DB lookup:
+    # in-network the gate db is `db:5432` — localhost:35436 is a HOST port
+    # unreachable from the job container, so the localhost default made
+    # 4 RBAC tests skip (instead of executing) in the first CI gate runs
+    SECURITY_DB_HOST: "db"
+    SECURITY_DB_PORT: "5432"
+    LOCUST_HOST: "http://app:8080"
+  rules:
+    # nightly schedule → full profiles (chaos full, security full, perf load)
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      variables:
+        QUALITY_PROFILE: "full"
+    - if: $CI_COMMIT_BRANCH == "develop"
+  before_script:
+    # docker CLI + compose plugin: job image is python-slim, the runner only
+    # injects the daemon socket (same approach as .docker-build-base).
+    # Bounded retry wraps ONLY dependency installation: external fetches
+    # (download.docker.com / PyPI) blipped once in pipeline 463 and killed
+    # a healthy gate before it even started — suite verdicts are never
+    # retried here (Phase B hard gate, TASK-0143).
+    - |
+      install_deps() {
+        apt-get update -qq &&
+        apt-get install -y -qq ca-certificates curl gnupg >/dev/null &&
+        install -m0755 -d /etc/apt/keyrings &&
+        curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc &&
+        chmod a+r /etc/apt/keyrings/docker.asc &&
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list &&
+        apt-get update -qq &&
+        apt-get install -y -qq docker-ce-cli docker-compose-plugin >/dev/null &&
+        pip install --quiet -r tests/security/requirements.txt -r tests/chaos/requirements.txt -r tests/performance/requirements.txt locust
+      }
+      for i in 1 2 3; do
+        if install_deps; then echo "dependencies installed (attempt $i)"; break; fi
+        if [ "$i" = 3 ]; then echo "ERROR: dependency install failed after 3 attempts"; exit 1; fi
+        echo "attempt $i failed — retrying in 15s"; sleep 15
+      done
+      command -v docker >/dev/null || { echo "ERROR: docker CLI missing"; exit 1; }
+      docker compose version
+      python -c "import httpx, pytest, yaml, locust"
+  script:
+    # ── 1. reporter unit tests (TDD'd in-repo) + compose config sanity ──
+    - python -m pytest tests/quality_gate -o addopts= -o pythonpath= -q
+    - docker compose --env-file .env.ci config --quiet
+    # ── 2. ephemeral stack from THIS commit (images rebuilt; layer cache on the shared daemon) ──
+    - docker compose --env-file .env.ci build app frontend nginx
+    - docker compose --env-file .env.ci up -d db redis app frontend nginx
+    - |
+      healthy=0
+      for i in $(seq 1 40); do
+        if docker compose --env-file .env.ci exec -T app python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)" 2>/dev/null; then
+          healthy=1; break
+        fi
+        sleep 3
+      done
+      if [ "$healthy" -ne 1 ]; then
+        echo "ERROR: gate stack never became healthy — logs:"
+        docker compose --env-file .env.ci logs --tail 100 app db || true
+        exit 1
+      fi
+    # ── 3. job joins the gate network — suites resolve http://app:8080 / http://nginx
+    #       (job container sits on gitlab-local_default; host loopback is unreachable).
+    #       The runner sets the job hostname to runner-<hash>-project-<id>-concurrent-<n>,
+    #       which is NOT the daemon-side container name — resolve the own container id
+    #       by matching .Config.Hostname instead of trusting $(cat /etc/hostname)
+    #       as a docker reference (failed in pipeline 449, TASK-0143) ──
+    - |
+      MY_HOST=$(cat /etc/hostname)
+      CID=""
+      for c in $(docker ps -q); do
+        h=$(docker inspect -f '{{.Config.Hostname}}' "$c" 2>/dev/null || true)
+        if [ "$h" = "$MY_HOST" ]; then CID="$c"; break; fi
+      done
+      if [ -z "$CID" ]; then
+        echo "ERROR: cannot resolve own container id for hostname=$MY_HOST"
+        docker ps
+        exit 1
+      fi
+      echo "resolved own container: hostname=$MY_HOST id=$CID"
+      docker network connect upcp-test-ci_default "$CID"
+    - python -c "import httpx,sys; sys.exit(0 if httpx.get('http://app:8080/health',timeout=5).status_code==200 else 1)"
+    - docker compose --env-file .env.ci --profile tools run --rm seeder
+    # ── 4. suites — profiles chosen by QUALITY_PROFILE; RCs collected, report always runs ──
+    # checkout files are root-owned; e2e (uid 1000) writes node_modules,
+    # tests/e2e/.auth storageState and root test-results — chown every dir
+    # it writes into (TASK-0143)
+    - chown 1000:1000 . frontend tests || true
+    - RC_E2E=0 RC_E2E_FE=0 RC_CHAOS=0 RC_SEC=0 RC_PERF=0
+    - |
+      if [ "$QUALITY_PROFILE" = "full" ]; then
+        CHAOS_P=full; SEC_P=full; PERF_P=load
+      else
+        CHAOS_P=quick; SEC_P=baseline; PERF_P=smoke
+      fi
+    # Root suite: 3 specs call the API directly (nginx.test.conf does not
+    # proxy /openapi.json, /metrics) → E2E_API_BASE; SPA login goes same-origin
+    # via the new /auth location in nginx.test.conf.
+    # Frontend suite: vite proxy target VITE_API_URL; its own vite origin.
+    - docker compose --env-file .env.ci --profile ci run --rm -e E2E_API_BASE=http://app:8080 -e E2E_ADMIN_PASSWORD=TestAdmin123! e2e sh -c "npm ci --no-audit --no-fund && npx playwright test" || RC_E2E=$?
+    - docker compose --env-file .env.ci --profile ci run --rm -e PLAYWRIGHT_BASE_URL=http://localhost:5173 -e VITE_API_URL=http://app:8080 -e E2E_ADMIN_PASSWORD=TestAdmin123! e2e sh -c "cd frontend && npm ci --no-audit --no-fund && npx playwright test" || RC_E2E_FE=$?
+    - python tests/chaos/runner.py --profile "$CHAOS_P" --report || RC_CHAOS=$?
+    - python tests/security/runner.py --profile "$SEC_P" --report || RC_SEC=$?
+    # locust's periodic stats flooded the 4MB job-log cap on the nightly
+    # full profile (output was cut before the verdict) — capture to a file
+    # and tail it; CSV/markdown results still land in the artifact paths
+    - python tests/performance/runner.py --profile "$PERF_P" --report > /tmp/perf_run.log 2>&1 || RC_PERF=$?
+    - tail -n 40 /tmp/perf_run.log
+    # ── 5. aggregate report (artifact) + gate verdict ──
+    - python tests/quality_gate/aggregate.py --results-root tests --out-dir . --profile "$QUALITY_PROFILE"
+    - |
+      echo "RCs: e2e=$RC_E2E e2e_fe=$RC_E2E_FE chaos=$RC_CHAOS security=$RC_SEC perf=$RC_PERF"
+      GATE=$RC_E2E
+      for rc in $RC_E2E_FE $RC_CHAOS $RC_SEC; do [ "$rc" -gt "$GATE" ] && GATE=$rc; done
+      # perf gates only on quick (smoke must pass); the nightly load profile is
+      # the known-honest-red SLO run (TASK-0140) → report-only, never gates
+      if [ "$QUALITY_PROFILE" = "quick" ] && [ "$RC_PERF" -gt "$GATE" ]; then GATE=$RC_PERF; fi
+      echo "quality gate exit: $GATE"
+      exit $GATE
+  after_script:
+    - docker compose --env-file .env.ci --profile tools --profile ci --profile security down -v --remove-orphans || true
+  artifacts:
+    when: always
+    paths:
+      - quality-report.md
+      - quality-report.json
+      - tests/chaos/results/
+      - tests/security/results/
+      - tests/performance/results/
+      - tests/chaos/reports/*.md
+      - tests/security/reports/*.md
+      - tests/performance/reports/*.md
+    expire_in: 30 days
+
+# ══════════════════════════════════════════════════════════════
+# CD: BUILD — stage 4 (only on develop push and main push)
 # ══════════════════════════════════════════════════════════════
 
 build:backend:
   extends: .docker-build-base
   script:
-    - docker build
-        --cache-from $REGISTRY/backend:dev
-        --tag $REGISTRY/backend:$CI_COMMIT_SHORT_SHA
-        --tag $REGISTRY/backend:dev
+    # FLOAT_TAG is the branch floating tag: dev on develop, stage on main.
+    # cache-from: branch tag first, :dev always included as cross-branch
+    # fallback (BuildKit tolerates a missing cache image — warning only).
+    - |
+      CACHE_ARGS="--cache-from $REGISTRY/backend:dev"
+      if [ "$FLOAT_TAG" != "dev" ]; then
+        CACHE_ARGS="--cache-from $REGISTRY/backend:$FLOAT_TAG $CACHE_ARGS"
+      fi
+      docker build $CACHE_ARGS \
+        --tag $REGISTRY/backend:$CI_COMMIT_SHORT_SHA \
+        --tag $REGISTRY/backend:$FLOAT_TAG \
         .
     - docker push $REGISTRY/backend:$CI_COMMIT_SHORT_SHA
-    - docker push $REGISTRY/backend:dev
+    - docker push $REGISTRY/backend:$FLOAT_TAG
+  after_script:
+    # Retention: SHA tag is already in registry — drop it locally; keep only
+    # the branch floating tag ($FLOAT_TAG) as the cache-from source. Prune
+    # stale dangling images so builds don't pile up on the shared runner host;
+    # `until=24h` protects concurrent/other builds.
+    - |
+      for t in $(docker images --format '{{.Tag}}' "$REGISTRY/backend"); do
+        [ "$t" = "$FLOAT_TAG" ] || docker rmi "$REGISTRY/backend:$t" || true
+      done
+      docker image prune -f --filter "until=24h" || true
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
+      variables:
+        FLOAT_TAG: "dev"
     - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        FLOAT_TAG: "stage"
 
 build:frontend:
   extends: .docker-build-base
   script:
-    - docker build
-        --cache-from $REGISTRY/frontend:dev
-        --tag $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA
-        --tag $REGISTRY/frontend:dev
+    # Same tag scheme as build:backend — FLOAT_TAG from rules below.
+    - |
+      CACHE_ARGS="--cache-from $REGISTRY/frontend:dev"
+      if [ "$FLOAT_TAG" != "dev" ]; then
+        CACHE_ARGS="--cache-from $REGISTRY/frontend:$FLOAT_TAG $CACHE_ARGS"
+      fi
+      docker build $CACHE_ARGS \
+        --tag $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA \
+        --tag $REGISTRY/frontend:$FLOAT_TAG \
         frontend/
     - docker push $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA
-    - docker push $REGISTRY/frontend:dev
+    - docker push $REGISTRY/frontend:$FLOAT_TAG
+  after_script:
+    # Retention: same as build:backend — keep only the branch floating tag
+    # locally, prune stale dangling images older than 24h (safe for
+    # concurrent jobs).
+    - |
+      for t in $(docker images --format '{{.Tag}}' "$REGISTRY/frontend"); do
+        [ "$t" = "$FLOAT_TAG" ] || docker rmi "$REGISTRY/frontend:$t" || true
+      done
+      docker image prune -f --filter "until=24h" || true
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
+      variables:
+        FLOAT_TAG: "dev"
     - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        FLOAT_TAG: "stage"
 
 # ══════════════════════════════════════════════════════════════
 # CD: DEPLOY — stage 4
@@ -321,9 +565,19 @@ deploy:dev:
     DOCKER_TLS_CERTDIR: ""
     REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
     GIT_STRATEGY: clone
+    # Dev environment owns its compose project/ports/data — it used to share
+    # the upcp-stage project with deploy:stage (whoever ran last won).
+    # Split + honest URL per TASK-0143 (stage stays 3070/38081/35433/36382).
+    COMPOSE_PROJECT_NAME: upcp-dev
+    UPCP_PORT_FRONTEND: "3073"
+    UPCP_PORT_BACKEND: "38083"
+    UPCP_PORT_POSTGRES: "35435"
+    UPCP_PORT_REDIS: "36384"
+    UPCP_DATA_POSTGRES: ./data/postgres-dev
+    UPCP_DATA_REDIS: ./data/redis-dev
   environment:
     name: dev
-    url: http://localhost:3080
+    url: http://localhost:3073
   resource_group: dev
   needs:
     - build:backend
@@ -332,14 +586,31 @@ deploy:dev:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
     - docker pull $REGISTRY/backend:dev
     - docker pull $REGISTRY/frontend:dev
-    - docker tag $REGISTRY/backend:dev upcp-backend:stage
-    - docker tag $REGISTRY/frontend:dev upcp-frontend:stage
+    # Point compose at exactly the images pulled above — recreates containers
+    # with the image the pipeline just built (no local re-tag aliases).
+    - export UPCP_BACKEND_IMAGE=$REGISTRY/backend:dev
+    - export UPCP_FRONTEND_IMAGE=$REGISTRY/frontend:dev
     - docker compose -f docker-compose.stage.yml build nginx
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
-    - for i in $(seq 1 30); do
-        wget -qO- http://localhost:38081/health && break || sleep 2;
+    # Probe INSIDE the app container: the job runs on the gitlab-local
+    # docker network (runner network_mode), so the host's 127.0.0.1:38081
+    # is unreachable from here — a host wget never could succeed (the old
+    # loop silently fell through, masking the 2026-10-17 incident).
+    - |
+      healthy=0
+      for i in $(seq 1 40); do
+        if docker compose -f docker-compose.stage.yml exec -T app \
+            python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"; then
+          healthy=1; break
+        fi
+        sleep 3
       done
+      if [ "$healthy" -ne 1 ]; then
+        echo "ERROR: backend never became healthy — last logs:"
+        docker compose -f docker-compose.stage.yml logs --tail 50 app || true
+        exit 1
+      fi
     - echo "Dev deployment complete."
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -354,23 +625,38 @@ deploy:stage:
     GIT_STRATEGY: clone
   environment:
     name: stage
-    url: http://localhost:3080
+    url: http://localhost:3070
   resource_group: stage
   needs:
     - build:backend
     - build:frontend
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $REGISTRY
-    - docker pull $REGISTRY/backend:dev
-    - docker pull $REGISTRY/frontend:dev
-    - docker tag $REGISTRY/backend:dev upcp-backend:stage
-    - docker tag $REGISTRY/frontend:dev upcp-frontend:stage
+    - docker pull $REGISTRY/backend:stage
+    - docker pull $REGISTRY/frontend:stage
+    # Point compose at exactly the images pulled above — the build stage of
+    # this main pipeline pushed :stage, so this deploys the just-built image.
+    - export UPCP_BACKEND_IMAGE=$REGISTRY/backend:stage
+    - export UPCP_FRONTEND_IMAGE=$REGISTRY/frontend:stage
     - docker compose -f docker-compose.stage.yml build nginx
     - docker compose -f docker-compose.stage.yml up -d --force-recreate --remove-orphans
     - echo "Waiting for app health check..."
-    - for i in $(seq 1 30); do
-        wget -qO- http://localhost:38081/health && break || sleep 2;
+    # Same as deploy:dev — probe inside the app container (host loopback is
+    # unreachable from the job's docker network); health failure fails the job.
+    - |
+      healthy=0
+      for i in $(seq 1 40); do
+        if docker compose -f docker-compose.stage.yml exec -T app \
+            python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"; then
+          healthy=1; break
+        fi
+        sleep 3
       done
+      if [ "$healthy" -ne 1 ]; then
+        echo "ERROR: backend never became healthy — last logs:"
+        docker compose -f docker-compose.stage.yml logs --tail 50 app || true
+        exit 1
+      fi
     - echo "Stage deployment complete."
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
@@ -390,4 +676,103 @@ stop:stage:
   when: manual
   allow_failure: true
   rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ══════════════════════════════════════════════════════════════
+# CD: PUBLIC MIRROR — push scrubbed main to GitHub (TASK-0167)
+# ══════════════════════════════════════════════════════════════
+#
+# Release-mirror workflow: once the images are built on main, export the
+# full history with secrets scrubbed (git filter-repo replace-text,
+# deterministic) behind a gitleaks baseline gate — see
+# scripts/export-public.sh. The local checkout and GitLab history are
+# never rewritten.
+#
+# Requires the masked CI variable GITHUB_PUB_TOKEN (Settings → CI/CD →
+# Variables) with repo + workflow scope — the export contains
+# .github/workflows/*, and GitHub refuses pushes without `workflow`.
+publish:github:
+  stage: deploy
+  image: python:3.12-slim
+  extends:
+    - .retry-on-system-failure
+  needs:
+    - build:backend
+    - build:frontend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  before_script:
+    # git-filter-repo (upstream single file) + gitleaks release binary.
+    # Bounded retry wraps ONLY the tool downloads — same network policy
+    # as quality:gate (external fetches blipped once there).
+    - |
+      install_tools() {
+        apt-get update -qq &&
+        apt-get install -y -qq git curl ca-certificates tar gzip >/dev/null &&
+        curl -fsSL -o /usr/local/bin/git-filter-repo https://raw.githubusercontent.com/newren/git-filter-repo/v2.47.0/git-filter-repo &&
+        chmod +x /usr/local/bin/git-filter-repo &&
+        GL_VERSION=8.30.1 &&
+        curl -fsSL -o /tmp/gitleaks.tgz https://github.com/gitleaks/gitleaks/releases/download/v${GL_VERSION}/gitleaks_${GL_VERSION}_linux_x64.tar.gz &&
+        tar -xzf /tmp/gitleaks.tgz -C /usr/local/bin gitleaks
+      }
+      for i in 1 2 3; do
+        if install_tools; then echo "tools installed (attempt $i)"; break; fi
+        if [ "$i" = 3 ]; then echo "ERROR: tool install failed after 3 attempts"; exit 1; fi
+        echo "attempt $i failed — retrying in 15s"; sleep 15
+      done
+      git-filter-repo --version
+      gitleaks version
+      [ -n "${GITHUB_PUB_TOKEN:-}" ] || {
+        echo "ERROR: masked CI variable GITHUB_PUB_TOKEN is not set"
+        echo "(Settings → CI/CD → Variables; token needs repo + workflow scope)"
+        exit 1
+      }
+  script:
+    # CI_REPOSITORY_URL carries this job's token for the source clone; the
+    # script redacts userinfo from its own logs and never echoes the push url.
+    - scripts/export-public.sh
+        --source "$CI_REPOSITORY_URL"
+        --to "https://github.com/DKovalchuk/upcp.git"
+
+# ══════════════════════════════════════════════════════════════
+# CD: MAINTENANCE — manual retention sweep (TASK-0136)
+# ══════════════════════════════════════════════════════════════
+
+maintenance:cleanup:
+  stage: deploy
+  image: docker:24
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
+    DOCKER_TLS_CERTDIR: ""
+    REGISTRY: registry.gitlab.local:5050/dmitry.kovalchuk/upcp
+  resource_group: maintenance
+  script:
+    # 1. Local SHA tags of upcp images — already pushed to registry by build
+    #    jobs; the branch floating tag (dev/stage) is kept as --cache-from
+    #    source (this loop only ever matches SHA tags).
+    - |
+      for repo in backend frontend; do
+        for t in $(docker images --format '{{.Tag}}' "$REGISTRY/$repo" | grep -E '^[0-9a-f]{7,40}$' || true); do
+          docker rmi "$REGISTRY/$repo:$t" && echo "removed local tag $repo:$t" || true
+        done
+      done
+    # 2. Dangling images older than 30d. `until` filters by creation time;
+    #    docker skips images referenced by any container (verified against
+    #    moby prune source) — safe on this shared runner host.
+    - docker image prune -f --filter "until=720h" || true
+    # 3. GitLab runner cache volumes (runner-*-cache-*) older than 30d and
+    #    not linked to any container. Worst case a cache miss on next build.
+    - |
+      CUT=$(date -u -d @$(( $(date +%s) - 2592000 )) +%Y-%m-%dT%H:%M:%S)
+      for v in $(docker volume ls -q --filter name='runner-' --filter dangling=true | grep -E 'runner-[0-9a-f]+-cache' || true); do
+        created=$(docker volume inspect -f '{{.CreatedAt}}' "$v" | cut -c1-19)
+        if [ "$created" \< "$CUT" ]; then
+          docker volume rm "$v" && echo "removed old cache volume $v" || true
+        fi
+      done
+    - docker system df
+  when: manual
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_BRANCH == "main"

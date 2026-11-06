@@ -29,6 +29,7 @@ def _db():
     import app.reporting.models  # noqa: F401
     import app.structure.models  # noqa: F401
 
+    Base.metadata.drop_all(bind=_test_engine)
     Base.metadata.create_all(bind=_test_engine)
     yield
     Base.metadata.drop_all(bind=_test_engine)

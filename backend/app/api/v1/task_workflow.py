@@ -8,14 +8,22 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.delivery.lifecycle import InvalidTransition
 from app.delivery.models import ClarificationRequest, Heartbeat, Task, TaskClaim
 from app.delivery.workflow import WorkflowService
-from app.identity.agent_auth import get_current_agent
+from app.identity.agent_auth import get_current_agent, require_agent_scope
 from app.identity.dependencies import CurrentAgent
 from app.shared.database import get_session
 from app.shared.errors import Conflict, NotFound
 
-router = APIRouter(tags=["workflow"])
+# Scope marking for the AGENT write surface (SPEC-0028 AC6): claim, release,
+# heartbeat, progress and clarification writes all need agent:workflow.
+router = APIRouter(tags=["workflow"], dependencies=[Depends(require_agent_scope("agent:workflow"))])
+
+# Web read surface (SPEC-0028 D5 amendment, TASK-0179): the UI's Execution /
+# Clarifications tabs list claims/heartbeats/clarifications with a JWT — the
+# read-backs move to the web surface; every write stays agent-key-only.
+workflow_read_router = APIRouter(tags=["workflow"])
 
 
 # ── Schemas ──
@@ -84,6 +92,7 @@ def claim_task(
     responses={
         404: {"description": "Task not found"},
         409: {"description": "No active claim to release"},
+        422: {"description": "Invalid status transition"},
     },
 )
 def release_task(
@@ -98,6 +107,8 @@ def release_task(
         raise HTTPException(status_code=404, detail=str(e)) from None
     except Conflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
+    except InvalidTransition as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
 
     return {"ok": True}
 
@@ -176,7 +187,7 @@ def _require_task(session: Session, task_id: str) -> None:
         raise HTTPException(status_code=404, detail=f"task '{task_id}' not found")
 
 
-@router.get(
+@workflow_read_router.get(
     "/tasks/{task_id}/claims",
     summary="List claims for a task",
     description="List all claim records for a task including active and released claims.",
@@ -209,7 +220,7 @@ def list_claims(
     return {"items": items}
 
 
-@router.get(
+@workflow_read_router.get(
     "/tasks/{task_id}/heartbeats",
     summary="List heartbeats for a task",
     description="List all heartbeat records for a task across all claims.",
@@ -245,7 +256,7 @@ def list_heartbeats(
     return {"items": items}
 
 
-@router.get(
+@workflow_read_router.get(
     "/tasks/{task_id}/clarifications",
     summary="List clarifications for a task",
     description="List all clarification requests for a task including open and answered ones.",
@@ -305,6 +316,7 @@ class ClarificationAnswerRequest(BaseModel):
     responses={
         404: {"description": "Task not found"},
         409: {"description": "No active claim or invalid state"},
+        422: {"description": "Invalid status transition"},
     },
 )
 def create_clarification(
@@ -326,6 +338,8 @@ def create_clarification(
         raise HTTPException(status_code=404, detail=str(e)) from None
     except Conflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
+    except InvalidTransition as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
 
     return {
         "id": cr.id,
@@ -344,6 +358,7 @@ def create_clarification(
     responses={
         404: {"description": "Clarification not found"},
         409: {"description": "Clarification already answered"},
+        422: {"description": "Invalid status transition"},
     },
 )
 def answer_clarification(
@@ -363,6 +378,8 @@ def answer_clarification(
         raise HTTPException(status_code=404, detail=str(e)) from None
     except Conflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from None
+    except InvalidTransition as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
 
     return {
         "id": cr.id,

@@ -1,0 +1,32 @@
+# Chaos Engineering Runner — UPCP Test Environment
+# Python container with Docker SDK for fault injection
+#
+# Build: docker build -f Dockerfile.chaos -t upcp-chaos .
+# Run:   docker run --rm -v /var/run/docker.sock:/var/run/docker.sock upcp-chaos --profile quick
+
+FROM python:3.12-slim
+
+WORKDIR /chaos
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY tests/chaos/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy chaos test code
+COPY tests/chaos/ ./tests/chaos/
+COPY tests/chaos/config/ ./config/
+
+# Non-root user (but needs docker socket access)
+RUN groupadd --gid 1001 chaos && \
+    useradd --uid 1001 --gid chaos --shell /bin/bash chaos
+
+# Note: Docker socket must be mounted at runtime
+# docker run -v /var/run/docker.sock:/var/run/docker.sock ...
+
+ENTRYPOINT ["python", "-m", "tests.chaos.runner"]
+CMD ["--profile", "quick", "--report"]

@@ -3,10 +3,16 @@ import type { PaginatedResponse } from '@/types/api';
 import { apiRequest, paginationParams } from './client';
 
 export async function fetchProjects(
-  pagination?: { offset?: number; limit?: number }
+  pagination?: { offset?: number; limit?: number },
+  filters?: { status?: string; search?: string; sort_by?: string; sort_dir?: string },
 ): Promise<PaginatedResponse<Project>> {
+  const params = new URLSearchParams(paginationParams(pagination));
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.search) params.set('search', filters.search);
+  if (filters?.sort_by) params.set('sort_by', filters.sort_by);
+  if (filters?.sort_dir) params.set('sort_dir', filters.sort_dir);
   return apiRequest<PaginatedResponse<Project>>(
-    `/api/v1/projects${paginationParams(pagination)}`
+    `/api/v1/projects?${params}`,
   );
 }
 

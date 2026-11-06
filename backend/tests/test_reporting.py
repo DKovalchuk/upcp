@@ -3,17 +3,33 @@ from datetime import UTC, datetime
 from app.audit.models import AuditEvent  # noqa: F401
 
 # Import all models to ensure all tables are created
+from app.projects.models import Project
 from app.reporting.models import Report
 from app.reporting.service import ReportingService
 from app.shared.database import Base
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+# Shared hermetic engine (TASK-0112 engine dedup): fresh schema per call.
+# The shared engine enforces FKs like prod (PRAGMA foreign_keys=ON) —
+# tests address proj-0/proj-1, so both parent projects are pre-created.
+from tests.conftest import _test_engine, _TestSession
 
 
 def _in_memory_db() -> sessionmaker:
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    return sessionmaker(bind=engine)
+    Base.metadata.drop_all(bind=_test_engine)
+    Base.metadata.create_all(bind=_test_engine)
+    session = _TestSession()
+    try:
+        session.add_all(
+            [
+                Project(id="proj-0", name="P0", slug="p0", status="active"),
+                Project(id="proj-1", name="P1", slug="p1", status="active"),
+            ]
+        )
+        session.commit()
+    finally:
+        session.close()
+    return _TestSession
 
 
 def test_report_has_required_columns() -> None:

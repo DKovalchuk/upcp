@@ -4,7 +4,12 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const PORT = process.env.UPCP_PORT_FRONTEND || '3072';
-const BASE_URL = `http://localhost:${PORT}`;
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${PORT}`;
+
+// Unique suffix per run so created entities (project/feature slugs, agent
+// names — all globally unique in the API) never collide with data from
+// previous runs. Keeps tests repeatable without DB resets.
+const RUN = Date.now().toString(36);
 
 // Collect console errors and failed network requests
 let consoleErrors: string[] = [];
@@ -40,6 +45,10 @@ test.afterEach(async () => {
   }
 });
 
+// Default = dev-stack admin password; the CI gate passes the seeded test-stack
+// credential via E2E_ADMIN_PASSWORD (TASK-0143)
+const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'admin123';
+
 // Cached tokens for all tests
 let cachedTokens: { accessToken: string; refreshToken: string } | null = null;
 
@@ -49,7 +58,7 @@ async function setupAndGetTokens(page: Page): Promise<{ accessToken: string; ref
 
   // Try login first
   const loginResp = await page.request.post(`${BASE_URL}/auth/login`, {
-    data: { email: 'admin@example.com', password: 'admin123' },
+    data: { email: 'admin@example.com', password: adminPassword },
   });
 
   if (loginResp.ok()) {
@@ -60,7 +69,7 @@ async function setupAndGetTokens(page: Page): Promise<{ accessToken: string; ref
 
   // Try setup if login fails
   const setupResp = await page.request.post(`${BASE_URL}/auth/setup`, {
-    data: { email: 'admin@example.com', password: 'admin123', display_name: 'Admin' },
+    data: { email: 'admin@example.com', password: adminPassword, display_name: 'Admin' },
   });
 
   if (setupResp.ok()) {
@@ -80,10 +89,91 @@ async function setAuthTokens(page: Page, tokens: { accessToken: string; refreshT
   }, tokens);
 }
 
+// Helper: POST with retry on 429 (backend rate limiter: 100 req/min per IP;
+// the suite bursts past it and the sliding window frees up within ~60s, so
+// retry long enough to outlive a full window).
+async function postWithRetry(
+  page: Page,
+  url: string,
+  data: Record<string, unknown>,
+  auth?: { accessToken: string },
+  label = 'create',
+) {
+  // Retries may wait out a full rate-limit window — extend the test budget
+  test.setTimeout(180_000);
+  const headers = auth ? { Authorization: `Bearer ${auth.accessToken}` } : undefined;
+  for (let attempt = 1; attempt <= 25; attempt++) {
+    const resp = await page.request.post(url, { headers, data });
+    if (resp.status() !== 429) {
+      expect(resp.ok(), `${label} failed: ${resp.status()} ${await resp.text()}`).toBe(true);
+      return resp.json();
+    }
+    // Blocked requests are not counted by the limiter — just wait it out
+    await page.waitForTimeout(3000);
+  }
+  throw new Error(`${label}: rate limited (429) after retries`);
+}
+
+// Helper: open a delivery page, expand a feature and open a task detail sheet.
+// Retries with a page reload if data hasn't rendered (rate-limited list fetch);
+// also waits out a rate-limited /auth/me, which bounces the SPA to /login.
+async function openDeliveryTask(
+  page: Page,
+  projectId: string,
+  featureName: string,
+  taskTitle: string,
+) {
+  test.setTimeout(300_000);
+  const url = `${BASE_URL}/projects/${projectId}/delivery`;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    await page.goto(url);
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(1000);
+
+    // Rate-limited /auth/me makes AuthContext drop the session → login page
+    const onLogin = await page
+      .locator('input[type="password"]')
+      .isVisible()
+      .catch(() => false);
+    if (onLogin) {
+      // Blocked requests are not counted — wait out the limiter window
+      await page.waitForTimeout(15_000);
+      continue;
+    }
+
+    const feature = page.getByText(featureName).first();
+    const featureVisible = await feature
+      .waitFor({ state: 'visible', timeout: 10000 })
+      .then(() => true)
+      .catch(() => false);
+    if (featureVisible) {
+      await feature.click();
+      const task = page.getByText(taskTitle);
+      const taskVisible = await task
+        .waitFor({ state: 'visible', timeout: 10000 })
+        .then(() => true)
+        .catch(() => false);
+      if (taskVisible) {
+        await task.click();
+        await page.waitForTimeout(500);
+        return;
+      }
+    }
+    // List fetch likely rate-limited — wait for the window to slide, reload
+    await page.waitForTimeout(8000);
+  }
+  throw new Error(`delivery task "${taskTitle}" (feature "${featureName}") never rendered`);
+}
+
+// Console errors that are expected under test load: 401 from unauthenticated
+// auth probes, 429 from the backend rate limiter.
+const isExpectedConsoleError = (e: string) =>
+  e.includes('401') || e.includes('429') || e.includes('Failed to fetch');
+
 test.describe('Full UI Smoke Test', () => {
   test('1.1 — Login page loads without errors', async ({ page }) => {
     await page.goto(`${BASE_URL}/login`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     // Check for login form elements
     await expect(page.locator('input[type="email"], input[name="email"]')).toBeVisible();
@@ -96,14 +186,15 @@ test.describe('Full UI Smoke Test', () => {
 
   test('1.2 — Setup page loads without errors', async ({ page }) => {
     await page.goto(`${BASE_URL}/setup`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
-    // Check for setup form
-    const formVisible = await page.locator('form, input[type="email"]').first().isVisible().catch(() => false);
-    expect(formVisible).toBe(true);
+    // Check for setup form (lazy route — auto-retry until rendered)
+    await expect(page.locator('form, input[type="email"]').first()).toBeVisible({ timeout: 15_000 });
 
-    // Filter out expected 401 errors
-    const unexpectedErrors = consoleErrors.filter((e) => !e.includes('401'));
+    // Filter out expected 401 (auth probe) and 429 (rate limiter under test load)
+    const unexpectedErrors = consoleErrors.filter(
+      (e) => !e.includes('401') && !e.includes('429')
+    );
     expect(unexpectedErrors).toHaveLength(0);
   });
 
@@ -116,14 +207,14 @@ test.describe('Full UI Smoke Test', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
     // Dashboard should have some content
     const hasContent = await page.locator('h1, h2, [class*="card"]').first().isVisible().catch(() => false);
     expect(hasContent).toBe(true);
 
-    expect(consoleErrors).toHaveLength(0);
+    expect(consoleErrors.filter((e) => !isExpectedConsoleError(e))).toHaveLength(0);
   });
 
   test('1.4 — Projects page loads', async ({ page }) => {
@@ -135,14 +226,14 @@ test.describe('Full UI Smoke Test', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/projects`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
     // Should show projects page
     const hasContent = await page.locator('h1, h2, [class*="empty"], [class*="card"]').first().isVisible().catch(() => false);
     expect(hasContent).toBe(true);
 
-    expect(consoleErrors).toHaveLength(0);
+    expect(consoleErrors.filter((e) => !isExpectedConsoleError(e))).toHaveLength(0);
   });
 
   test('1.5 — Agents page loads', async ({ page }) => {
@@ -154,14 +245,14 @@ test.describe('Full UI Smoke Test', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/agents`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
     // Should show agents page
     const hasContent = await page.locator('h1, h2, [class*="empty"]').first().isVisible().catch(() => false);
     expect(hasContent).toBe(true);
 
-    expect(consoleErrors).toHaveLength(0);
+    expect(consoleErrors.filter((e) => !isExpectedConsoleError(e))).toHaveLength(0);
   });
 
   test('1.6 — Health page loads', async ({ page }) => {
@@ -173,14 +264,17 @@ test.describe('Full UI Smoke Test', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/health`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
-    // Should show health status
-    const hasContent = await page.locator('text=System Health, text=Backend API, text=Operational').first().isVisible().catch(() => false);
-    expect(hasContent).toBe(true);
+    // Should show health status (comma-separated text= selector lists do not
+    // match in Playwright; the regex matches several nodes — take the first)
+    await expect(
+      page.getByText(/System Health|Backend API|Operational/).first()
+    ).toBeVisible({ timeout: 15_000 });
 
-    expect(consoleErrors).toHaveLength(0);
+    // 429 = rate limiter under e2e load (expected; same filter as 1.7)
+    expect(consoleErrors.filter((e) => !e.includes('429'))).toHaveLength(0);
   });
 
   test('1.7 — No console errors on any page', async ({ page }) => {
@@ -198,7 +292,7 @@ test.describe('Full UI Smoke Test', () => {
       consoleErrors = [];
       failedRequests = [];
       await page.goto(`${BASE_URL}${path}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('load');
       await page.waitForTimeout(500);
 
       // Filter out expected errors (auth, rate limit)
@@ -218,7 +312,7 @@ test.describe('Full UI Smoke Test', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(500);
 
     // Check sidebar nav items exist
@@ -238,12 +332,14 @@ test.describe('Full UI Smoke Test', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/nonexistent-page`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(500);
 
-    // Should show 404 or not found
-    const has404 = await page.locator('text=404, text=not found, text=Not Found').first().isVisible().catch(() => false);
-    expect(has404).toBe(true);
+    // Should show 404 or not found (comma-separated text= selector lists do
+    // not match in Playwright — use a regex locator)
+    await expect(
+      page.getByText(/404|not found/i)
+    ).toBeVisible({ timeout: 15_000 });
   });
 });
 
@@ -257,20 +353,23 @@ test.describe('Agent Workflow UI', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/agents`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
-    // Should show "Agents" heading
-    await expect(page.getByRole('heading', { name: /agents/i })).toBeVisible();
+    // Should show "Agents" heading (exact: the empty state renders an
+    // h3 "No agents" which /agents/i would also match → strict violation)
+    await expect(
+      page.getByRole('heading', { name: 'Agents', exact: true })
+    ).toBeVisible();
 
-    // Should show "New Agent" button
-    await expect(page.getByRole('button', { name: /new agent/i })).toBeVisible();
+    // Should show a "New Agent" button (empty state renders a second CTA)
+    await expect(page.getByRole('button', { name: /new agent/i }).first()).toBeVisible();
 
     // Should show search input
     const searchVisible = await page.locator('input[placeholder*="Search"]').first().isVisible().catch(() => false);
     expect(searchVisible).toBe(true);
 
-    expect(consoleErrors).toHaveLength(0);
+    expect(consoleErrors.filter((e) => !isExpectedConsoleError(e))).toHaveLength(0);
   });
 
   test('2.2 — Agent Center table view toggle', async ({ page }) => {
@@ -282,7 +381,7 @@ test.describe('Agent Workflow UI', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/agents`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
     // Click table view toggle
@@ -307,19 +406,19 @@ test.describe('Agent Workflow UI', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/agents`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
-    // Click "New Agent" button
-    await page.getByRole('button', { name: /new agent/i }).click();
+    // Click "New Agent" button (first match — toolbar vs empty-state CTA)
+    await page.getByRole('button', { name: /new agent/i }).first().click();
     await page.waitForTimeout(500);
 
     // Dialog should open
     const dialogVisible = await page.locator('[role="dialog"], [class*="dialog"]').first().isVisible().catch(() => false);
     expect(dialogVisible).toBe(true);
 
-    // Should have name input
-    const nameInput = await page.locator('input[name="name"], input[placeholder*="name" i]').first().isVisible().catch(() => false);
+    // Should have name input (EntityFormDialog renders Input with id={field.name})
+    const nameInput = await page.locator('input#name, input[name="name"], input[placeholder*="name" i]').first().isVisible().catch(() => false);
     expect(nameInput).toBe(true);
   });
 
@@ -332,33 +431,31 @@ test.describe('Agent Workflow UI', () => {
 
     await setAuthTokens(page, tokens);
 
-    // First create an agent
+    // First create an agent (unique name — agent.name is globally unique)
+    const agentName = `test-agent-${RUN}`;
     const createResp = await page.request.post(`${BASE_URL}/api/v1/agents`, {
       headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'test-agent', description: 'Test agent for E2E' },
+      data: { name: agentName, description: 'Test agent for E2E' },
     });
 
-    if (!createResp.ok()) {
-      test.skip();
-      return;
-    }
+    expect(createResp.ok(), `agent create failed: ${createResp.status()}`).toBe(true);
 
     const agent = await createResp.json();
 
     // Navigate to agent detail
     await page.goto(`${BASE_URL}/agents/${agent.id}`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
     // Should show agent name
-    await expect(page.getByText('test-agent')).toBeVisible();
+    await expect(page.getByText(agentName)).toBeVisible();
 
     // Should show tabs
     await expect(page.getByRole('tab', { name: /overview/i })).toBeVisible();
     await expect(page.getByRole('tab', { name: /claims/i })).toBeVisible();
     await expect(page.getByRole('tab', { name: /activity/i })).toBeVisible();
 
-    expect(consoleErrors).toHaveLength(0);
+    expect(consoleErrors.filter((e) => !isExpectedConsoleError(e))).toHaveLength(0);
   });
 
   test('2.5 — Agent Detail tabs switch', async ({ page }) => {
@@ -370,20 +467,18 @@ test.describe('Agent Workflow UI', () => {
 
     await setAuthTokens(page, tokens);
 
-    // Create agent
+    // Create agent (unique name — agent.name is globally unique)
+    const agentName = `tab-test-agent-${RUN}`;
     const createResp = await page.request.post(`${BASE_URL}/api/v1/agents`, {
       headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'tab-test-agent', description: 'Tab test' },
+      data: { name: agentName, description: 'Tab test' },
     });
 
-    if (!createResp.ok()) {
-      test.skip();
-      return;
-    }
+    expect(createResp.ok(), `agent create failed: ${createResp.status()}`).toBe(true);
 
     const agent = await createResp.json();
     await page.goto(`${BASE_URL}/agents/${agent.id}`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(1000);
 
     // Click each tab
@@ -410,64 +505,43 @@ test.describe('TaskDetailSheet Agent Workflow', () => {
 
     await setAuthTokens(page, tokens);
 
-    // Create project, feature, task
-    const projectResp = await page.request.post(`${BASE_URL}/api/v1/projects`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Test Project', slug: 'test-proj' },
-    });
+    // Create project, feature, task (unique slugs — globally unique in API)
+    const project = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects`,
+      { name: 'Test Project', slug: `test-proj-${RUN}` },
+      tokens,
+      'project create',
+    );
+    const feature = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects/${project.id}/features`,
+      { name: 'Test Feature', slug: `test-feature-${RUN}` },
+      tokens,
+      'feature create',
+    );
+    await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/features/${feature.id}/tasks`,
+      { title: 'Test Task for E2E', status: 'ready' },
+      tokens,
+      'task create',
+    );
 
-    if (!projectResp.ok()) {
-      test.skip();
-      return;
-    }
+    // Open delivery page, expand feature, open the task detail sheet
+    await openDeliveryTask(page, project.id, 'Test Feature', 'Test Task for E2E');
 
-    const project = await projectResp.json();
+    // Sheet should open
+    const sheetVisible = await page.locator('[role="dialog"], [class*="sheet"]').first().isVisible().catch(() => false);
+    expect(sheetVisible).toBe(true);
 
-    const featureResp = await page.request.post(`${BASE_URL}/api/v1/projects/${project.id}/features`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Test Feature', slug: 'test-feature' },
-    });
+    // Should have Execution tab
+    await expect(page.getByRole('tab', { name: /execution/i })).toBeVisible();
 
-    if (!featureResp.ok()) {
-      test.skip();
-      return;
-    }
-
-    const feature = await featureResp.json();
-
-    const taskResp = await page.request.post(`${BASE_URL}/api/v1/features/${feature.id}/tasks`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { title: 'Test Task for E2E', status: 'ready' },
-    });
-
-    if (!taskResp.ok()) {
-      test.skip();
-      return;
-    }
-
-    // Navigate to delivery page
-    await page.goto(`${BASE_URL}/projects/${project.id}/delivery`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    // Click on the task to open detail sheet
-    const taskRow = page.getByText('Test Task for E2E');
-    if (await taskRow.isVisible()) {
-      await taskRow.click();
-      await page.waitForTimeout(500);
-
-      // Sheet should open
-      const sheetVisible = await page.locator('[role="dialog"], [class*="sheet"]').first().isVisible().catch(() => false);
-      expect(sheetVisible).toBe(true);
-
-      // Should have Execution tab
-      await expect(page.getByRole('tab', { name: /execution/i })).toBeVisible();
-
-      // Should have new dedicated tabs
-      await expect(page.getByRole('tab', { name: /clarifications/i })).toBeVisible();
-      await expect(page.getByRole('tab', { name: /evidence/i })).toBeVisible();
-      await expect(page.getByRole('tab', { name: /reviews/i })).toBeVisible();
-    }
+    // Should have new dedicated tabs
+    await expect(page.getByRole('tab', { name: /clarifications/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /evidence/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /reviews/i })).toBeVisible();
   });
 
   test('3.2 — Clarifications tab shows empty state', async ({ page }) => {
@@ -479,33 +553,30 @@ test.describe('TaskDetailSheet Agent Workflow', () => {
 
     await setAuthTokens(page, tokens);
 
-    // Create minimal data
-    const projectResp = await page.request.post(`${BASE_URL}/api/v1/projects`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Clar Project', slug: 'clar-proj' },
-    });
-    if (!projectResp.ok()) { test.skip(); return; }
-    const project = await projectResp.json();
+    // Create minimal data (unique slugs — globally unique in API)
+    const project = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects`,
+      { name: 'Clar Project', slug: `clar-proj-${RUN}` },
+      tokens,
+      'project create',
+    );
+    const feature = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects/${project.id}/features`,
+      { name: 'Clar Feature', slug: `clar-feat-${RUN}` },
+      tokens,
+      'feature create',
+    );
+    await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/features/${feature.id}/tasks`,
+      { title: 'Clar Task', status: 'ready' },
+      tokens,
+      'task create',
+    );
 
-    const featureResp = await page.request.post(`${BASE_URL}/api/v1/projects/${project.id}/features`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Clar Feature', slug: 'clar-feat' },
-    });
-    if (!featureResp.ok()) { test.skip(); return; }
-    const feature = await featureResp.json();
-
-    const taskResp = await page.request.post(`${BASE_URL}/api/v1/features/${feature.id}/tasks`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { title: 'Clar Task', status: 'ready' },
-    });
-    if (!taskResp.ok()) { test.skip(); return; }
-
-    await page.goto(`${BASE_URL}/projects/${project.id}/delivery`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    await page.getByText('Clar Task').click();
-    await page.waitForTimeout(500);
+    await openDeliveryTask(page, project.id, 'Clar Feature', 'Clar Task');
 
     // Click Clarifications tab
     await page.getByRole('tab', { name: /clarifications/i }).click();
@@ -524,37 +595,35 @@ test.describe('TaskDetailSheet Agent Workflow', () => {
 
     await setAuthTokens(page, tokens);
 
-    const projectResp = await page.request.post(`${BASE_URL}/api/v1/projects`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Evi Project', slug: 'evi-proj' },
-    });
-    if (!projectResp.ok()) { test.skip(); return; }
-    const project = await projectResp.json();
+    const project = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects`,
+      { name: 'Evi Project', slug: `evi-proj-${RUN}` },
+      tokens,
+      'project create',
+    );
+    const feature = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects/${project.id}/features`,
+      { name: 'Evi Feature', slug: `evi-feat-${RUN}` },
+      tokens,
+      'feature create',
+    );
+    await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/features/${feature.id}/tasks`,
+      { title: 'Evi Task', status: 'ready' },
+      tokens,
+      'task create',
+    );
 
-    const featureResp = await page.request.post(`${BASE_URL}/api/v1/projects/${project.id}/features`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Evi Feature', slug: 'evi-feat' },
-    });
-    if (!featureResp.ok()) { test.skip(); return; }
-    const feature = await featureResp.json();
-
-    const taskResp = await page.request.post(`${BASE_URL}/api/v1/features/${feature.id}/tasks`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { title: 'Evi Task', status: 'ready' },
-    });
-    if (!taskResp.ok()) { test.skip(); return; }
-
-    await page.goto(`${BASE_URL}/projects/${project.id}/delivery`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    await page.getByText('Evi Task').click();
-    await page.waitForTimeout(500);
+    await openDeliveryTask(page, project.id, 'Evi Feature', 'Evi Task');
 
     await page.getByRole('tab', { name: /evidence/i }).click();
-    await page.waitForTimeout(300);
 
-    await expect(page.getByText(/no evidence/i)).toBeVisible();
+    // Evidence query may retry after a 429 before resolving — allow it time.
+    // The empty-state text matches both heading and description → take first.
+    await expect(page.getByText(/no evidence/i).first()).toBeVisible({ timeout: 30_000 });
   });
 
   test('3.4 — Reviews tab shows empty state', async ({ page }) => {
@@ -566,32 +635,29 @@ test.describe('TaskDetailSheet Agent Workflow', () => {
 
     await setAuthTokens(page, tokens);
 
-    const projectResp = await page.request.post(`${BASE_URL}/api/v1/projects`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Rev Project', slug: 'rev-proj' },
-    });
-    if (!projectResp.ok()) { test.skip(); return; }
-    const project = await projectResp.json();
+    const project = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects`,
+      { name: 'Rev Project', slug: `rev-proj-${RUN}` },
+      tokens,
+      'project create',
+    );
+    const feature = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects/${project.id}/features`,
+      { name: 'Rev Feature', slug: `rev-feat-${RUN}` },
+      tokens,
+      'feature create',
+    );
+    await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/features/${feature.id}/tasks`,
+      { title: 'Rev Task', status: 'ready' },
+      tokens,
+      'task create',
+    );
 
-    const featureResp = await page.request.post(`${BASE_URL}/api/v1/projects/${project.id}/features`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Rev Feature', slug: 'rev-feat' },
-    });
-    if (!featureResp.ok()) { test.skip(); return; }
-    const feature = await featureResp.json();
-
-    const taskResp = await page.request.post(`${BASE_URL}/api/v1/features/${feature.id}/tasks`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { title: 'Rev Task', status: 'ready' },
-    });
-    if (!taskResp.ok()) { test.skip(); return; }
-
-    await page.goto(`${BASE_URL}/projects/${project.id}/delivery`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    await page.getByText('Rev Task').click();
-    await page.waitForTimeout(500);
+    await openDeliveryTask(page, project.id, 'Rev Feature', 'Rev Task');
 
     await page.getByRole('tab', { name: /reviews/i }).click();
     await page.waitForTimeout(300);
@@ -608,46 +674,42 @@ test.describe('TaskDetailSheet Agent Workflow', () => {
 
     await setAuthTokens(page, tokens);
 
-    const projectResp = await page.request.post(`${BASE_URL}/api/v1/projects`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Attach Project', slug: 'attach-proj' },
-    });
-    if (!projectResp.ok()) { test.skip(); return; }
-    const project = await projectResp.json();
+    const project = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects`,
+      { name: 'Attach Project', slug: `attach-proj-${RUN}` },
+      tokens,
+      'project create',
+    );
+    const feature = await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/projects/${project.id}/features`,
+      { name: 'Attach Feature', slug: `attach-feat-${RUN}` },
+      tokens,
+      'feature create',
+    );
+    await postWithRetry(
+      page,
+      `${BASE_URL}/api/v1/features/${feature.id}/tasks`,
+      { title: 'Attach Task', status: 'ready' },
+      tokens,
+      'task create',
+    );
 
-    const featureResp = await page.request.post(`${BASE_URL}/api/v1/projects/${project.id}/features`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { name: 'Attach Feature', slug: 'attach-feat' },
-    });
-    if (!featureResp.ok()) { test.skip(); return; }
-    const feature = await featureResp.json();
-
-    const taskResp = await page.request.post(`${BASE_URL}/api/v1/features/${feature.id}/tasks`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      data: { title: 'Attach Task', status: 'ready' },
-    });
-    if (!taskResp.ok()) { test.skip(); return; }
-
-    await page.goto(`${BASE_URL}/projects/${project.id}/delivery`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    await page.getByText('Attach Task').click();
-    await page.waitForTimeout(500);
+    await openDeliveryTask(page, project.id, 'Attach Feature', 'Attach Task');
 
     await page.getByRole('tab', { name: /evidence/i }).click();
+
+    // Click Attach button (always present in Evidence tab header once the
+    // evidence query settles; it may retry after a 429)
+    const attachBtn = page.getByRole('button', { name: /^attach$/i });
+    await expect(attachBtn).toBeVisible({ timeout: 30_000 });
+    await attachBtn.click();
     await page.waitForTimeout(300);
 
-    // Click Attach button
-    const attachBtn = page.getByRole('button', { name: /attach/i });
-    if (await attachBtn.isVisible()) {
-      await attachBtn.click();
-      await page.waitForTimeout(300);
-
-      // Form should appear
-      const titleInput = await page.locator('input[placeholder*="title" i]').first().isVisible().catch(() => false);
-      expect(titleInput).toBe(true);
-    }
+    // Form should appear
+    const titleInput = await page.locator('input[placeholder*="title" i]').first().isVisible().catch(() => false);
+    expect(titleInput).toBe(true);
   });
 });
 
@@ -666,10 +728,10 @@ test.describe('Responsive Design', () => {
     for (const path of pages) {
       consoleErrors = [];
       await page.goto(`${BASE_URL}${path}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('load');
       await page.waitForTimeout(500);
 
-      expect(consoleErrors, `Console errors on mobile ${path}`).toHaveLength(0);
+      expect(consoleErrors.filter((e) => !isExpectedConsoleError(e)), `Console errors on mobile ${path}`).toHaveLength(0);
     }
   });
 
@@ -687,10 +749,10 @@ test.describe('Responsive Design', () => {
     for (const path of pages) {
       consoleErrors = [];
       await page.goto(`${BASE_URL}${path}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('load');
       await page.waitForTimeout(500);
 
-      expect(consoleErrors, `Console errors on tablet ${path}`).toHaveLength(0);
+      expect(consoleErrors.filter((e) => !isExpectedConsoleError(e)), `Console errors on tablet ${path}`).toHaveLength(0);
     }
   });
 });
@@ -708,7 +770,7 @@ test.describe('Accessibility', () => {
     const pages = ['/', '/projects', '/agents', '/health'];
     for (const path of pages) {
       await page.goto(`${BASE_URL}${path}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('load');
       await page.waitForTimeout(500);
 
       // Should have at least one heading
@@ -726,7 +788,7 @@ test.describe('Accessibility', () => {
 
     await setAuthTokens(page, tokens);
     await page.goto(`${BASE_URL}/agents`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.waitForTimeout(500);
 
     // Tab through interactive elements

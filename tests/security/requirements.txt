@@ -1,0 +1,9 @@
+# Security suite dependencies — SPEC-0024 Phase 4 (TASK-0142)
+# ZAP/Kali scans run inside docker compose; only these are needed on the host.
+httpx>=0.27,<1.0
+PyYAML>=6.0,<7.0
+pytest>=8.0,<9.0
+# authz RBAC fixtures discover a non-superuser user via a direct DB query —
+# without psycopg they silently skip in CI (ImportError → pytest.skip),
+# which cost 4 skipped RBAC tests in the first gate runs (TASK-0143)
+psycopg[binary]>=3.1,<4.0

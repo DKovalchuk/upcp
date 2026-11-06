@@ -150,7 +150,7 @@ Transform UPCP from development-ready to production-ready by completing the **fr
 **Deliverables:**
 - POST /notifications (create)
 - GET /notifications (list with pagination)
-- PUT /notifications/{id}/read
+- POST /notifications/{id}/read
 - GET /reports (list)
 - POST /reports/generate
 - GET /api/v1/dashboard/stats
@@ -222,8 +222,8 @@ pending → in_progress → completed (with verdict)
 
 **Notifications:**
 - GET /notifications
-- PUT /notifications/{id}/read
-- PUT /notifications/read-all
+- POST /notifications/{id}/read
+- POST /notifications/read-all
 
 **Reports:**
 - GET /reports

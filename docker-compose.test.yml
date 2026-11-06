@@ -1,6 +1,22 @@
+# ══════════════════════════════════════════════════════════════
+# UPCP Test Environment — Quality Gate
+# ══════════════════════════════════════════════════════════════
+#
+# Three pillars: Performance, Chaos Engineering, Security Testing
+# All ports bind to 127.0.0.1 for local-only access.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up -d
+#   docker compose -f docker-compose.test.yml run --rm seeder
+#   docker compose -f docker-compose.test.yml run --rm locust-master ...
+#
 name: upcp-test
 
 services:
+  # ════════════════════════════════════════════════════════════
+  # Core Services
+  # ════════════════════════════════════════════════════════════
+
   db:
     image: postgres:16
     restart: unless-stopped
@@ -11,12 +27,36 @@ services:
     ports:
       - "127.0.0.1:${UPCP_PORT_POSTGRES:-35434}:5432"
     volumes:
-      - ./data/postgres-test:/var/lib/postgresql/data
+      # env-driven so the ephemeral CI gate stack (upcp-test-ci) never
+      # shares postgres data with the local test stack (TASK-0143)
+      - ${UPCP_DATA_POSTGRES:-./data/postgres-test}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U upcp -d upcp"]
       interval: 5s
       timeout: 3s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_REDIS:-36383}:6379"
+    volumes:
+      - ${UPCP_DATA_REDIS:-./data/redis-test}:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   app:
     build:
@@ -28,14 +68,25 @@ services:
              uvicorn app.main:app --host 0.0.0.0 --port 8080"
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-upcp}:${POSTGRES_PASSWORD:-upcp_local_change_me}@db:5432/${POSTGRES_DB:-upcp}
+      REDIS_URL: redis://redis:6379/0
       UPCP_ENV: test
       UPCP_LOG_LEVEL: INFO
-      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-test_change_me}
+      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-test_secret_for_quality_gate_only}
       UPCP_DEBUG: "false"
+      # Quality-gate load env: per-IP rate limits would dominate any load
+      # test (all traffic from one host IP). Storm scenarios that need the
+      # limiter must run against an env without this flag (TASK-0140).
+      UPCP_DISABLE_RATE_LIMIT: "true"
+      # 50-user load profile needs >50 concurrent connections; historical
+      # 20+10 pool produced sqlalchemy TimeoutErrors (TASK-0140).
+      UPCP_DB_POOL_SIZE: "40"
+      UPCP_DB_MAX_OVERFLOW: "20"
     ports:
       - "127.0.0.1:${UPCP_PORT_BACKEND:-38082}:8080"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
@@ -43,6 +94,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   frontend:
     build:
@@ -64,3 +119,215 @@ services:
     depends_on:
       - app
       - frontend
+
+  # ════════════════════════════════════════════════════════════
+  # Test Infrastructure
+  # ════════════════════════════════════════════════════════════
+
+  seeder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "tests.infrastructure.seeder"]
+    # tests/ is not COPY'd into the app image (by design — keeps the prod
+    # image clean); mount it so -m tests.infrastructure.seeder resolves.
+    volumes:
+      - ./tests:/app/tests:ro
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-upcp}:${POSTGRES_PASSWORD:-upcp_local_change_me}@db:5432/${POSTGRES_DB:-upcp}
+      REDIS_URL: redis://redis:6379/0
+      UPCP_ENV: test
+      UPCP_SECRET_KEY: ${UPCP_SECRET_KEY:-test_secret_for_quality_gate_only}
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  # ════════════════════════════════════════════════════════════
+  # CI quality-gate e2e (profile ci) — Playwright + bundled browsers
+  # ════════════════════════════════════════════════════════════
+  # Root suite:   docker compose --profile ci run --rm e2e \
+  #                 sh -c "npm ci --no-audit --no-fund && npx playwright test"
+  # Frontend:     docker compose --profile ci run --rm e2e \
+  #                 sh -c "cd frontend && npm ci --no-audit --no-fund && npx playwright test"
+  # uid 1000 = the dev-host user (so npm ci inside the mount never leaves
+  # root-owned node_modules); it is NOT pwuser (uid 1001) and /home/pwuser
+  # is 750 — npm's cache/logs go to world-writable /tmp (TASK-0143).
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.62.1
+    user: "1000:1000"
+    working_dir: /e2e
+    volumes:
+      - .:/e2e
+    environment:
+      HOME: /tmp
+      PLAYWRIGHT_BASE_URL: ${E2E_BASE_URL:-http://nginx}
+    profiles:
+      - ci
+
+  # ════════════════════════════════════════════════════════════
+  # Load Testing (Locust)
+  # ════════════════════════════════════════════════════════════
+
+  locust-master:
+    image: locustio/locust:2.32.4
+    ports:
+      - "127.0.0.1:${UPCP_PORT_LOCUST:-38089}:8089"
+    volumes:
+      - ./tests/performance/locustfiles:/locustfiles:ro
+    command: >
+      -f /locustfiles/scenario_mixed.py
+      --master
+      --host=http://app:8080
+      --web-host=0.0.0.0
+      --web-port=8089
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles:
+      - perf
+
+  locust-worker:
+    image: locustio/locust:2.32.4
+    volumes:
+      - ./tests/performance/locustfiles:/locustfiles:ro
+    command: >
+      -f /locustfiles/scenario_mixed.py
+      --worker
+      --master-host=locust-master
+    depends_on:
+      - locust-master
+    profiles:
+      - perf
+
+  # ════════════════════════════════════════════════════════════
+  # Security Testing — OWASP ZAP
+  # ════════════════════════════════════════════════════════════
+
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    ports:
+      - "127.0.0.1:${UPCP_PORT_ZAP:-38090}:8080"
+    environment:
+      ZAP_PORT: 8080
+      ZAP_CONF: /zap/config/
+      # Authenticated baseline hook (TASK-0157): test-stack seeded admin,
+      # same defaults as tests/security/common.py — not a production secret.
+      PERF_EMAIL: ${PERF_EMAIL:-admin@example.com}
+      PERF_PASSWORD: ${PERF_PASSWORD:-TestAdmin123!}
+    volumes:
+      - ./tests/security/dast/zap_config.yaml:/zap/config/zap-config.yaml:ro
+      - ./tests/security/reports:/zap/reports:rw
+    profiles:
+      - security
+
+  # ════════════════════════════════════════════════════════════
+  # Security Testing — Kali Linux (Pentest Agent)
+  # ════════════════════════════════════════════════════════════
+
+  kali:
+    build:
+      context: .
+      dockerfile: Dockerfile.kali
+    ports:
+      - "127.0.0.1:${UPCP_PORT_KALI:-38091}:22"
+    environment:
+      KALI_TARGET: http://app:8080
+      KALI_REPORT_DIR: /reports
+    volumes:
+      - ./tests/security/kali:/kali-agent:ro
+      - ./tests/security/reports:/reports:rw
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles:
+      - security
+
+  # ════════════════════════════════════════════════════════════
+  # Observability Stack
+  # ════════════════════════════════════════════════════════════
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_PROMETHEUS:-39091}:9090"
+    volumes:
+      - ./observability/prometheus-test.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-test-data:/prometheus
+    profiles:
+      - observability
+
+  # Pushgateway: tests/security/runner.py pushes upcp_security_* gauges here
+  # after every run (TASK-0158 — backlog §8-B, "Sec→Grafana"); the test
+  # Prometheus scrapes it via job upcp-security, Grafana reads dashboards/test/security.json.
+  pushgateway:
+    image: prom/pushgateway:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_PUSHGATEWAY:-39092}:9091"
+    profiles:
+      - observability
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_GRAFANA:-33001}:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_test}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/test/overview.json
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-test-data:/var/lib/grafana
+    profiles:
+      - observability
+
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_LOKI:-3101}:3100"
+    volumes:
+      - ./observability/loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki-test-data:/loki
+    command: -config.file=/etc/loki/config.yaml
+    profiles:
+      - observability
+
+  tempo:
+    image: grafana/tempo:2.7.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_TEMPO:-3201}:3200"
+    volumes:
+      - ./observability/tempo-config.yaml:/etc/tempo/config.yaml:ro
+      - tempo-test-data:/var/tempo
+    command: -config.file=/etc/tempo/config.yaml
+    profiles:
+      - observability
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${UPCP_PORT_OTEL_GRPC:-4319}:4317"
+      - "127.0.0.1:${UPCP_PORT_OTEL_HTTP:-4320}:4318"
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    command: --config=/etc/otel/config.yaml
+    profiles:
+      - observability
+
+# ══════════════════════════════════════════════════════════════
+# Named Volumes
+# ══════════════════════════════════════════════════════════════
+
+volumes:
+  prometheus-test-data:
+  grafana-test-data:
+  loki-test-data:
+  tempo-test-data:

@@ -1,0 +1,10 @@
+# Chaos test results (generated)
+results/*.json
+!results/.gitkeep
+
+# HTML reports (generated)
+reports/*.html
+!reports/.gitkeep
+
+# Markdown reports are tracked
+!reports/*.md

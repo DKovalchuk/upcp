@@ -2,6 +2,7 @@
 
 import hashlib
 import secrets
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -39,6 +40,7 @@ class TokenService:
         payload = {
             "sub": user_id,
             "type": "access",
+            "jti": str(uuid.uuid4()),
             "iat": now,
             "exp": now + expiry,
         }

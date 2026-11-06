@@ -114,6 +114,20 @@ class EvidenceService:
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
 
+    def list_by_creator(self, created_by_id: str, *, limit: int = 100) -> list[Evidence]:
+        """Evidence rows created by one agent/user, newest first — TASK-0176.
+
+        Public read surface for the agent detail tab; filters on
+        ``created_by_id`` only (parity with the identity endpoint).
+        """
+        return (
+            self._session.query(Evidence)
+            .filter(Evidence.created_by_id == created_by_id)
+            .order_by(Evidence.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
     def upload_file(
         self,
         *,
@@ -127,6 +141,12 @@ class EvidenceService:
         dod_item_id: str | None = None,
     ) -> Evidence:
         """Upload a file and create an evidence record with file metadata."""
+        # Validate the parent before any file I/O: the FK-off test engines
+        # used to accept orphan task_ids (POST would 201 with a dangling
+        # row); under FK enforcement it surfaced as an unhandled 500.
+        if self._session.get(Task, task_id) is None:
+            raise NotFound(f"task '{task_id}' not found")
+
         content_type = getattr(file, "content_type", None) or "application/octet-stream"
         file_name = getattr(file, "filename", None) or "unnamed"
 
@@ -256,6 +276,20 @@ class ReviewRoundService:
         total = q.count()
         return q.offset(offset).limit(limit).all(), total
 
+    def list_by_reviewer(self, reviewer_id: str, *, limit: int = 100) -> list[ReviewRound]:
+        """Review rounds assigned to one reviewer, newest first — TASK-0176.
+
+        Public read surface for the agent detail tab; rows with a NULL
+        reviewer are never returned.
+        """
+        return (
+            self._session.query(ReviewRound)
+            .filter(ReviewRound.reviewer_id == reviewer_id)
+            .order_by(ReviewRound.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
     def start(self, round_id: str) -> ReviewRound:
         rr = self.get(round_id)
         allowed = _REVIEW_TRANSITIONS.get(rr.state, set())
@@ -355,6 +389,8 @@ class ReviewGateService:
         2. All DoDItems must be passed (or no DoDItems exist).
         3. Required evidence types must be satisfied.
         4. No blocking clarification requests must be open.
+
+        After the gate passes, the task transitions to ``ready_for_review``.
         """
         from app.delivery.models import ClarificationRequest, Task
 
@@ -404,6 +440,21 @@ class ReviewGateService:
 
         if errors:
             raise ReviewGateError("; ".join(errors))
+
+        # Gate passed → move the task itself to ready_for_review, mirroring
+        # the MCP submit_task_for_review tool (mcp/tools.py). The lifecycle
+        # state machine has no claimed → ready_for_review edge, so a claimed
+        # task passes through in_progress first; an already-ready task is a
+        # no-op (ready_for_review → ready_for_review is not a valid edge).
+        from app.delivery.lifecycle import validate_transition
+
+        if task.status == "claimed":
+            validate_transition(task.status, "in_progress")
+            task.status = "in_progress"
+        if task.status != "ready_for_review":
+            validate_transition(task.status, "ready_for_review")
+            task.status = "ready_for_review"
+        self._session.flush()
 
         # Create review round
         rr_svc = ReviewRoundService(self._session)

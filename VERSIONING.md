@@ -4,7 +4,7 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 
 ## Current Version
 
-**0.21.0** — M19 Test Quality & Architecture (see `pyproject.toml` for authoritative value)
+**0.22.0** — M20 Extended Features (see `pyproject.toml` for authoritative value)
 
 ## Scheme
 
@@ -23,12 +23,19 @@ UPCP follows [Semantic Versioning 2.0](https://semver.org/) with a pre-1.0 devel
 ```
 0.13.0 ──▶ 0.14.0 ──▶ 0.15.0 ──▶ 0.16.0 ──▶ 0.17.0 ──▶ 0.18.0 ──▶ 0.19.0 ──▶ 0.20.0 ──▶ 0.21.0 ──▶ 0.22.0 ──▶ ...
  M11        M12        M13        M14        M15        M16         M17         M18         M19         M20
- done       done       done       done       done       in prog     done        planned     done        in prog
+ done       done       done       done       done       done*      done        done*       done        done
 ```
 
 See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 
-### 0.18.0 — Notifications & Reporting (M16, in progress)
+*`done*` (0.18.0 / 0.20.0): milestone закрыт 2026-10-25 без отдельного
+релиза — контент вышел в 0.19.0–0.22.0 (см. Version History).
+
+### 0.18.0 — Notifications & Reporting (M16, DONE — без отдельного релиза)
+
+> Milestone закрыт 2026-10-25 (TASK-0102/0103 закрыли S18.3/S18.4 gaps).
+> Отдельный релиз 0.18.0 не выпускался: содержимое вошло в develop и вышло
+> в релизах 0.19.0–0.22.0 (решение Дмитрия 2026-10-31 — синхронизация без бампа).
 
 **Goal**: Auto-generate notifications from workflow events, add email/webhook channels, build analytics dashboard.
 **Spec**: SPEC-0019
@@ -37,9 +44,9 @@ See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 | Sprint | TASK | Focus | Status |
 |--------|------|-------|--------|
 | S18.1 | TASK-0100 | NotificationTrigger + event hooks | ✅ DONE |
-| S18.2 | TASK-0101 | NotificationChannel + EmailChannel + WebhookChannel | PENDING |
-| S18.3 | TASK-0102 | AnalyticsService + 5 API endpoints | PENDING |
-| S18.4 | TASK-0103 | Analytics dashboard frontend + Channel Settings UI | PENDING |
+| S18.2 | TASK-0101 | NotificationChannel + EmailChannel + WebhookChannel | ✅ DONE |
+| S18.3 | TASK-0102 | AnalyticsService + 5 API endpoints | ✅ DONE (gaps закрыты 2026-10-25) |
+| S18.4 | TASK-0103 | Analytics dashboard frontend + Channel Settings UI | ✅ DONE (gaps закрыты 2026-10-25) |
 
 ### 0.19.0 — Security & Stability (M17, DONE)
 
@@ -54,18 +61,22 @@ See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 | S19.3 | TASK-0106 | Database hardening: migration 0020 (indexes + ondelete), N+1 fixes | ✅ DONE |
 | S19.4 | TASK-0107 | Architecture cleanup: error logging, dead code, agent inbox, lifespan | ✅ DONE |
 
-### 0.20.0 — UX Polish, Accessibility & Settings (M18, planned)
+### 0.20.0 — UX Polish, Accessibility & Settings (M18, DONE — без отдельного релиза)
+
+> Milestone закрыт 2026-10-25 (TASK-0108/0109 закрыли S20.1/S20.2 gaps).
+> Отдельный релиз 0.20.0 не выпускался: содержимое вошло в develop и вышло
+> в релизах 0.19.0–0.22.0 (решение Дмитрия 2026-10-31 — синхронизация без бампа).
 
 **Goal**: Fix accessibility gaps, redesign settings, improve notification UX, enhance project dashboard.
 **Spec**: SPEC-0021
 **Sprints**: 4 (1-week sprints)
 
-| Sprint | TASK | Focus |
-|--------|------|-------|
-| S20.1 | TASK-0108 | Accessibility: keyboard DnD, ARIA, breadcrumb UUID resolution |
-| S20.2 | TASK-0109 | Settings redesign: tabbed settings with Profile, Notifications, Channels, About |
-| S20.3 | TASK-0110 | Notification UX: full /notifications page, click-to-navigate |
-| S20.4 | TASK-0111 | Project dashboard: health chart, velocity chart, overview enhancement |
+| Sprint | TASK | Focus | Status |
+|--------|------|-------|--------|
+| S20.1 | TASK-0108 | Accessibility: keyboard DnD, ARIA, breadcrumb UUID resolution | ✅ DONE (gaps закрыты 2026-10-25) |
+| S20.2 | TASK-0109 | Settings redesign: tabbed settings with Profile, Notifications, Channels, About | ✅ DONE (gaps закрыты 2026-10-25) |
+| S20.3 | TASK-0110 | Notification UX: full /notifications page, click-to-navigate | ✅ DONE |
+| S20.4 | TASK-0111 | Project dashboard: health chart, velocity chart, overview enhancement | ✅ DONE |
 
 ### 0.21.0 — Test Quality & Architecture (M19, DONE)
 
@@ -79,18 +90,19 @@ See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 | S21.2 | TASK-0113 | Service-layer tests + lifecycle integration test | ✅ DONE |
 | S21.3 | TASK-0114 | Event bus implementation + frontend test coverage | ✅ DONE |
 
-### 0.22.0 — Extended Features (M20, in progress)
+### 0.22.0 — Extended Features (M20, DONE)
 
 **Goal**: Real-time notifications, file uploads, bulk operations, task comments, audit export.
 **Spec**: SPEC-0023
-**Sprints**: 4 (1-week sprints)
+**Sprints**: 4 (1-week sprints) + S22.5 port externalization
 
 | Sprint | TASK | Focus | Status |
 |--------|------|-------|--------|
-| S22.1 | TASK-0115 | Real-time notifications via SSE | ⏳ IN PROGRESS |
-| S22.2 | TASK-0116 | File uploads for evidence | ❌ PENDING |
+| S22.1 | TASK-0115 | Real-time notifications via SSE | ✅ DONE |
+| S22.2 | TASK-0116 | File uploads for evidence | ✅ DONE |
 | S22.3 | TASK-0117 | Bulk task operations | ✅ DONE |
 | S22.4 | TASK-0118 | Task comments + audit export | ✅ DONE |
+| S22.5 | TASK-0119 | Port externalization (`UPCP_PORT_*`) | ✅ DONE |
 
 ### 0.14.0 — Critical Fixes & Security
 
@@ -227,11 +239,11 @@ See `ROADMAP_UNIFIED.md` for full post-M15 plan.
 | 0.15.0 | M13 — Architecture & Backend Cleanup | 2026-08-07 |
 | 0.16.0 | M14 — Performance & Accessibility | 2026-08-07 |
 | 0.17.0 | M15 — Agent Workflow | 2026-08-11 |
-| 0.18.0 | M16 — Notifications & Reporting | in progress |
+| 0.18.0 | M16 — Notifications & Reporting | не выпускался (delivered в 0.19.0–0.22.0; milestone закрыт 2026-10-25) |
 | 0.19.0 | M17 — Security & Stability | 2026-08-14 |
-| 0.20.0 | M18 — UX Polish, A11y & Settings | planned |
+| 0.20.0 | M18 — UX Polish, A11y & Settings | не выпускался (delivered в 0.19.0–0.22.0; milestone закрыт 2026-10-25) |
 | 0.21.0 | M19 — Test Quality & Architecture | 2026-08-14 |
-| 0.22.0 | M20 — Extended Features | in progress |
+| 0.22.0 | M20 — Extended Features | 2026-10-17 |
 
 ## How to Update Versions
 

@@ -23,19 +23,19 @@ describe('AuditPage', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('renders loading state', () => {
-    mock.mockReturnValue({ data: undefined, isLoading: true } as any);
+    mock.mockReturnValue({ data: undefined, isLoading: true } as ReturnType<typeof useAuditEvents>);
     const { container } = renderPage();
     expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
   });
 
   it('renders error state', () => {
-    mock.mockReturnValue({ data: undefined, isLoading: false, error: new Error('fail') } as any);
+    mock.mockReturnValue({ data: undefined, isLoading: false, error: new Error('fail') } as ReturnType<typeof useAuditEvents>);
     renderPage();
     expect(screen.getByText('Failed to load audit events')).toBeInTheDocument();
   });
 
   it('renders heading and filters', () => {
-    mock.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false, error: null } as any);
+    mock.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false, error: null } as ReturnType<typeof useAuditEvents>);
     renderPage();
     expect(screen.getByText('Audit Log')).toBeInTheDocument();
     expect(screen.getByText('All event types')).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe('AuditPage', () => {
   });
 
   it('renders empty state', () => {
-    mock.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false, error: null } as any);
+    mock.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false, error: null } as ReturnType<typeof useAuditEvents>);
     renderPage();
     expect(screen.getByText('No audit events found.')).toBeInTheDocument();
   });
@@ -57,7 +57,7 @@ describe('AuditPage', () => {
         total: 1, offset: 0, limit: 20,
       },
       isLoading: false, error: null,
-    } as any);
+    } as ReturnType<typeof useAuditEvents>);
     renderPage();
     expect(screen.getByText('created')).toBeInTheDocument();
     expect(screen.getByText('task')).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('AuditPage', () => {
   });
 
   it('renders search input', () => {
-    mock.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false, error: null } as any);
+    mock.mockReturnValue({ data: { items: [], total: 0, offset: 0, limit: 20 }, isLoading: false, error: null } as ReturnType<typeof useAuditEvents>);
     renderPage();
     expect(screen.getByPlaceholderText('Search events...')).toBeInTheDocument();
   });
@@ -80,7 +80,7 @@ describe('AuditPage', () => {
         total: 2, offset: 0, limit: 20,
       },
       isLoading: false, error: null,
-    } as any);
+    } as ReturnType<typeof useAuditEvents>);
     renderPage();
 
     fireEvent.change(screen.getByPlaceholderText('Search events...'), { target: { value: 'alpha' } });
@@ -98,7 +98,7 @@ describe('AuditPage', () => {
         total: 1, offset: 0, limit: 20,
       },
       isLoading: false, error: null,
-    } as any);
+    } as ReturnType<typeof useAuditEvents>);
     renderPage();
 
     fireEvent.change(screen.getByPlaceholderText('Search events...'), { target: { value: 'nonexistent' } });
@@ -115,7 +115,7 @@ describe('AuditPage', () => {
         total: 1, offset: 0, limit: 20,
       },
       isLoading: false, error: null,
-    } as any);
+    } as ReturnType<typeof useAuditEvents>);
     renderPage();
 
     fireEvent.change(screen.getByPlaceholderText('Search events...'), { target: { value: 'TASK' } });

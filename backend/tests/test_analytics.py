@@ -2,25 +2,10 @@
 
 from datetime import UTC, datetime
 
-import pytest
 from app.delivery.models import Feature, Task, TaskClaim
 from app.projects.models import Project
 from app.reporting.analytics import AnalyticsService
-from app.shared.database import Base
 from app.shared.text import new_id
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-
-@pytest.fixture()
-def db_session():
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(bind=engine)
-    TestSession = sessionmaker(bind=engine)
-    session = TestSession()
-    yield session
-    session.close()
-    engine.dispose()
 
 
 def _setup_project(session) -> tuple[str, str]:
@@ -28,6 +13,8 @@ def _setup_project(session) -> tuple[str, str]:
     pid = new_id()
     fid = new_id()
     session.add(Project(id=pid, name="Test", slug="test", status="active"))
+    # Shared engine enforces FKs (TASK-0112): flush parent before child.
+    session.flush()
     session.add(Feature(id=fid, project_id=pid, name="F1", slug="f1", status="active"))
     session.commit()
     return pid, fid
@@ -56,8 +43,44 @@ class TestAnalyticsService:
 
     def test_agents_overview_empty(self, db_session):
         svc = AnalyticsService(db_session)
-        overview = svc.get_agents_overview()
-        assert overview == []
+        items, total = svc.get_agents_overview()
+        assert items == []
+        assert total == 0
+
+    def test_agents_overview_pagination(self, db_session):
+        pid, fid = _setup_project(db_session)
+        now = datetime.now(UTC)
+        for aid in ("agent-1", "agent-2", "agent-3"):
+            tid = new_id()
+            db_session.add(
+                Task(
+                    id=tid,
+                    feature_id=fid,
+                    title=f"T-{aid}",
+                    status="done",
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            db_session.add(
+                TaskClaim(
+                    id=new_id(),
+                    task_id=tid,
+                    agent_id=aid,
+                    claimed_at=now,
+                )
+            )
+        db_session.commit()
+
+        svc = AnalyticsService(db_session)
+        items, total = svc.get_agents_overview(limit=2, offset=0)
+        assert total == 3
+        assert len(items) == 2
+        assert [i["agent_id"] for i in items] == ["agent-1", "agent-2"]
+
+        items2, total2 = svc.get_agents_overview(limit=2, offset=1)
+        assert total2 == 3
+        assert [i["agent_id"] for i in items2] == ["agent-2", "agent-3"]
 
     def test_agent_performance_with_claims(self, db_session):
         pid, fid = _setup_project(db_session)

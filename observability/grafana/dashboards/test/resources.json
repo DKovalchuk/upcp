@@ -1,0 +1,89 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "title": "App Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "process_resident_memory_bytes{job=\"upcp-app\"}", "legendFormat": "Resident Memory" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "DB Pool Connections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "upcp_db_pool_connections", "legendFormat": "{{state}}" }
+      ]
+    },
+    {
+      "title": "App CPU Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "rate(process_cpu_seconds_total{job=\"upcp-app\"}[1m])", "legendFormat": "CPU" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "title": "Open File Descriptors",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "process_open_fds{job=\"upcp-app\"}", "legendFormat": "Open FDs" }
+      ]
+    },
+    {
+      "title": "Goroutines (if applicable)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 8 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "go_goroutines{job=\"upcp-app\"} or upcp_http_requests_in_progress", "legendFormat": "Active" }
+      ]
+    },
+    {
+      "title": "GC Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "rate(go_gc_duration_seconds_sum{job=\"upcp-app\"}[5m]) / rate(go_gc_duration_seconds_count{job=\"upcp-app\"}[5m])", "legendFormat": "Avg GC Duration" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "title": "Redis Operations",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "sum(rate(upcp_redis_operations_total[1m])) by (operation)", "legendFormat": "{{operation}}" }
+      ]
+    },
+    {
+      "title": "Evidence Uploads",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        { "expr": "sum(rate(upcp_evidence_uploads_total[5m])) by (file_type)", "legendFormat": "{{file_type}}" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["upcp", "test", "resources"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "UPCP Test — Resources",
+  "uid": "upcp-test-resources",
+  "version": 1
+}

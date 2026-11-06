@@ -84,6 +84,34 @@ class TestAccessToken:
         with pytest.raises(ValueError, match="Invalid token"):
             token_service.verify_access_token(refresh_token)
 
+    def test_consecutive_access_tokens_unique_within_same_second(
+        self, token_service: TokenService, test_user: User, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Two logins in the same wall-clock second must yield different raw tokens.
+
+        Regression (TASK-0159): PyJWT encodes iat/exp as whole seconds, so
+        without a random claim (jti) two tokens for the same user created in
+        the same second are byte-identical — a re-login right after logout
+        then hits the denylist with a dead token (401).
+        """
+        from datetime import UTC
+        from datetime import datetime as real_datetime
+
+        fixed = real_datetime(2026, 10, 25, 12, 0, 0, tzinfo=UTC)
+
+        class FrozenDatetime:
+            @staticmethod
+            def now(tz: object = None) -> real_datetime:
+                return fixed
+
+        # Patch only the `datetime` name; `timedelta`/`UTC` stay untouched.
+        monkeypatch.setattr("app.identity.token_service.datetime", FrozenDatetime)
+
+        first = token_service.create_access_token(test_user.id)
+        second = token_service.create_access_token(test_user.id)
+
+        assert first != second
+
 
 # ---------------------------------------------------------------------------
 # Refresh tokens

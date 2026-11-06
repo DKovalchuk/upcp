@@ -23,13 +23,13 @@ describe('QualityPage', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('renders loading skeleton', () => {
-    mock.mockReturnValue({ data: undefined, isLoading: true } as any);
+    mock.mockReturnValue({ data: undefined, isLoading: true } as ReturnType<typeof useQualityStats>);
     const { container } = renderPage();
     expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
   });
 
   it('renders error state', () => {
-    mock.mockReturnValue({ data: undefined, isLoading: false, error: new Error('fail') } as any);
+    mock.mockReturnValue({ data: undefined, isLoading: false, error: new Error('fail') } as ReturnType<typeof useQualityStats>);
     renderPage();
     expect(screen.getByText('Failed to load quality stats')).toBeInTheDocument();
   });
@@ -38,7 +38,7 @@ describe('QualityPage', () => {
     mock.mockReturnValue({
       data: { total_tasks: 10, tasks_with_ac: 7, total_ac: 20, passed_ac: 15, total_dod: 12, passed_dod: 10, pass_rate: 83.3 },
       isLoading: false, error: null,
-    } as any);
+    } as ReturnType<typeof useQualityStats>);
     renderPage();
     expect(screen.getByText('Quality')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('QualityPage', () => {
     mock.mockReturnValue({
       data: { total_tasks: 5, tasks_with_ac: 3, total_ac: 10, passed_ac: 8, total_dod: 6, passed_dod: 3, pass_rate: 50 },
       isLoading: false, error: null,
-    } as any);
+    } as ReturnType<typeof useQualityStats>);
     renderPage();
     expect(screen.getByText('Acceptance Criteria')).toBeInTheDocument();
     expect(screen.getByText('Definition of Done')).toBeInTheDocument();

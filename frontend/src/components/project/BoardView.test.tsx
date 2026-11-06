@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BoardView } from './BoardView';
@@ -41,7 +41,7 @@ function mockQuery(tasks: any[]) {
   mockUseQuery.mockReturnValue({
     data: { items: tasks, total: tasks.length, offset: 0, limit: 100 },
     isLoading: false,
-  } as any);
+  } as ReturnType<typeof useQuery>);
 }
 
 function renderBoard(
@@ -68,7 +68,7 @@ function renderBoard(
 describe('BoardView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseUpdateTask.mockReturnValue({ mutateAsync: vi.fn() } as any);
+    mockUseUpdateTask.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useUpdateTask>);
   });
 
   it('renders all four status columns', () => {
@@ -134,5 +134,30 @@ describe('BoardView', () => {
     renderBoard();
     const droppables = document.querySelectorAll('[data-droppable]');
     expect(droppables.length).toBe(4);
+  });
+
+  it('task cards are keyboard focusable (tabIndex=0)', () => {
+    mockQuery([ALL_TASKS[0]]);
+    renderBoard();
+    const card = screen.getByText('Login').closest('[data-draggable]');
+    expect(card).toHaveAttribute('tabindex', '0');
+  });
+
+  it('task cards expose draggable ARIA semantics', () => {
+    mockQuery([ALL_TASKS[0]]);
+    renderBoard();
+    const card = screen.getByText('Login').closest('[data-draggable]');
+    expect(card).toHaveAttribute('aria-roledescription', 'draggable');
+  });
+
+  it('Enter on a task card starts a keyboard drag (KeyboardSensor)', async () => {
+    mockQuery([ALL_TASKS[0]]);
+    renderBoard();
+    const card = screen.getByText('Login').closest('[data-draggable]');
+    fireEvent.keyDown(card!, { key: 'Enter', code: 'Enter' });
+    // drag start renders the active task a second time via DragOverlay
+    await waitFor(() => {
+      expect(screen.getAllByText('Login').length).toBeGreaterThan(1);
+    });
   });
 });

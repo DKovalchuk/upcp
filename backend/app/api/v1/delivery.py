@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.delivery.lifecycle import InvalidTransition
 from app.delivery.models import Feature, Subtask, Task
 from app.delivery.schemas import (
     BulkTaskUpdate,
@@ -16,6 +17,7 @@ from app.delivery.schemas import (
     TaskUpdate,
 )
 from app.delivery.service import CommentService, FeatureService, SubtaskService, TaskService
+from app.identity.permissions import require_permission
 from app.shared.database import get_session
 from app.shared.errors import NotFound, ValidationError
 from app.shared.pagination import PaginationParams, pagination_dependency
@@ -81,16 +83,20 @@ def create_feature(
     project_id: str, body: FeatureCreate, session: Session = Depends(get_session)
 ) -> FeatureResponse:  # noqa: B008
     svc = FeatureService(session)
-    return _feat_resp(
-        svc.create(
-            project_id=project_id,
-            name=body.name,
-            slug=body.slug,
-            description=body.description,
-            status=body.status,
-            component_id=body.component_id,
-        )
+    feature = svc.create(
+        project_id=project_id,
+        name=body.name,
+        slug=body.slug,
+        description=body.description,
+        status=body.status,
+        component_id=body.component_id,
     )
+    # Commit BEFORE responding: get_session's teardown commit runs after
+    # the 201 is sent, so a client chaining create → use(id) races the
+    # commit and gets FK 500s (TASK-0140 probe: 37/40 rows not visible
+    # to another connection at response time).
+    session.commit()
+    return _feat_resp(feature)
 
 
 @router.get(
@@ -128,6 +134,7 @@ def update_feature(
     summary="Delete a feature",
     description="Delete a feature by its identifier.",
     responses={404: {"description": "Feature not found"}},
+    dependencies=[Depends(require_permission("delete", "feature"))],
 )
 def delete_feature(feature_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     FeatureService(session).delete(feature_id)
@@ -140,11 +147,23 @@ def delete_feature(feature_id: str, session: Session = Depends(get_session)) -> 
 )
 def list_features(
     project_id: str,
+    status: str | None = None,
+    search: str | None = None,
+    sort_by: str = "created_at",
+    sort_dir: str = "desc",
     pagination: PaginationParams = Depends(pagination_dependency),
     session: Session = Depends(get_session),
 ) -> dict[str, object]:  # noqa: B008
     svc = FeatureService(session)
-    items, total = svc.list_features(project_id, offset=pagination.offset, limit=pagination.limit)
+    items, total = svc.list_features(
+        project_id,
+        offset=pagination.offset,
+        limit=pagination.limit,
+        status=status,
+        search=search,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
     return {
         "items": [_feat_resp(f) for f in items],
         "total": total,
@@ -168,25 +187,27 @@ def create_task(
     feature_id: str, body: TaskCreate, session: Session = Depends(get_session)
 ) -> TaskResponse:  # noqa: B008
     svc = TaskService(session)
-    return _task_resp(
-        svc.create(
-            feature_id=feature_id,
-            title=body.title,
-            description=body.description,
-            status=body.status,
-            priority=body.priority,
-            assignee_type=body.assignee_type,
-            assignee_id=body.assignee_id,
-            component_id=body.component_id,
-            module_id=body.module_id,
-        )
+    task = svc.create(
+        feature_id=feature_id,
+        title=body.title,
+        description=body.description,
+        status=body.status,
+        priority=body.priority,
+        assignee_type=body.assignee_type,
+        assignee_id=body.assignee_id,
+        component_id=body.component_id,
+        module_id=body.module_id,
     )
+    # Commit before responding — same create→use(id) race as create_feature.
+    session.commit()
+    return _task_resp(task)
 
 
 @router.patch(
     "/tasks/bulk",
     summary="Bulk update tasks",
     description="Update multiple tasks at once with status, priority, or assignee changes.",
+    dependencies=[Depends(require_permission("update", "task"))],
 )
 def bulk_update_tasks(
     body: BulkTaskUpdate,
@@ -232,7 +253,15 @@ def get_task(task_id: str, session: Session = Depends(get_session)) -> TaskRespo
 def update_task(
     task_id: str, body: TaskUpdate, session: Session = Depends(get_session)
 ) -> TaskResponse:  # noqa: B008
-    return _task_resp(TaskService(session).update(task_id, **body.model_dump(exclude_unset=True)))
+    try:
+        task = TaskService(session).update(task_id, **body.model_dump(exclude_unset=True))
+    except InvalidTransition as exc:
+        # Same mapping as bulk_update_tasks: a forbidden lifecycle edge is a
+        # client error (422), not an unhandled exception (500).
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    return _task_resp(task)
 
 
 @router.delete(
@@ -241,6 +270,7 @@ def update_task(
     summary="Delete a task",
     description="Delete a task by its identifier.",
     responses={404: {"description": "Task not found"}},
+    dependencies=[Depends(require_permission("delete", "task"))],
 )
 def delete_task(task_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     TaskService(session).delete(task_id)
@@ -254,11 +284,21 @@ def delete_task(task_id: str, session: Session = Depends(get_session)) -> None: 
 )
 def list_tasks(
     feature_id: str,
+    status: str | None = None,
+    priority: int | None = None,
+    search: str | None = None,
     pagination: PaginationParams = Depends(pagination_dependency),
     session: Session = Depends(get_session),
 ) -> TaskListResponse:  # noqa: B008
     svc = TaskService(session)
-    items, total = svc.list_tasks(feature_id, offset=pagination.offset, limit=pagination.limit)
+    items, total = svc.list_tasks(
+        feature_id,
+        offset=pagination.offset,
+        limit=pagination.limit,
+        status=status,
+        priority=priority,
+        search=search,
+    )
     return TaskListResponse(
         items=[_task_resp(t) for t in items],
         total=total,
@@ -282,6 +322,8 @@ def list_tasks_by_project(
     status: str | None = None,
     feature_id: str | None = None,
     assignee_type: str | None = None,
+    priority: int | None = None,
+    search: str | None = None,
     session: Session = Depends(get_session),  # noqa: B008
 ) -> TaskListResponse:
     svc = TaskService(session)
@@ -292,6 +334,8 @@ def list_tasks_by_project(
         status=status,
         feature_id=feature_id,
         assignee_type=assignee_type,
+        priority=priority,
+        search=search,
     )
     return TaskListResponse(
         items=[_task_resp(t) for t in items],
@@ -358,6 +402,7 @@ def update_subtask(
     summary="Delete a subtask",
     description="Delete a subtask by its identifier.",
     responses={404: {"description": "Subtask not found"}},
+    dependencies=[Depends(require_permission("delete", "subtask"))],
 )
 def delete_subtask(subtask_id: str, session: Session = Depends(get_session)) -> None:  # noqa: B008
     SubtaskService(session).delete(subtask_id)

@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -6,6 +7,11 @@ import { AgentStatusBadge } from '@/components/ui/AgentStatusBadge';
 import { useAgentActivity } from '@/hooks/use-dashboard';
 import { formatRelativeTime } from '@/lib/format';
 import { Bot } from 'lucide-react';
+
+// B19.7 (TASK-0154): progress outside [0..100] would overflow the bar
+// and display impossible percentages.
+const clampPercent = (value: number): number =>
+  Math.min(100, Math.max(0, value));
 
 export function AgentActivitySummary() {
   const { data, isLoading } = useAgentActivity();
@@ -48,8 +54,10 @@ export function AgentActivitySummary() {
         ) : (
           <div className="divide-y divide-border">
             {items.map((item) => (
-              <div
+              <Link
                 key={item.agent_id}
+                to="/agents/$agentId"
+                params={{ agentId: item.agent_id }}
                 className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors"
               >
                 <AgentAvatar
@@ -76,11 +84,11 @@ export function AgentActivitySummary() {
                         className={`h-full rounded-full transition-all ${
                           item.is_stale ? 'bg-orange-500' : 'bg-emerald-500'
                         }`}
-                        style={{ width: `${item.progress_percent}%` }}
+                        style={{ width: `${clampPercent(item.progress_percent)}%` }}
                       />
                     </div>
                     <span className="tabular-nums w-8 text-right">
-                      {item.progress_percent}%
+                      {clampPercent(item.progress_percent)}%
                     </span>
                   </div>
                 </div>
@@ -89,7 +97,7 @@ export function AgentActivitySummary() {
                     ? formatRelativeTime(item.last_heartbeat_at)
                     : 'No heartbeat'}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

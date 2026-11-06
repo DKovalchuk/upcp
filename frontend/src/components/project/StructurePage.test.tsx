@@ -8,6 +8,9 @@ vi.mock('@tanstack/react-router', async () => {
   return {
     ...actual,
     useLocation: () => ({ pathname: '/projects/proj-1/structure' }),
+    // useFilters needs search state — no router store in tests
+    useSearch: () => ({}),
+    useNavigate: () => vi.fn(),
   };
 });
 
@@ -49,21 +52,21 @@ function renderStructure() {
 describe('StructurePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseCreateComponent.mockReturnValue({ mutateAsync: vi.fn() } as any);
-    mockUseDeleteComponent.mockReturnValue({ mutateAsync: vi.fn() } as any);
-    mockUseModules.mockReturnValue({ data: [], isLoading: false } as any);
-    mockUseCreateModule.mockReturnValue({ mutateAsync: vi.fn() } as any);
-    mockUseDeleteModule.mockReturnValue({ mutateAsync: vi.fn() } as any);
+    mockUseCreateComponent.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useCreateComponent>);
+    mockUseDeleteComponent.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useDeleteComponent>);
+    mockUseModules.mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useModules>);
+    mockUseCreateModule.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useCreateModule>);
+    mockUseDeleteModule.mockReturnValue({ mutateAsync: vi.fn() } as ReturnType<typeof useDeleteModule>);
   });
 
   it('renders loading state', () => {
-    mockUseComponents.mockReturnValue({ data: undefined, isLoading: true } as any);
+    mockUseComponents.mockReturnValue({ data: undefined, isLoading: true } as ReturnType<typeof useComponents>);
     const { container } = renderStructure();
     expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
   });
 
   it('renders empty state when no components', () => {
-    mockUseComponents.mockReturnValue({ data: [], isLoading: false } as any);
+    mockUseComponents.mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useComponents>);
     renderStructure();
     expect(screen.getByText('No components yet')).toBeInTheDocument();
     expect(screen.getByText('Components represent the major parts of your project.')).toBeInTheDocument();
@@ -76,7 +79,7 @@ describe('StructurePage', () => {
         { id: 'c2', project_id: 'p1', name: 'Frontend', slug: 'frontend', description: null, status: 'paused', created_at: '', updated_at: '' },
       ],
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useComponents>);
 
     renderStructure();
     expect(screen.getByText('Backend')).toBeInTheDocument();
@@ -86,13 +89,13 @@ describe('StructurePage', () => {
   });
 
   it('shows Structure heading', () => {
-    mockUseComponents.mockReturnValue({ data: [], isLoading: false } as any);
+    mockUseComponents.mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useComponents>);
     renderStructure();
     expect(screen.getByText('Structure')).toBeInTheDocument();
   });
 
   it('renders create component button', () => {
-    mockUseComponents.mockReturnValue({ data: [], isLoading: false } as any);
+    mockUseComponents.mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useComponents>);
     renderStructure();
     const buttons = screen.getAllByRole('button');
     const hasComponentBtn = buttons.some((b) => b.textContent?.trim() === 'Component');
@@ -100,7 +103,7 @@ describe('StructurePage', () => {
   });
 
   it('opens create component dialog on button click', async () => {
-    mockUseComponents.mockReturnValue({ data: [], isLoading: false } as any);
+    mockUseComponents.mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useComponents>);
     renderStructure();
     const buttons = screen.getAllByRole('button');
     const componentBtn = buttons.find((b) => b.textContent?.includes('Component'));
@@ -116,13 +119,13 @@ describe('StructurePage', () => {
         { id: 'c1', project_id: 'p1', name: 'Backend', slug: 'backend', description: null, status: 'active', created_at: '', updated_at: '' },
       ],
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useComponents>);
     mockUseModules.mockReturnValue({
       data: [
         { id: 'm1', component_id: 'c1', name: 'Auth', slug: 'auth', description: null, status: 'active', created_at: '', updated_at: '' },
       ],
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof useModules>);
 
     renderStructure();
     // Click to expand
@@ -137,8 +140,8 @@ describe('StructurePage', () => {
         { id: 'c1', project_id: 'p1', name: 'Backend', slug: 'backend', description: null, status: 'active', created_at: '', updated_at: '' },
       ],
       isLoading: false,
-    } as any);
-    mockUseModules.mockReturnValue({ data: [], isLoading: false } as any);
+    } as ReturnType<typeof useComponents>);
+    mockUseModules.mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useModules>);
 
     renderStructure();
     fireEvent.click(screen.getByText('Backend'));

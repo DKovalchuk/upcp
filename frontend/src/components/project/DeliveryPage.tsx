@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useProjectId } from '@/hooks/use-project-id';
 import { useFeatures } from '@/hooks/use-features';
 import { useTasks } from '@/hooks/use-tasks';
+import { useFilters } from '@/hooks/use-filters';
 import { useCreateFeature, useDeleteFeature } from '@/hooks/use-features';
 import { useCreateTask, useBulkUpdateTasks } from '@/hooks/use-tasks';
 import { useUrlPagination } from '@/hooks/use-url-pagination';
@@ -10,10 +11,9 @@ import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
 import { featureFields, taskFields } from '@/components/forms/entity-fields';
 import { TaskDetailSheet } from './TaskDetailSheet';
 import { LazyBoardView } from './LazyBoardView';
-import { SavedViewsDropdown } from './SavedViewsDropdown';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
@@ -44,7 +44,9 @@ import type { Task } from '@/types/task';
 export function DeliveryPage() {
   const projectId = useProjectId();
   const { offset, limit, setOffset, setPageSize } = useUrlPagination(20);
-  const { data, isLoading } = useFeatures(projectId, { offset, limit });
+  const { filters } = useFilters();
+  const featureFilters = { status: filters.status, search: filters.search };
+  const { data, isLoading } = useFeatures(projectId, { offset, limit }, featureFilters);
   const features = data?.items ?? [];
   const total = data?.total ?? 0;
   const createFeature = useCreateFeature();
@@ -53,7 +55,6 @@ export function DeliveryPage() {
   const [showCreateFeature, setShowCreateFeature] = useState(false);
   const [expandedFeature, setExpandedFeature] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   const [confirmDelete, setConfirmDelete] = useState<{
     id: string;
@@ -128,17 +129,16 @@ export function DeliveryPage() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="w-[300px]">
-          <SearchInput
-            placeholder="Filter tasks..."
-            onSearch={setSearch}
-          />
-        </div>
-        <SavedViewsDropdown
-          currentFilters={{ search }}
-          onApplyView={(filters) => {
-            if (filters.search) setSearch(filters.search);
-          }}
+        <FilterBar
+          showSearch
+          showStatus
+          searchPlaceholder="Filter features..."
+          statusOptions={[
+            { value: 'backlog', label: 'Backlog' },
+            { value: 'in_progress', label: 'In Progress' },
+            { value: 'review', label: 'Review' },
+            { value: 'done', label: 'Done' },
+          ]}
         />
       </div>
 
@@ -156,7 +156,7 @@ export function DeliveryPage() {
         <LazyBoardView
           projectId={projectId}
           features={features}
-          search={search}
+          search={filters.search ?? ''}
           onSelectTask={setSelectedTaskId}
         />
       ) : (
@@ -171,7 +171,7 @@ export function DeliveryPage() {
                   expandedFeature === feature.id ? null : feature.id
                 )
               }
-              search={search}
+              search={filters.search ?? ''}
               onSelectTask={setSelectedTaskId}
               onDelete={() =>
                 setConfirmDelete({ id: feature.id, name: feature.name })
@@ -292,14 +292,14 @@ function FeatureSection({
 
   return (
     <div className="rounded-lg border">
-      <button
-        type="button"
-        className="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left hover:bg-muted/50"
-        onClick={onToggle}
-        aria-expanded={isExpanded}
-        aria-controls={`feature-tasks-${feature.id}`}
-      >
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
+        <button
+          type="button"
+          className="flex flex-1 cursor-pointer items-center gap-3 text-left"
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          aria-controls={`feature-tasks-${feature.id}`}
+        >
           {isExpanded ? (
             <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           ) : (
@@ -311,8 +311,8 @@ function FeatureSection({
               ({taskCount} tasks)
             </span>
           </div>
-        </div>
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        </button>
+        <div className="ml-3 flex items-center gap-2">
           <StatusBadge status={featureStatus} />
           <Button
             variant="ghost"
@@ -324,7 +324,7 @@ function FeatureSection({
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </button>
+      </div>
 
       {isExpanded && (
         <div id={`feature-tasks-${feature.id}`} className="border-t px-4 py-3">

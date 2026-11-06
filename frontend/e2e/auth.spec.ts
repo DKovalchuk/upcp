@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication', () => {
+  // TASK-0139 fix (auth-gated notification polling) means the unauthenticated
+  // page never issues notifications requests, so no 401-redirect can occur —
+  // the previous route-mock workaround here is dead code and removed. The
+  // heading guards below stay: they fail loudly if a redirect ever returns.
   test('redirects to login when not authenticated', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
@@ -47,7 +51,10 @@ test.describe('Authentication', () => {
   test('setup page has password visibility toggle', async ({ page }) => {
     await page.goto('/setup');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1000);
+    // Assert the setup form itself — login also has a Password textbox +
+    // Show password toggle, so without this guard the test passed vacuously
+    // whenever the page was bounced to /login.
+    await expect(page.getByText('Create your admin account')).toBeVisible({ timeout: 5000 });
     const passwordInput = page.getByRole('textbox', { name: 'Password' });
     await expect(passwordInput).toBeVisible({ timeout: 5000 });
     await expect(passwordInput).toHaveAttribute('type', 'password');
@@ -59,7 +66,10 @@ test.describe('Authentication', () => {
   test('setup page has required fields', async ({ page }) => {
     await page.goto('/setup');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1000);
+    // Fail with a clear signal if the page got redirected to /login instead
+    // of rendering the setup form (auth-gated polling keeps this stable —
+    // see TASK-0139).
+    await expect(page.getByText('Create your admin account')).toBeVisible({ timeout: 5000 });
     const inputs = page.locator('input');
     const count = await inputs.count();
     expect(count).toBeGreaterThanOrEqual(3);

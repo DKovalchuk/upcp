@@ -34,13 +34,13 @@ class DashboardService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self, project_id: str | None = None) -> dict[str, Any]:
         """Get aggregated dashboard statistics."""
         # Project count
         project_count = self._session.query(Project).count()
 
         # Task counts by status
-        task_counts = self._get_task_counts_by_status()
+        task_counts = self._get_task_counts_by_status(project_id)
 
         # Recent projects (last 5)
         recent_projects = self._get_recent_projects(limit=5)
@@ -48,25 +48,115 @@ class DashboardService:
         # Recent activity (last 10 audit events)
         recent_activity = self._get_recent_activity(limit=10)
 
+        # New fields
+        done_this_week = self._get_done_this_week(project_id)
+        blocked_count = self._get_blocked_count(project_id)
+        claimed_count = self._get_claimed_count(project_id)
+        health_score = self._get_health_score(project_id)
+
         return {
             "project_count": project_count,
             "task_counts_by_status": task_counts,
             "recent_projects": recent_projects,
             "recent_activity": recent_activity,
+            "done_this_week": done_this_week,
+            "blocked_count": blocked_count,
+            "claimed_count": claimed_count,
+            "health_score": health_score,
         }
 
-    def _get_task_counts_by_status(self) -> dict[str, int]:
+    def _get_task_counts_by_status(self, project_id: str | None = None) -> dict[str, int]:
         """Get task counts grouped by status."""
-        rows = self._session.query(Task.status, func.count(Task.id)).group_by(Task.status).all()
+        query = self._session.query(Task.status, func.count(Task.id))
+        if project_id:
+            from app.delivery.models import Feature
+
+            feature_ids = [
+                f.id
+                for f in self._session.query(Feature.id)
+                .filter(Feature.project_id == project_id)
+                .all()
+            ]
+            query = query.filter(Task.feature_id.in_(feature_ids))
+        rows = query.group_by(Task.status).all()
         counts = {row[0]: row[1] for row in rows}
 
-        # Ensure all expected statuses are present
         return {
             "backlog": counts.get("backlog", 0),
             "in_progress": counts.get("in_progress", 0),
             "review": counts.get("review", 0),
             "done": counts.get("done", 0),
+            "blocked": counts.get("blocked", 0),
         }
+
+    def _get_done_this_week(self, project_id: str | None = None) -> int:
+        """Count tasks completed in the last 7 days."""
+        week_ago = utcnow() - timedelta(days=7)
+        query = self._session.query(func.count(Task.id)).filter(
+            Task.status == "done",
+            Task.updated_at >= week_ago,
+        )
+        if project_id:
+            from app.delivery.models import Feature
+
+            feature_ids = [
+                f.id
+                for f in self._session.query(Feature.id)
+                .filter(Feature.project_id == project_id)
+                .all()
+            ]
+            query = query.filter(Task.feature_id.in_(feature_ids))
+        return query.scalar() or 0
+
+    def _get_blocked_count(self, project_id: str | None = None) -> int:
+        """Count tasks with blocked status."""
+        query = self._session.query(func.count(Task.id)).filter(Task.status == "blocked")
+        if project_id:
+            from app.delivery.models import Feature
+
+            feature_ids = [
+                f.id
+                for f in self._session.query(Feature.id)
+                .filter(Feature.project_id == project_id)
+                .all()
+            ]
+            query = query.filter(Task.feature_id.in_(feature_ids))
+        return query.scalar() or 0
+
+    def _get_claimed_count(self, project_id: str | None = None) -> int:
+        """Count tasks with active agent claims."""
+        query = self._session.query(func.count(func.distinct(TaskClaim.task_id))).filter(
+            TaskClaim.state == "active",
+        )
+        if project_id:
+            from app.delivery.models import Feature
+
+            feature_ids = [
+                f.id
+                for f in self._session.query(Feature.id)
+                .filter(Feature.project_id == project_id)
+                .all()
+            ]
+            query = query.join(Task, Task.id == TaskClaim.task_id).filter(
+                Task.feature_id.in_(feature_ids),
+            )
+        return query.scalar() or 0
+
+    def _get_health_score(self, project_id: str | None = None) -> int:
+        """Get health score (0-100). Per-project or aggregate."""
+        if project_id:
+            from app.reporting.attention import AttentionDashboardService
+
+            svc = AttentionDashboardService(self._session)
+            result = svc.get_project_health(project_id)
+            score = result.get("score", 100)
+            return score if isinstance(score, int) else 100
+        # Aggregate: mean of per-project scores — exact set-based batch
+        # (was an N+1 loop over get_project_health, TASK-0149/TASK-0140)
+        from app.reporting.attention import AttentionDashboardService
+
+        svc = AttentionDashboardService(self._session)
+        return svc.get_average_health()
 
     def _get_recent_projects(self, limit: int = 5) -> list[dict[str, object]]:
         """Get recent projects ordered by updated_at desc."""

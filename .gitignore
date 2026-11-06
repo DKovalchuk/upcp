@@ -11,6 +11,10 @@ __pycache__/
 .env
 .env.local
 .env.*.local
+.env.stage
+.env.dev
+.env.test
+.env.ci
 
 # Docker
 docker-compose.override.yml
@@ -59,3 +63,9 @@ backups/
 /*.jpeg
 frontend/coverage/
 frontend/test-results/
+/test-results/
+tests/e2e/.auth/
+
+# Quality gate aggregate report (generated locally / as CI artifact, TASK-0143)
+/quality-report.md
+/quality-report.json

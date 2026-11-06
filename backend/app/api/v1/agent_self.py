@@ -6,13 +6,13 @@ TASK-0075
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.delivery.models import AgentInboxEvent, ClarificationRequest, TaskClaim
-from app.identity.agent_auth import get_current_agent
+from app.delivery.service import AgentActivityService
+from app.identity.agent_auth import get_current_agent, require_agent_scope
 from app.identity.agents import Agent
 from app.identity.dependencies import CurrentAgent
 from app.shared.database import get_session
 
-router = APIRouter(tags=["agent-self"])
+router = APIRouter(tags=["agent-self"], dependencies=[Depends(require_agent_scope("agent:self"))])
 
 _DEFAULT_PLAYBOOK = """# Agent Playbook
 
@@ -52,15 +52,11 @@ def agent_me(
     if db_agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    active_claims = db.query(TaskClaim).filter_by(agent_id=agent.agent_id, state="active").count()
-    open_clarifications = (
-        db.query(ClarificationRequest)
-        .filter(
-            ClarificationRequest.author_id == agent.agent_id,
-            ClarificationRequest.author_type == "agent",
-            ClarificationRequest.state == "open",
-        )
-        .count()
+    # Delivery-owned reads go through its public service (TASK-0176/AGENTS §5)
+    activity = AgentActivityService(db)
+    active_claims = activity.count_claims(agent.agent_id, state="active")
+    open_clarifications = activity.count_clarifications(
+        agent.agent_id, author_type="agent", state="open"
     )
     inbox_count = active_claims + open_clarifications
 
@@ -86,10 +82,9 @@ def agent_inbox(
     unread_only: bool = False,
 ) -> dict[str, list[dict[str, object]]]:
     """Return agent events (inbox) from AgentInboxEvent table."""
-    query = db.query(AgentInboxEvent).filter_by(agent_id=agent.agent_id)
-    if unread_only:
-        query = query.filter_by(is_read=False)
-    events = query.order_by(AgentInboxEvent.created_at.desc()).limit(50).all()
+    events = AgentActivityService(db).list_inbox_events(
+        agent.agent_id, unread_only=unread_only, limit=50
+    )
 
     return {
         "events": [

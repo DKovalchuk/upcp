@@ -13,9 +13,12 @@ from unittest.mock import patch
 
 import app.identity.agents  # noqa: F401 — register Agent/AgentToken tables
 import pytest
-from app.identity.middleware import AuthMiddleware
+from app.identity.agent_auth import get_current_agent
+from app.identity.auth import _get_token_service
+from app.identity.web_auth import web_auth
+from app.shared.config import get_settings
 from app.shared.database import Base
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
 from tests.conftest import _test_engine
@@ -29,6 +32,26 @@ def _clear_settings_cache() -> None:
     get_settings.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def _reset_settings_cache_after_test():
+    """Drop get_settings() cache after every test in this module.
+
+    The flag tests below rebuild the settings snapshot *inside*
+    ``patch.dict(os.environ, ...)`` (cache_clear + get_settings). The
+    lru_cache survives the context exit, so the patched snapshot — e.g.
+    ``UPCP_DISABLE_AUTH=false`` — leaks into every later test in the
+    session. Latent until RBAC gates (SPEC-0027) started consulting
+    ``settings.disable_auth`` per request: the leak then turned later
+    hermetic suites (test_structure → 401 → KeyError 'id') red.
+    Clearing after each test makes the next get_settings() re-read the
+    real environment.
+    """
+    yield
+    from app.shared.config import get_settings
+
+    get_settings.cache_clear()
+
+
 # ══════════════════════════════════════════════════════════════
 # Issue 1: MCP endpoints require auth
 # ══════════════════════════════════════════════════════════════
@@ -37,10 +60,10 @@ def _clear_settings_cache() -> None:
 class TestMCPAuthRequired:
     """MCP endpoints must reject unauthenticated requests."""
 
-    def test_mcp_returns_401_without_token(self) -> None:
+    def test_mcp_returns_401_without_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """POST /mcp without any auth header → 401."""
-        app = FastAPI()
-        app.add_middleware(AuthMiddleware)
+        monkeypatch.setattr(get_settings(), "disable_auth", False)
+        app = FastAPI(dependencies=[Depends(web_auth)])
 
         @app.post("/mcp")
         async def mcp_endpoint() -> dict:
@@ -52,19 +75,21 @@ class TestMCPAuthRequired:
         )
         assert resp.status_code == 401
 
-    def test_mcp_accepts_jwt(self) -> None:
-        """POST /mcp with valid JWT → 200."""
+    def test_mcp_accepts_jwt(self, seed_subject, monkeypatch: pytest.MonkeyPatch) -> None:
+        """POST /mcp with valid JWT for an existing subject → 200."""
         from app.identity.token_service import TokenService
 
+        monkeypatch.setattr(get_settings(), "disable_auth", False)
         ts = TokenService(secret_key="test-secret")
-        app = FastAPI()
-        app.add_middleware(AuthMiddleware, token_service=ts)
+        app = FastAPI(dependencies=[Depends(web_auth)])
+        app.dependency_overrides[_get_token_service] = lambda: ts
 
         @app.post("/mcp")
         async def mcp_endpoint() -> dict:
             return {"ok": True}
 
         client = TestClient(app)
+        seed_subject("user-456")
         token = ts.create_access_token("user-456")
         resp = client.post(
             "/mcp",
@@ -74,41 +99,38 @@ class TestMCPAuthRequired:
         assert resp.status_code == 200
 
     def test_mcp_accepts_agent_token(self) -> None:
-        """POST /mcp with valid X-Agent-Token → 200."""
-        from app.identity.agents import Agent, AgentToken
-        from app.identity.middleware import _hash_token
+        """POST /mcp with valid X-Agent-Token → 200.
 
-        from tests.conftest import _test_engine, _TestSession
+        Seam: the middleware's agent branch → ``Depends(get_current_agent)``
+        (interim guard until TASK-0170's ``agent_auth`` blanket).
+        """
+        from app.identity.agent_token_service import _hash_token
+        from app.identity.agents import Agent, AgentToken
+
+        from tests.conftest import _TestSession
 
         Base.metadata.create_all(bind=_test_engine)
 
-        # The middleware uses SessionLocal (production DB) for agent token
-        # verification. We must patch it to use the test DB instead.
-        import app.shared.database as db_mod
-
-        original_session_local = db_mod.SessionLocal
-        db_mod.SessionLocal = _TestSession
+        session = _TestSession()
         try:
-            session = _TestSession()
-            try:
-                agent = Agent(name="mcp-auth-test-agent", description="test", created_by=None)
-                session.add(agent)
-                session.flush()
-                raw = "mcp-auth-test-token"
-                token_hash = _hash_token(raw)
-                tok = AgentToken(
-                    id="tok-mcp-auth-test",
-                    agent_id=agent.id,
-                    token_hash=token_hash,
-                    name="default",
-                )
-                session.add(tok)
-                session.commit()
-            finally:
-                session.close()
+            agent = Agent(name="mcp-auth-test-agent", description="test", created_by=None)
+            session.add(agent)
+            session.flush()
+            raw = "mcp-auth-test-token"
+            token_hash = _hash_token(raw)
+            tok = AgentToken(
+                id="tok-mcp-auth-test",
+                agent_id=agent.id,
+                token_hash=token_hash,
+                name="default",
+            )
+            session.add(tok)
+            session.commit()
+        finally:
+            session.close()
 
-            app = FastAPI()
-            app.add_middleware(AuthMiddleware)
+        try:
+            app = FastAPI(dependencies=[Depends(get_current_agent)])
 
             @app.post("/mcp")
             async def mcp_endpoint() -> dict:
@@ -122,8 +144,6 @@ class TestMCPAuthRequired:
             )
             assert resp.status_code == 200
         finally:
-            db_mod.SessionLocal = original_session_local
-            # Cleanup
             session = _TestSession()
             try:
                 session.query(AgentToken).filter_by(id="tok-mcp-auth-test").delete()

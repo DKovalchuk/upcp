@@ -1,0 +1,78 @@
+# ZAP DAST configuration — TASK-0142 / SPEC-0024 Phase 4
+#
+# Mounted by docker-compose.test.yml at /zap/config/zap-config.yaml (RO).
+#
+# NOTE (verified against ghcr.io/zaproxy/zaproxy:stable): nothing inside the
+# ZAP image reads this path (no ZAP_CONF / zap-config handling exists in the
+# image). The consumer is the host-side wrapper
+# tests/security/dast/zap_scan.py, which translates the sections below into
+# native ZAP mechanisms:
+#
+#   daemon:  ->  ZAP daemon options: zap-baseline.py / zap-full-scan.py
+#                -z "-config <key>=<value> ..." (shlex-split by zap_common).
+#   rules:   ->  ZAP baseline rules config file (ZAP's native docker format:
+#                "<plugin_id><TAB><LEVEL>[<TAB><note>]" per line), written by
+#                the wrapper to <report-dir>/zap_rules_<ts>.conf and passed
+#                as -c. The same file is visible in-container under
+#                /zap/wrk because the wrapper bind-mounts the report dir there
+#                (required by the ZAP scripts when any file option is used).
+#   redact:  ->  host-side regex redaction applied to every generated report
+#                and to the result JSON (JWTs / bearer tokens -> REDACTED).
+#   scan:    ->  wrapper defaults for the scripted-scan flags.
+#   auth:    ->  authenticated-baseline hook (TASK-0157): the wrapper emits
+#                <report-dir>/zap_auth_hook_<ts>.py passed to the script as
+#                --hook; the hook mints a JWT via login_path (credentials
+#                from container env — never stored here), attaches a global
+#                Authorization header with a ZAP replacer rule, match type
+#                REQ_HEADER ("add if not present" — network.addHttpRequestHeader
+#                does not exist in python-zap v0.6.0 / ZAP 2.17.0, probed),
+#                and force-fetches probe_urls THROUGH the ZAP proxy (the
+#                classic spider does not walk JSON APIs; the HTTP status
+#                proves the injected header was accepted — 401/403 fails).
+#                The hook must leave "ok ..." in
+#                <report-dir>/zap_auth_hook_status.txt or the wrapper exits 2
+#                — no silent unauthenticated fallback.
+#
+# All sections are valid YAML; `daemon` keys are ZAP daemon property keys —
+# the same names accepted by ZAP's -config command line option.
+
+scan:
+  target: http://app:8080        # compose-network target (required by spec)
+  spider_minutes: 1              # -m for --mode baseline
+  full_spider_minutes: 3         # -m for --mode full
+  report_prefix: zap
+
+auth:
+  enabled: true                  # authenticated baseline (TASK-0157)
+  login_path: /auth/login        # path on the scan target
+  env_user: PERF_EMAIL           # credential NAMES only — values live in
+  env_password: PERF_PASSWORD    # the container env (compose test stack)
+  # Force-fetched authenticated URLs (paths on scan.target): the classic
+  # spider does not discover JSON API routes on its own.
+  probe_urls:
+    - /
+    - /api/v1/projects
+    - /api/v1/agents
+    - /api/v1/analytics/agents/overview
+
+daemon:
+  # Both keys are already applied by the ZAP docker scripts themselves
+  # (zap_common.create_start_options); declared here so the intent is
+  # explicit and survives script-image updates.
+  api.disablekey: true
+  database.recoverylog: false
+
+# Baseline rules tuning -> generated ZAP -c file.
+# Level: IGNORE | INFO | WARN | FAIL. Example:
+#   10020: IGNORE      # X-Frame-Options advisory on API-only endpoints
+# Empty by default: rule tuning is added only from evidence of a real run
+# (see README.md — never guess plugin ids).
+rules: {}
+
+redact:
+  replacement: REDACTED
+  patterns:
+    # JWT (any three base64url segments, e.g. captured Authorization tokens)
+    - 'eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*'
+    # Non-JWT bearer tokens in headers / log lines
+    - '(?i)bearer\s+[A-Za-z0-9._~+/=-]{15,}'

@@ -1,0 +1,21 @@
+# Locust CSV results (generated, too noisy for git)
+*.csv
+results/*.json
+results/trend_history.json
+
+# Keep baseline and trend history for tracking
+!results/baseline.json
+!results/trend_history.json
+
+# HTML reports (generated)
+reports/*.html
+
+# Markdown reports are tracked
+!reports/*.md
+
+# Keep dirs
+!results/.gitkeep
+!reports/.gitkeep
+
+# Lighthouse CI artifacts (generated, TASK-0153)
+lighthouse/.lighthouseci/

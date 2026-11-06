@@ -1,30 +1,12 @@
+import re
+
 from app.api.v1.projects import router
 from app.shared.database import Base, get_session
 from app.shared.errors import register_error_handlers
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-_test_engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestSessionLocal = sessionmaker(bind=_test_engine)
-
-
-def _override_session():
-    session = TestSessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+from tests.conftest import _override_session, _test_engine
 
 
 def _test_app() -> FastAPI:
@@ -172,3 +154,47 @@ def test_list_projects_sort_by_name_asc() -> None:
     resp = client.get("/api/v1/projects?sort_by=name&sort_dir=asc")
     names = [p["name"] for p in resp.json()["items"]]
     assert names == ["Alpha", "Bravo", "Charlie"]
+
+
+# ── Security regressions (TASK-0142 fuzz findings) ──
+# NUL bytes are built with chr(0) to keep this source file ASCII-clean.
+
+_NUL = chr(0)
+
+
+def test_create_project_nul_byte_name_returns_422() -> None:
+    client = TestClient(_test_app(), raise_server_exceptions=False)
+    resp = client.post("/api/v1/projects", json={"name": f"fuzz{_NUL}null"})
+    assert resp.status_code == 422
+
+
+def test_create_project_nul_byte_description_returns_422() -> None:
+    client = TestClient(_test_app(), raise_server_exceptions=False)
+    resp = client.post("/api/v1/projects", json={"name": "Ok", "description": f"bad{_NUL}desc"})
+    assert resp.status_code == 422
+
+
+def test_update_project_nul_byte_name_returns_422() -> None:
+    app = _test_app()
+    client = TestClient(app, raise_server_exceptions=False)
+    pid = client.post("/api/v1/projects", json={"name": "X"}).json()["id"]
+    resp = client.patch(f"/api/v1/projects/{pid}", json={"name": f"Y{_NUL}"})
+    assert resp.status_code == 422
+
+
+def test_create_project_unicode_name_returns_valid_slug() -> None:
+    client = TestClient(_test_app(), raise_server_exceptions=False)
+    resp = client.post("/api/v1/projects", json={"name": "проект фазз"})
+    assert resp.status_code == 201
+    slug = resp.json()["slug"]
+    assert slug
+    assert re.fullmatch(r"[a-z0-9-]+", slug)
+
+
+def test_create_project_symbol_only_name_returns_valid_slug() -> None:
+    client = TestClient(_test_app(), raise_server_exceptions=False)
+    resp = client.post("/api/v1/projects", json={"name": "!!!"})
+    assert resp.status_code == 201
+    slug = resp.json()["slug"]
+    assert slug
+    assert re.fullmatch(r"[a-z0-9-]+", slug)

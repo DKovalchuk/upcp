@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.projects.models import Project
 from app.reporting.attention import AttentionDashboardService
 from app.reporting.dashboard import DashboardService
 from app.reporting.portfolio import PortfolioService
@@ -13,6 +14,7 @@ from app.reporting.schemas import (
     TaskCountsByStatus,
 )
 from app.shared.database import get_session
+from app.shared.errors import NotFound
 
 router = APIRouter(tags=["dashboard"])
 
@@ -23,15 +25,22 @@ router = APIRouter(tags=["dashboard"])
     summary="Get dashboard statistics",
     description="Get aggregated dashboard statistics including project count, task counts, and recent activity.",
 )
-def get_dashboard_stats(session: Session = Depends(get_session)) -> DashboardStatsResponse:  # noqa: B008
+def get_dashboard_stats(
+    project_id: str | None = None,
+    session: Session = Depends(get_session),  # noqa: B008
+) -> DashboardStatsResponse:
     """Get aggregated dashboard statistics."""
     service = DashboardService(session)
-    stats = service.get_stats()
+    stats = service.get_stats(project_id=project_id)
     return DashboardStatsResponse(
         project_count=stats["project_count"],
         task_counts_by_status=TaskCountsByStatus(**stats["task_counts_by_status"]),
         recent_projects=[ProjectSummary(**p) for p in stats["recent_projects"]],
         recent_activity=[AuditEventSummary(**a) for a in stats["recent_activity"]],
+        done_this_week=stats["done_this_week"],
+        blocked_count=stats["blocked_count"],
+        claimed_count=stats["claimed_count"],
+        health_score=stats["health_score"],
     )
 
 
@@ -41,11 +50,12 @@ def get_dashboard_stats(session: Session = Depends(get_session)) -> DashboardSta
     description="Get action items requiring user attention such as blocked tasks and overdue items.",
 )
 def get_dashboard_attention(
+    project_id: str | None = None,
     session: Session = Depends(get_session),
 ) -> dict[str, list[dict[str, object]]]:  # noqa: B008
     """Get attention dashboard — action items requiring user attention."""
     svc = AttentionDashboardService(session)
-    return svc.get_attention()
+    return svc.get_attention(project_id=project_id)
 
 
 @router.get(
@@ -58,7 +68,14 @@ def get_project_health(
     project_id: str,
     session: Session = Depends(get_session),
 ) -> dict[str, object]:  # noqa: B008
-    """Get project health score with breakdown."""
+    """Get project health score with breakdown.
+
+    Unknown projects raise ``NotFound`` (→ 404) — the documented contract.
+    Existing projects keep the computed score, including the score-100
+    default when they have no tasks (TASK-0087).
+    """
+    if session.get(Project, project_id) is None:
+        raise NotFound(f"Project '{project_id}' not found")
     svc = AttentionDashboardService(session)
     return svc.get_project_health(project_id)
 

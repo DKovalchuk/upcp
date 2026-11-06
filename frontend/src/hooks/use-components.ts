@@ -8,10 +8,10 @@ import {
 } from '@/lib/api';
 import type { ComponentCreate, ComponentUpdate } from '@/types/component';
 
-export function useComponents(projectId: string) {
+export function useComponents(projectId: string, filters?: { status?: string; search?: string }) {
   return useQuery({
-    queryKey: ['components', projectId],
-    queryFn: () => fetchComponents(projectId),
+    queryKey: ['components', projectId, filters],
+    queryFn: () => fetchComponents(projectId, filters),
     enabled: !!projectId,
     staleTime: 5 * 60_000,
   });

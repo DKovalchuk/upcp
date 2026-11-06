@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useProjectId } from '@/hooks/use-project-id';
 import { useComponents } from '@/hooks/use-components';
 import { useModules } from '@/hooks/use-modules';
+import { useFilters } from '@/hooks/use-filters';
 import { useCreateComponent, useDeleteComponent } from '@/hooks/use-components';
 import { useCreateModule, useDeleteModule } from '@/hooks/use-modules';
 import { EntityFormDialog } from '@/components/forms/EntityFormDialog';
 import { componentFields, moduleFields } from '@/components/forms/entity-fields';
+import { FilterBar } from '@/components/ui/FilterBar';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -25,7 +27,9 @@ import {
 
 export function StructurePage() {
   const projectId = useProjectId();
-  const { data: components, isLoading } = useComponents(projectId);
+  const { filters } = useFilters();
+  const componentFilters = { status: filters.status, search: filters.search };
+  const { data: components, isLoading } = useComponents(projectId, componentFilters);
   const createComponent = useCreateComponent();
   const deleteComponent = useDeleteComponent();
   const deleteModule = useDeleteModule();
@@ -80,6 +84,17 @@ export function StructurePage() {
           Component
         </Button>
       </div>
+
+      <FilterBar
+        showSearch
+        showStatus
+        searchPlaceholder="Search components..."
+        statusOptions={[
+          { value: 'active', label: 'Active' },
+          { value: 'inactive', label: 'Inactive' },
+          { value: 'deprecated', label: 'Deprecated' },
+        ]}
+      />
 
       {!components?.length ? (
         <EmptyState

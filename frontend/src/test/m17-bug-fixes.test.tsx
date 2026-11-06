@@ -100,7 +100,7 @@ vi.mock('@/components/ui/sidebar', () => ({
 }));
 
 vi.mock('@/hooks/use-health', () => ({
-  useHealth: () => ({ data: { status: 'ok', version: '0.21.0' }, isLoading: false }),
+  useHealth: () => ({ data: { status: 'ok', version: '0.22.0' }, isLoading: false }),
 }));
 
 vi.mock('@/components/settings/ChannelsSettingsTab', () => ({
@@ -145,7 +145,7 @@ describe('SettingsPage version', () => {
     // Version is displayed on the About tab; click it first
     fireEvent.click(screen.getByRole('tab', { name: /about/i }));
 
-    const versionElements = screen.getAllByText('0.21.0');
+    const versionElements = screen.getAllByText('0.22.0');
     expect(versionElements.length).toBeGreaterThan(0);
   });
 });

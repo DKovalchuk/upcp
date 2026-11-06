@@ -1,11 +1,363 @@
 # PROJECT_STATUS
 
-Updated: 2026-08-17
-Version: 0.21.0 (see `VERSIONING.md` for scheme)
-Milestone: M19 — Test Quality & Architecture (COMPLETE)
-Current Task: M20 S22.3+S22.4 on branch (ready for MR), S22.1+S22.2 pending
+Updated: 2026-11-04
+Version: 0.22.0 (see `VERSIONING.md` for scheme)
+Milestone: M19 ✅ DONE; M20 ✅ DONE (0.22.0 bumped 2026-10-17)
+Current Task: **ПАЧКА SPEC-0028/0029 DONE 2026-11-04 — Auth rework +
+identity layering (TASK-0168…0177, 10 задач) — MR !105 merged**:
+default-deny реестр поверхностей + `web_auth`/`agent_auth` зависимости
+(`AuthMiddleware`/`PUBLIC_PATHS` удалены; enumeration AC1 — все ручки
+web+agent отвечают 401 без кредов), principal-binding в MCP
+(`agent_id`/`answered_by`/`created_by_id` == принципал, spoofing →
+`-32001`), обязательный TTL ключей + fail-closed scopes (новый ключ без
+scopes → `[]`), RBAC **43 гейта** + 19 пар в seed, layering-пилот
+(repositories + cache provider + SubjectState/AgentToken сервисы;
+`get_current_user`/`get_current_agent`/кеш прав — на них), cross-context
+чистка (AgentActivityService и др. — чужих моделей в identity/api нет),
+boundary-контракт exact-set (mutation-tested), surface observability
+(корреляция `web:`/`agent:` с санитизацией, span/metrics labels) +
+двухслойный rate-limit **без path-хардкодов** (fail-open + threadpool).
+Aspect-review (независимый read-only): вердикт «merge after fixing
+highs» → **8/8 фиксов в ветке** (`510e958`, `f79eead`, `286b006`);
+medium/low → **TASK-0178** (в очереди). Финальные гейты: **1565 passed,
+coverage 91.40%**, ruff/format/mypy (119) чисто, boundary gate green.
+Evidence: `tasks/TASK-0168…0178`; CHANGELOG [Unreleased] заполнен.
+MR: **!105 merged** (feature/TASK-0168-api-surface-registry → develop).
+
+**TASK-0179 DONE 2026-11-04 — quality-gate fallout (MR !106 merged)**:
+первый запуск hard-gate на коде пачки (develop **#536 RED** — MR-пайплайны
+gate не запускают): 4 кластера. **authz ×2 + perf ×25**: фикстуры чеканили
+agent-токены без scopes → fail-closed дефолт (FIX-1) → **403** на
+`agent:mcp`/`agent:self` (**ровно TASK-0178 item 5** — locust
+`_ensure_agent_token` со scopes `["agent:self","agent:workflow"]`); **fuzz ×9**: D2-семантика — auth как
+route-dependency даёт 404/405/307 **до** auth на фантомных путях/методах
+(старый middleware отвечал 401 pre-routing) → реальные пути в NO_AUTH_GET +
+method-tricks как отказ `401|405` (никогда 2xx/5xx); **e2e_fe ×2 =
+продуктовая регрессия D5** → решение владельца: split — **только**
+GET claims/heartbeats/clarifications → web surface (`workflow_read_router`,
+registry WEB), writes остаются agent-key-only (domain identity
+`get_current_agent`/`claim.agent_id`; UI release/answer с JWT не работали и
+до батча — follow-up). **D5 amendment** в SPEC-0028; пины: registry
+(reads=web/writes=agent) + agent-surface (web JWT на чтениях → 404 ≠ 401
+через production composition). Верификация: develop **#538 quality:gate
+success — `RCs: e2e=0 e2e_fe=0 chaos=0 security=0 perf=0`, exit 0**
+(+ build/deploy:dev green). Локальные гейты: **1568 passed, coverage
+91.44%**, ruff/format/mypy clean. Evidence: `tasks/TASK-0179-quality-gate-fallout.md`.
+
+**TASK-0167 (MR !104, этот merge) — Public GitHub export**:
+GitLab source of truth → публикуется **только `main`** → CI-job
+`publish:github` (needs build:backend/build:frontend, только main):
+mirror-clone → детерминированный `git filter-repo --replace-text` →
+gitleaks baseline-гейт → push в **https://github.com/DKovalchuk/upcp**
+(история GitLab/локального репо не переписывается). В MR: scrub HEAD
+(compose `${UPCP_SECRET_KEY:?hint}` вместо хардкода, `.env.stage`
+untracked + example, redact протухших JWT) + 5 контракт-тестов; MIT +
+README EN/RU; `scripts/export-public.sh` (shellcheck clean, toy-smoke
+доказательства); `.github/workflows/ci.yml` (backend+frontend CI для
+GitHub Actions-бейджа). Решение владельца 2026-11-04: мерж !104 →
+develop→main релиз → publish:github. Prerequisites: masked CI-переменные
+`UPCP_SECRET_KEY` + `GITHUB_PUB_TOKEN` (repo+**workflow** scope).
+Evidence: `tasks/TASK-0167-public-github-export.md`.
+Prev (TASK-0166): **TASK-0166 DONE 2026-10-31 — dev seed всех механизмов +
+верификация компонентов**: dev-БД наполнена через API + SQL-бэкфил так,
+что каждый механизм покрыт read-back'ом. Новые артефакты: `seed_common.py`
+(пейсинг 90 req/min + 429-retry + auto-refresh), `seed_mechanisms.py`
+(workflow-стейт-машина + negative-path контракт-гейт), `seed_backfill.sql`
+(домены без write-API: membership/audit/git/deps/analytics-backdate/stale),
+`verify_seed.py` (**56/56 PASS, exit 0**). Покрыто: 8 attention-секций
+непустые, 11/11 lifecycle-статусов, notifications 21 в bucket `default`,
+reaper tick `{"stale":1,"released":0}`, SSE keepalive, MCP `tools/list` 200,
+browser-pass (логин → дашборд: колокольчик 21, Needs Attention, Active
+Agents). **Попутно найден и починен TDD баг: невалидный переход статуса →
+500** (InvalidTransition утекал из PATCH /tasks + 3 утечки в
+task_workflow.py: release/blocking-clarification) → **422**;
+red `assert 500 == 422` ×4 → green, полный прогон **1097 passed**,
+ruff/mypy чисто; на живой dev доставлен docker cp (запечённый образ —
+эфемерно до rebuild). Отклонение: фикс 500 — прод-код, вне исходного
+Out of scope задачи (обоснование в файле задачи). Наблюдения (не чинилось):
+нет write-API для audit_event/git-sync/task-dependency; bucket-mismatch
+уведомлений (TASK-0164); reaper-дубли claim.stale событий;
+`TaskService.complete` минует validate_transition. Evidence:
+`tasks/TASK-0166-dev-mechanisms-seed.md`. Delivery: MR **!102 merged**
+(`1ffa7e7`), post-merge **develop #523 quality:gate success** —
+`RCs: e2e=0 e2e_fe=0 chaos=0 security=0 perf=0`, `quality gate exit: 0`
+(job 4023).
+Prev (TASK-0165): **TASK-0165 DONE 2026-10-31 — attention-e2e strict-mode (инцидент
+schedule gate #515)**: `e2e_fe=1` в schedule-гейте (develop@185f1b8c) —
+заголовок секции vs empty-state ловились case-insensitive substring'ом →
+strict-violation при пустой секции (data-dependent флаки; чистый `exact`
+сломал бы матч с count-badge). Фикс: card-scoped `attentionTitle()`
+(`[data-slot=card] filter hasText` → `card-title` + `toContainText`) в
+4 тестах + регресс-тест с принудительно пустыми секциями (canary пинит
+ловушку). Evidence: `dashboard.spec.ts` **16/16 ×2**; MR !100 merged;
+**develop #519 quality:gate success — `RCs: e2e=0 e2e_fe=0 chaos=0
+security=0 perf=0`, exit 0** (job 3985) → инцидент #515 закрыт.
+Prev (TASK-0160): **TASK-0160 DONE 2026-10-31 — doc/status sync batch (stale-задачи
+M10/M11 + roadmap/versioning + TDD-гэпы)**: 11 pending-задач TASK-0077…0087
+закрыты по пер-AC верификации против кода (4 параллельных read-only агента),
+все 11 → DONE; гэпы доработаны red→green: HTTP-тесты evidence/review-round
+lifecycle + submit-review transition (0078/0079/0080), кнопка Submit-for-review
++ bell-тесты (0082/0086), positive-тесты 4 секций attention + health-route
+404 fix (0083/0087), HTTP+route-contract тесты нотификаций (закрыт
+audit-finding T2) + фикс мёртвых путей perf-сценария/PRD (0085). Найдены и
+исправлены баги: **verdict-эндпоинт 500** (int confidence vs str-аннотация)
+и **health 404** для неизвестного проекта; submit-review теперь переводит
+задачу → ready_for_review (201-контракт). Доки: ROADMAP (M16/M18/M19 → DONE,
+After-M20 п.1-3 закрыты), VERSIONING (0.18.0/0.20.0 закрыты без бампа —
+решение Дмитрия 2026-10-31), SPEC-0017 PUT→POST ×3, SPEC-0026 подтверждён
+APPROVED. Evidence: backend **1089 passed**/ruff/mypy 114 чисто, frontend
+**480/480**/tsc/oxlint чисто. Ветка `feature/TASK-0160-doc-status-sync` → MR.
+Prev (TASK-0159): **TASK-0159 DONE 2026-10-25 — CI quality-gate repair (инцидент:
+develop красный стабильно с #478)**: «стабильно не проходит quality gate» =
+два независимых дефекта + класс xdist-резиду. (1) **security=1**:
+`create_access_token` был детерминирован внутри секунды (payload без
+случайного клейма; denylist sha256(raw) с TASK-0147 → logout-401 на «свежем»
+токене) → фикс `jti: uuid4` + red→green тест с frozen-clock; **live baseline:
+authz 55/55 failed=0, RUN_RC=0**. (2) **e2e_fe=1** (с #492, merge TASK-0108):
+`BreadcrumbBar` брал первый uuid пути за project-id →
+`GET /api/v1/projects/<agentId>` 404 на Agent Detail → фикс: project-id
+только из `projects/<uuid>`; red→green, frontend vitest **467**/tsc/oxlint
+чисто. (3) **backend:test #508**: **21 файл** с локальной `_db` без
+drop-first (xdist делит движок; fe4835d чинил только conftest) → sweep
++1 строка ×21 + классовый контракт-тест → **CI-команда `-n auto` ×2: RC=0/0,
+1047 passed**; mypy 114 чисто. Radar: `container:scan` = allow_failure
+(trivy DB — внешняя сеть, на гейт не влияет). Ветка
+`feature/TASK-0159-ci-quality-gate-repair` → MR; финальная верификация —
+quality gate develop после merge (среда воспроизведения).
+Prev (Этап 4 / TASK-0156): **Этап 4 ЗАКРЫТ — TASK-0156 DONE 2026-10-25 (bootstrap
+port-var modernization)**: все **14** легаси-вхождений в шаблонах
+скрафтолдера → канонический `UPCP_PORT_*` (docs/11 ×5, .env.example ×5,
+docker-compose ×4: backend/db/prometheus/grafana), дефолты портов и
+генерация не менялись. Контракт-тест `backend/tests/test_bootstrap_scaffold.py`
+(imпорт `bootstrap_upcp` безопасен): red **3 failed** → **green 3 passed**;
+grep-легаси по скрафтолдеру = 0. Тест сам поймал 14-й случай, пропущенный
+первичным grep-инвентарём (обрезка `head`) — ловушка отработала. Отклонение:
+`UPCP_FRONTEND_DEV_PORT` → `UPCP_PORT_FRONTEND_DEV` (не `..._FRONTEND` —
+корневой = nginx:3071, scaffold = vite-dev:35173, слияние семантик
+вводило бы в заблуждение; префикс-контракт соблюдён). Полные гейты:
+backend **1026 passed**, ruff (backend + сам скрафтолдер) clean,
+mypy clean (114 файлов). Ветка `feature/TASK-0156-bootstrap-port-vars` → MR.
+**Итог Этапа 4: все4 хвоста закрыты — B-matrix (TASK-0154) ✅, engine dedup
+(TASK-0112) ✅, `as any` hygiene (TASK-0155) ✅, bootstrap port-var
+(TASK-0156) ✅. Дальше: backlog §8 закрыт (TASK-0157 + TASK-0158).**
+Queued (2026-10-31): ~~**Incident 2026-10-31** — schedule quality gate **#515**
+(develop@185f1b8c) `e2e_fe=1`: attention-e2e strict-mode (заголовок vs
+empty-state, data-dependent флаки) → **TASK-0165**~~ — **закрыт 2026-10-31**
+(develop #519 gate success, e2e_fe=0);
+**Auth/layering batch (SPEC-0028 + SPEC-0029) — ВСЁ DONE 2026-11-04,
+MR !105:** ~~TASK-0168 (реестр поверхностей), TASK-0169 (web_auth +
+enumeration + миграция харнесса), TASK-0170 (agent surface + TTL/scopes +
+retirement AuthMiddleware), TASK-0171 (MCP principal binding),
+TASK-0172 (RBAC 43 гейта), TASK-0173 (surface observability + rate без
+хардкодов), TASK-0174 (layering foundation), TASK-0175 (unification),
+TASK-0176 (cross-context cleanup), TASK-0177 (boundary contract)~~ —
+все 10 закрыты с evidence (red→green + per-task multi-factor);
+aspect-review пачки → 8 фиксов в ветке. **В очереди: TASK-0178**
+(follow-ups: сканер `db.query` на весь identity, denylist → cache
+provider, RBAC subject → сервис, MCP tools → threadpool, locust
+scopes-fix).
+**TASK-0161** (e2e coverage audit + gap closure),
+**TASK-0162** (deployment guide), **TASK-0163** (performance baselines),
+**TASK-0164** (notifications API contract: user_id bucket + envelope —
+auth-sensitive, эскалация до фикса); **TASK-0166 follow-ups** (наблюдения
+2026-10-31): write-API для audit_event (фронтовый POST /audit-events мёртв —
+Recent Activity только через SQL), HTTP-роут для git sync-веток/коммитов,
+эндпоинт task_dependency CRUD, `TaskService.complete` минует
+validate_transition (done из любого статуса), reaper-дубли claim.stale
+событий на каждом тике; follow-ups: FK-500 на unknown
+parent-task в `POST .../review-rounds|evidence` (404 не проверяется),
+TaskDetailSheet legacy status-Select (`in-progress`/`review` против
+underscore-словаря), bare-`pytest` ломает сбор bootstrap-теста (CI-форма
+`.venv/bin/python -m pytest` рабочая — см. TASK-0161).
 Blockers: none
-Roadmap: See `ROADMAP_UNIFIED.md` for post-M15 plan (M16-M20, ~23 weeks)
+Roadmap: See `ROADMAP_UNIFIED.md` (M16-M20) + SPEC-0025/0026 for current batch
+Specs: SPEC-0024 (Test Environment — Comprehensive Quality Gate), SPEC-0025 (Dashboard Redesign, APPROVED), SPEC-0026 (Universal Filtering, **APPROVED 2026-10-24**), SPEC-0027 (Security Findings Closure, **ЗАКРЫТ 2026-10-24** — TASK-0145/0146/0147/0148, findings 1-5), SPEC-0028 (AuthN/AuthZ rework: Web API vs Agent API, **ЗАКРЫТ 2026-11-04** — TASK-0168…0173 все DONE, MR !105), SPEC-0029 (Identity layering: services → repository + cache provider, **ЗАКРЫТ 2026-11-04** — TASK-0174-0177 все DONE, MR !105; AC1 amended после aspect-review)
+
+## Status-аудит 2026-10-24 (Этап 0, evidence-based)
+
+Сверка AC задач против реального кода + тесты. Локально: targeted pytest
+**130 passed**, targeted vitest **29 passed**, `tsc --noEmit` clean, lint
+0 errors; CI 465-469 green.
+
+| Task | Статус | Итог |
+|------|--------|------|
+| TASK-0097 (S16.4 polish) | ✅ DONE | MR смержен, хелперы есть; hygiene `as any` **закрыт TASK-0155 (2026-10-25): 90 → 0**, enforcement-бюджет, prod-эскейпы ×4 задокументированы |
+| TASK-0100 (M16 trigger) | ✅ DONE | 8 event types, event bus, 10 тестов |
+| TASK-0101 (M16 channels) | ✅ DONE | откл.: миграция 0020 вместо AC «0019» |
+| TASK-0102 (M16 analytics svc) | ✅ DONE | закрыт 2026-10-25: пагинация `/analytics/agents/overview` (limit/offset/total) + API-слой 6 тестов (AC 6+5 → 6+6) |
+| TASK-0103 (M16 analytics UI) | ✅ DONE | закрыт 2026-10-25: nav-item `/analytics` (NAV_GROUPS + палитра) + 11 frontend-тестов (red 3/19 → green 22/22, сьют 457/457) |
+| TASK-0108 (M18 a11y) | ✅ DONE | закрыт 2026-10-25: name-resolution (useProject, red→green), keyboard/ARIA-тесты +8, nested-button fix; AC SavedViews → removed |
+| TASK-0109 (M18 settings) | ✅ DONE | закрыт 2026-10-25: PATCH channel endpoint (200/404/422) + edit-диалог, evidence-чеклист заполнен (1014 backend / 446 frontend); follow-up: create() 500 на invalid config |
+| TASK-0110 (M18 notification UX) | ✅ DONE | все AC: фильтры, mark-all, empty state, navigate, 8 тестов |
+| TASK-0111 (M18 project dashboard) | ✅ DONE | все компоненты + 9 тестов |
+| TASK-0112 (M19 test infra) | ✅ DONE | закрыт 2026-10-25: enforcement-тест (red 17 → green), 17 файлов мигрировано, conftest `db_session` drop+create, fix(quality) upload→404; сьют 1023 |
+| TASK-0113 (M19 service tests) | ✅ DONE | 95 тестов 4 файлов; minor-откл. по фикстуре (общий engine) |
+| TASK-0114 (M19 event bus) | ✅ DONE | 8 publish-точек, подписки, тесты |
+
+**Ключевая находка:** M16 (S18.1-S18.4) и M18 (S20.1-S20.4) реализованы в
+коде значительно глубже, чем отражал roadmap (он обновлён). Реально
+закрыто: M16 2/4 + 2 частично, M18 2/4 + 2 частично, M19 2/3 + 1 частично.
+
+**Новые gaps → в очереди:** ~~analytics nav-item + тесты (0103)~~ —
+закрыты TASK-0103 (2026-10-25, все M16-gaps аудита закрыты);
+~~channel edit API + evidence (0109)~~ — закрыты TASK-0109 (2026-10-25);
+~~breadcrumb name-resolution + keyboard
+тесты + судьба SavedViews AC (0108)~~ — закрыты TASK-0108 (2026-10-25);
+~~engine dedup разбор (0112)~~ — закрыт TASK-0112 (2026-10-25, все
+PARTIAL-задачи аудита по M16/M18 закрыты);
+~~`as any` hygiene (0097)~~ — закрыт TASK-0155 (2026-10-25: 90 → 0,
+enforcement-бюджет; prod ×4 документированы).
+
+## Current Work (2026-10-17)
+
+**Incident 2026-10-17 — dev/stage backend crash-loop (~10h) — RESOLVED:**
+`alembic upgrade head` on container start failed on `DuplicateTable:
+ix_task_feature_id`. Root causes: migration **0019** recreated 17 indexes
+already created by 0008 (could never pass on any real DB — stage/test stuck
+at `0017`); migration **0023** re-added columns from 0021 (would fail next).
+Latent since August, exposed by the TASK-0136 deploy fix (MR !56) which made
+compose run the freshly built image. Masked twice: the old deploy health loop
+fell through to "complete", and jobs run on `network_mode=gitlab-local_default`
+so host-loopback `wget localhost:38081` was never reachable from a job.
+**Fixed via MR !60 (hotfix):** 0019/0023 made idempotent (red→green: empty-DB
+full chain 24 upgrades → `0023 (head)`), deploy health checks now fail the job
+(`exit 1` + compose logs), new `backend:migrations` CI job runs
+`alembic upgrade head` on a fresh postgres:16 in the test stage.
+**Fixed via MR !62:** health probe moved inside the app container
+(`docker compose exec app`, 40×3s budget). **MR !61** added TASK-0128 Parts
+C/D/E. Post-merge: stage healthy (`alembic 0023`, `RestartCount=0`, host 200).
+
+**Merged 2026-10-17:** MR **!60** `hotfix/migrations-idempotent`
+(`4a0e647`), MR **!61** `feature/TASK-0128-parts-cde` (`fd5a709`),
+MR **!62** `fix/deploy-health-probe` (`ee3c45e`) — all pipelines green.
+
+**Closed 2026-10-17 — TASK-0128 Parts C/D/E:** Part C e2e
+(`dashboard-redesign.spec.ts`, 15 tests: 5-row visual+console-errors, KPI
+drill-down, donut, attention/View-all, selector URL scoping, responsive
+1440/768/375, mocked SSE critical event, dark mode, load <3s), Part D a11y
+(+8 D1-D8 tests, aria-labels on KPI/donut), Part E security
+(`test_dashboard_security.py`, 32 tests: 401s, SQLi, XSS JSON boundary,
+rate-limit 429, CORS — no production gaps). Evidence: new specs 30/30 green;
+full e2e vs baseline identical per-file failures (104→102, all pre-existing
+mock rot) — no regressions; backend 944 passed; frontend 336/336.
+TASK-0128 status → **PARTIAL**: A/B matrix rows (A5 velocity negative/boundary,
+A8/A9 portfolio, part of B) remain untested.
+
+### Prior session (2026-10-16) — see task files for detail
+
+**Merged:** MR **!56** `feature/sprint7-polish` (sprint stack + dashboard AC
+closure TASK-0120-0127 + CI tag mismatch fix + retention TASK-0136 + SPEC-0024
+Phase 1 + npm lock fix; `develop` had been deleted server-side and was
+restored first at `d73868e`). MR **!57** TASK-0119 port externalization
+(`f79ca77`). MR **!58** docs sync (`126f37f`). MR **!59** version bump 0.22.0
+(`3fcae74`, M20 ✅ — S22.1-S22.5 all closed).
+
+**Known discrepancies (to sync):**
+- SPEC-0024 Phase 2 ✅ DONE (2026-10-18, TASK-0140 — suite first-ever run, reports/baselines); Phase 3 ✅ (TASK-0141), Phase 4 ✅ (TASK-0142), Phase 5 ✅ (TASK-0143 — hard-гейт в CI).
+- ~~Дубль файла TASK-0116~~ — resolved: помечен DUPLICATE (канонический `...-evidence.md`, DONE).
+
+**Queued:**
+- ~~TASK-0128 A/B matrix rows~~ — closed 2026-10-17 (see below, branch `feature/TASK-0128-parts-ab`).
+- ~~Pre-existing e2e debt~~ — closed 2026-10-17 (TASK-0138): full `frontend/e2e` suite **153 passed / 0 failed** (was 102 failed). Root causes: mock catch-all registered LIFO-shadowing specific mocks, stale route shapes/selectors vs dashboard redesign+filtering, `networkidle` never settles with SSE, live-backend rate limiter 429, non-idempotent create data. 5 deleted tests = removed UI feature (verdict accept/reject buttons) + 1 vacuous stub, justified in TASK-0138.
+- ~~Product bug: public pages 401-redirect~~ — closed 2026-10-17 (TASK-0139): background notification infra gated on auth — `NotificationBell` unread-count query `enabled: isAuthenticated`, `useSSE` effect connects only when authenticated (aborts on logout). TDD red→green: root e2e `/setup` regression test, 2 vitest gating tests. Workaround mocks removed from frontend `auth.spec.ts` (heading guards kept). Evidence: root e2e 22/22, frontend e2e 153/153, vitest 433/433, lint/tsc clean. Note: live-stack runs require `docker compose --env-file .env.dev build frontend && up -d frontend` first — `upcp-frontend-1` serves a baked `dist/` (see project memory).
+- ~~Root `tests/e2e` suite re-run~~ — closed 2026-10-17: **21 passed / 0 failed** against the live dev stack (3 failures were `waitForLoadState('networkidle')` never settling with SSE open — same root cause fixed in `frontend/e2e/comprehensive-ui.spec.ts`; replaced with `'load'` in `tests/e2e/navigation.spec.ts`).
+- ~~SPEC-0024 Phase 5~~ — **закрыт 2026-10-18 (TASK-0143, MR !71–!77)**: quality-gate в CI как hard gate (`allow_failure: false`) после зелёных наблюдений develop ×2 (jobs 3330/3371) + schedule-full ×1 (job 3345); schedule id 1 (03:00 MSK nightly); aggregate reporter + environments/gates docs. Все 4 фикс-раунда (!72–!75) сняли 11 wiring-багов (runner bind-mounts, hostname-vs-name connect, empty-state e2e, chaos URL env ×2, psycopg, timing budget, agent commit-race, env-pollution/collision готчей — в docs §6). Фазы SPEC-0024: **1-5 все ✅**.
+- **SPEC-0027 (создан 2026-10-24, APPROVED) — ЗАКРЫТ 2026-10-24**:
+  finding 1 **закрыт** (TASK-0145: RBAC-гейты), finding 2 **закрыт**
+  (TASK-0146: user-existence в middleware), finding 3 **закрыт**
+  (TASK-0147: logout denylist), findings 4-5 **закрыты** (TASK-0148:
+  revoke-all refresh при смене пароля, рерайт auth-rbac EN+RU,
+  `/mcp/health` из PUBLIC_PATHS); live authz **0 xfail** — 55 passed /
+  1 skipped. Вне спеки, backlog §8:
+  ~~ZAP authenticated baseline (скрипты image без `-H`)~~ — **закрыт
+  TASK-0157 (2026-10-25)**; ~~security results → Grafana~~ — **закрыт
+  TASK-0158 (2026-10-25)** — backlog §8 закрыт полностью.
+- ~~From TASK-0140 findings: `dashboard/stats` perf task (standalone 1.06–1.33s @394 projects, 117/119 load timeouts, per-project aggregation suspect); 50-user throughput investigation (5.1 req/s, p50 1.1s — anyio threadpool saturation suspect); loki OTLP receiver for 3.4.2 (collector→loki:4317 refused; top-level `otlp:` invalid — reverted); grafana `dashboards/production` missing-dir walk + admin password doc mismatch (`admin_change_me` volume-init vs `.env.test` `admin_test`); Lighthouse frontend perf absent from scaffold.~~ — **все5 закрыты TASK-0149…0153 (2026-10-24/25)**: set-based health (suite 996), throughput 46.7 rps/SLO 2154/2154, `otlphttp/loki` `/otlp`, grafana dirs+precedence, Lighthouse `make lighthouse` budget 0.8; evidence в файлах задач.
+- ~~`bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names)~~ — **закрыт TASK-0156 (2026-10-25)**: 14 → 0 легаси, контракт-тест green.
+
+**Merged:** MR **!56** `feature/sprint7-polish` → `develop` merged 2026-10-16
+(merge commit `96b80ae`, pipeline green). Note: `develop` branch had been
+deleted server-side and was restored first at its last known SHA `d73868e`.
+
+**Branch:** `feature/sprint7-polish` — merged; 20 commits включая 5 коммитов
+закрытия (dashboard AC, CI/CD fix, docs sync, SPEC-0024 Phase 1, lock fix):
+
+| Batch | Scope | Status |
+|-------|-------|--------|
+| Dashboard Sprints 1-4 | SPEC-0025 S25.1-S25.8: KPI drill-down, donut, velocity, clickable attention, portfolio table, project selector, SSE activity, responsive + fix | ✅ merged |
+| Filtering | SPEC-0026: backend filters + shared FilterBar/URL-sync, StructurePage, AgentCenter fix | ✅ merged (SPEC-0026 APPROVED 2026-10-24, файл синхронизирован TASK-0160; TASK-0129-0135 не создавались — работа шла в !56) |
+| Sprint 5 | Core UX: task editing + password change | ✅ merged |
+| Sprint 6 | Git-links wiring in TaskDetailSheet | ✅ merged |
+| Sprint 7 | Quality tab CRUD + dead code cleanup | ✅ merged |
+| Closure batch | TASK-0120-0127 AC gaps, test regressions, CI/CD fix, SPEC-0024 Phase 1, npm lock fix | ✅ merged (MR !56) |
+
+**In progress:** none — next: pick from Queued.
+
+**Known discrepancies (to sync):**
+- SPEC-0024 Phase 2 ✅ (TASK-0140), Phase 3 ✅ (TASK-0141), Phase 4 ✅ (TASK-0142), Phase 5 ✅ (TASK-0143) — Phase 1 files в develop после MR !56.
+- ~~Дубль файла TASK-0116~~ — resolved 2026-10-16: `TASK-0116-m20-s22-2-file-uploads.md` помечен DUPLICATE (канонический файл — `...-evidence.md`, DONE).
+
+**Closed 2026-10-16 — dashboard tasks TASK-0120…0127 (SPEC-0025):** all 8
+tasks DONE after AC gap closure — status-filtered KPI drill-down, donut/velocity
+sector click-through, "View all →" in attention, PortfolioTable (Status column,
+row click, Show more >5), attention scoping by `?project_id` (backend endpoint
+now accepts it), sticky project selector (fixed `main { overflow-x-hidden }`
+silently breaking descendant sticky). Deviations recorded in task files:
+single-select status filter (no comma-multi), no `week`/`since` params (not
+consumed by delivery), portfolio done/total + server-side status not in schema.
+Evidence: frontend 47 files / **336/336 tests pass** (34 regressions from
+filter/sprint commits fixed in test mocks — verified against develop baseline),
+backend 31 dashboard+attention tests pass, ruff/mypy/tsc/lint clean.
+TASK-0128 marked **PARTIAL** — unit levels green, Parts C/D/E (e2e, a11y,
+security) + dark-mode/responsive visual checks remain.
+
+**Closed 2026-10-16 — CI deploy tag mismatch:** compose referenced port-less
+`registry.gitlab.local/...:stage` (stale 2-month local images) while CI's
+`upcp-*-stage` aliases were unread — deploys silently served old images. Fixed:
+per-branch `FLOAT_TAG` (`:dev` on develop, `:stage` on main — main no longer
+overwrites `:dev`), compose images parametrized via `UPCP_BACKEND_IMAGE` /
+`UPCP_FRONTEND_IMAGE` (default `:5050/...:stage` for manual runs), deploy jobs
+export the exact pulled tag, dead aliases removed. Evidence: CI lint
+`valid: true`, `docker compose config` resolves expected refs, docs updated
+(`docs/ops/docker-compose.md`, `docs/ops/ci-retention.md`).
+
+**Done 2026-10-16 — CI retention (TASK-0136, variant A):** registry expiration
+policy enabled (keep_n=10, SHA-only, dev/stage/latest protected; older_than=null —
+OCI-index tags have no created_at), registry tags 81/58 → 11/11, build jobs now
+drop local SHA tags + prune dangling after push, manual `maintenance:cleanup` job
+added (lint valid), one-time host cleanup: 44 orphaned runner cache volumes
+(18.84→11.43GB) + dead stage aliases removed, online GC confirmed automatic.
+Docs: `docs/ops/ci-retention.md`.
+
+**Known CI findings:** deploy tag mismatch и коллизия `:dev` исправлены
+2026-10-16 (см. выше «Closed 2026-10-16 — CI deploy tag mismatch»).
+Дополнительно в MR !56: `frontend/package-lock.json` синхронизирован с
+recharts-деревом (npm ci в CI падал на рассинхроне lock-файла).
+
+**Closed 2026-10-17 — TASK-0119 port externalization (S22.5):** all 14 AC
+verified against real files. Gaps closed this session: `docker-compose.yml`
+legacy vars (`UPCP_HTTP_PORT`/`UPCP_REDIS_PORT`/`UPCP_PROMETHEUS_PORT`/
+`UPCP_GRAFANA_PORT`) renamed → `UPCP_PORT_*`; `docker-compose.stage.yml`
+hardcoded redis `36382` + backend `38081` → `${UPCP_PORT_*:-default}`;
+`.env.example` + local `.env` renamed to match. Evidence:
+`docker compose --env-file .env.{dev,test,stage} config` resolves expected
+ports for all three envs; backend 912 passed, frontend 336/336, tsc clean.
+Follow-up: `bootstrap_upcp.py` scaffold templates still use legacy names
+(internally consistent — separate modernization task).
+
+**Merged 2026-10-17:** MR **!57** `feature/TASK-0119-port-externalization` →
+`develop` (merge commit `f79ca77`, pipeline success).
+
+**Queued:**
+- ~~Version bump~~ — done 2026-10-17: **0.22.0** (M20 ✅).
+- ~~Component-gap follow-ups from B-matrix blocked rows (6)~~ — **закрыты
+  TASK-0154 (2026-10-25)**: B3.5 health clamp, B6.4 donut rounding,
+  B12.7/B13.7 `tasks_done/tasks_total` (type+backend+render),
+  B18.10 agent nav, B19.7 progress cap, B15.3/B15.4 ProjectSelector
+  fallback-to-All; evidence в TASK-0154 (red 9FE+2BE → green,
+  сьюты 464/464 + 1022).
+- SPEC-0024 Phase 5 (integration → CI) — TASK-0143; Phases 2 ✅ (TASK-0140), 3 ✅ (TASK-0141), 4 ✅ (TASK-0142) закрыты. TASK-0140 finding follow-ups (stats perf, throughput, loki OTLP, grafana docs, Lighthouse) — **все закрыты TASK-0149…0153 (2026-10-24/25)**.
+- ~~`bootstrap_upcp.py` scaffold port-var modernization (legacy `UPCP_HTTP_PORT`-style names)~~ — **закрыт TASK-0156 (2026-10-25)**.
 
 ## M17 Summary — Security & Stability
 
@@ -19,6 +371,58 @@ All 4 sprints completed and merged:
 | S19.4 | TASK-0107 | Architecture cleanup (logging, dead code, inbox, lifespan, target) | ✅ Done |
 
 **Evidence:** 732 tests pass, ruff + mypy clean, all pipelines green
+
+## Test Environment — Comprehensive Quality Gate (SPEC-0024)
+
+Three pillars: **Performance**, **Chaos Engineering**, **Security Testing**.
+
+### Phase 1: Foundation ✅ Complete (2026-08-18)
+
+| Component | Status | Files |
+|-----------|--------|-------|
+| docker-compose.test.yml | ✅ Expanded | Redis, Locust (master+workers), ZAP, Kali, seeder, observability stack |
+| .env.test | ✅ Updated | 14 ports: core + perf + security + observability |
+| Metrics middleware | ✅ Created | `backend/app/shared/metrics.py`, `metrics_middleware.py` |
+| /metrics endpoint | ✅ Added | `backend/app/main.py` |
+| Prometheus config | ✅ Created | `observability/prometheus-test.yml` |
+| Loki config | ✅ Created | `observability/loki-config.yaml` |
+| Tempo config | ✅ Created | `observability/tempo-config.yaml` |
+| OTel Collector config | ✅ Created | `observability/otel-collector-config.yaml` |
+| Grafana provisioning | ✅ Created | datasources + dashboards provisioning |
+| Grafana dashboard | ✅ Created | `test/overview.json` — request rate, latency, errors, DB pool |
+| Test data seeder | ✅ Created | `tests/infrastructure/seeder.py` — small/medium/large profiles |
+| Locust mixed scenario | ✅ Created | `tests/performance/locustfiles/scenario_mixed.py` |
+| Locust base class | ✅ Created | `tests/performance/locustfiles/common.py` — UPCPBaseUser |
+| SPEC-0024 | ✅ Created | Full spec in `specs/SPEC-0024-test-environment.md` |
+
+**Verification:** ruff clean, mypy clean, docker-compose valid, 16 existing tests pass.
+
+### Test Environment Ports
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| Frontend | 3071 | Nginx → frontend |
+| Backend API | 38082 | FastAPI + /metrics |
+| PostgreSQL | 35434 | Database |
+| Redis | 36383 | Cache/rate-limit |
+| Locust | 38089 | Load testing UI |
+| OWASP ZAP | 38090 | DAST security |
+| Kali | 38091 | Pentest agent |
+| Prometheus | 39091 | Metrics |
+| Grafana | 33001 | Dashboards (8 total) |
+| Loki | 3101 | Logs |
+| Tempo | 3201 | Traces |
+| OTel Collector | 4319/4320 | Telemetry |
+
+### Phase Roadmap
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| Phase 1: Foundation | docker-compose, metrics, seeder, basic Locust | ✅ Done |
+| Phase 2: Performance | All Locust scenarios, concurrency, SLI/SLO, analyzer | ✅ Done (TASK-0140) |
+| Phase 3: Chaos | Docker chaos scripts, assertions, cascade failures | ✅ Done (TASK-0141) |
+| Phase 4: Security | SAST, DAST, API fuzzing, auth tests, Kali pentest agent | ✅ Done (TASK-0142) |
+| Phase 5: Integration | Aggregate reporter, CI/CD, Makefile targets, docs | ✅ Done (TASK-0143) |
 
 ## UPCP v2 Project (Stage)
 
@@ -87,17 +491,17 @@ All 4 sprints completed and merged:
 ## Roadmap
 
 ```
-0.17.0 ✅ → 0.18.0 → 0.19.0 ✅ → 0.20.0 → 0.21.0 ✅ → 0.22.0 → ...
+0.17.0 ✅ → 0.18.0 ✅ → 0.19.0 ✅ → 0.20.0 ✅ → 0.21.0 ✅ → 0.22.0 ✅ → ...
    M15         M16        M17         M18         M19         M20
 ```
 
 See `ROADMAP_UNIFIED.md` for full plan with sprint breakdown.
 
-### M16: 0.18.0 — Notifications & Reporting (S18.1 done, S18.2-S18.4 pending)
+### M16: 0.18.0 — Notifications & Reporting ✅ DONE (gaps закрыты 2026-10-25)
 ### M17: 0.19.0 — Security & Stability ✅ DONE
-### M18: 0.20.0 — UX Polish, Accessibility & Settings (planned, SPEC-0021)
+### M18: 0.20.0 — UX Polish, Accessibility & Settings ✅ DONE (gaps закрыты 2026-10-25, SPEC-0021)
 ### M19: 0.21.0 — Test Quality & Architecture ✅ DONE
-### M20: 0.22.0 — Extended Features (S22.3+S22.4 done on branch, S22.1+S22.2 pending)
+### M20: 0.22.0 — Extended Features ✅ DONE (S22.1-S22.5 закрыты 2026-10-17)
 
 ### Comprehensive Audit (2026-08-12)
 

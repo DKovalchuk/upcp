@@ -44,8 +44,10 @@ test.describe('Projects', () => {
 
   test('project detail has edit and delete buttons', async ({ page }) => {
     await gotoPage(page, '/projects/proj-1');
-    const buttons = page.locator('header ~ div button, [class*="items-start"] button');
-    const count = await buttons.count();
-    expect(count).toBeGreaterThanOrEqual(2);
+    // Header renders two icon buttons with accessible names (Pencil/Trash2 icons, no visible text)
+    const editButton = page.getByRole('button', { name: 'Edit project' });
+    const deleteButton = page.getByRole('button', { name: 'Delete project' });
+    await expect(editButton).toBeVisible({ timeout: 10000 });
+    await expect(deleteButton).toBeVisible();
   });
 });

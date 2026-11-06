@@ -34,6 +34,12 @@ class Settings(BaseSettings):
         alias="REDIS_URL",
     )
 
+    # DB connection pool — defaults match the historical hardcoded values
+    # in shared/database.py; overridable per env (a 50-user load profile
+    # exhausted the fixed 20+10 pool with TimeoutErrors, TASK-0140)
+    db_pool_size: int = Field(default=20, alias="UPCP_DB_POOL_SIZE")
+    db_max_overflow: int = Field(default=10, alias="UPCP_DB_MAX_OVERFLOW")
+
     # CORS — env vars: UPCP_CORS_ORIGINS, UPCP_CORS_ALLOW_HEADERS (comma-separated strings)
     cors_origins: str = Field(default="", alias="CORS_ORIGINS")
     cors_allow_headers: str = Field(default=_DEFAULT_CORS_HEADERS, alias="CORS_ALLOW_HEADERS")
@@ -48,6 +54,22 @@ class Settings(BaseSettings):
     # Explicit middleware disable flags — safer than relying on env="test"
     disable_auth: bool = Field(default=False, alias="UPCP_DISABLE_AUTH")
     disable_rate_limit: bool = Field(default=False, alias="UPCP_DISABLE_RATE_LIMIT")
+
+    # Per-surface rate policies (SPEC-0028 AC9, TASK-0173) — the values the
+    # ``SurfaceRateLimit`` dependency enforces AFTER auth (principal-keyed);
+    # the global pre-auth floor in RateLimitMiddleware keeps the historical
+    # DEFAULT_LIMITS numbers (100/min per IP). Defaults match the historical
+    # "default" bucket so existing deployments keep their effective limits.
+    # Env names follow the UPCP_* contract (TASK-0119 prefix discipline).
+    rate_limit_web_max: int = Field(default=100, alias="UPCP_RATE_LIMIT_WEB_MAX", ge=1)
+    rate_limit_web_window: int = Field(default=60, alias="UPCP_RATE_LIMIT_WEB_WINDOW", ge=1)
+    rate_limit_agent_max: int = Field(default=100, alias="UPCP_RATE_LIMIT_AGENT_MAX", ge=1)
+    rate_limit_agent_window: int = Field(default=60, alias="UPCP_RATE_LIMIT_AGENT_WINDOW", ge=1)
+
+    # Agent API-key TTL (SPEC-0028 D1/AC7): every newly issued key gets
+    # expires_at = now + agent_token_ttl_days; keys issued before the rule
+    # (expires_at NULL) are grandfathered until revoked.
+    agent_token_ttl_days: int = Field(default=90, alias="UPCP_AGENT_TOKEN_TTL_DAYS", ge=1)
 
     # File uploads
     upload_dir: str = Field(default="data/uploads", alias="UPCP_UPLOAD_DIR")
